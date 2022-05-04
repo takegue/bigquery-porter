@@ -1,25 +1,32 @@
-'use restrict';
-
-import { topologicalSort, walk } from './util';
-
 // Imports the Google Cloud client library
-const { BigQuery } = require('@google-cloud/bigquery');
-const fs = require('fs');
-const { normalize } = require('path');
-const path = require('path');
-const cli = require('cac')();
+import { BigQuery } from '@google-cloud/bigquery';
+import * as fs from 'fs';
+import * as path from 'path';
+import {cac} from 'cac';
+
+import pLimit from 'p-limit';
+import { topologicalSort, walk } from './util.js';
+
+const cli = cac();
 
 const baseDirectory = './bigquery';
 
-predefinedLabels = {
+const predefinedLabels = {
   'bigquery-loader': 'bigquery_templating',
 };
+const jsonSerializer = (obj: any) => JSON.stringify(obj, null, 4);
 
+
+type BigQueryJobResource = {
+  file: string,
+  bigquery: string,
+  dependencies: string[]
+}
 function createCLI() {
   cli
     .command('push', '説明') // コマンド
     .option('--opt', '説明') // 引数オプション
-    .action(async (options) => {
+    .action(async (options: any) => {
       // 実行したい処理
       console.log('push command', options); // 引数の値をオブジェクトで受け取れる
       await pushBigQueryResources();
@@ -28,7 +35,7 @@ function createCLI() {
   cli
     .command('pull', '説明') // コマンド
     .option('--opt', '説明') // 引数オプション
-    .action(async (options) => {
+    .action(async (options: any) => {
       // 実行したい処理
       pullBigQueryResources();
     });
@@ -42,7 +49,7 @@ async function pullBigQueryResources() {
   // Lists all datasets in the specified project
   bqClient.getDatasetsStream()
     .on('error', console.error)
-    .on('data', async (dataset) => {
+    .on('data', async (dataset: any) => {
       const projectID = dataset.metadata.datasetReference.projectId;
       const datasetPath = `${baseDirectory}/${projectID}/${dataset.id}`;
       if (!fs.existsSync(datasetPath)) {
@@ -137,17 +144,17 @@ async function pullBigQueryResources() {
     });
 }
 
-const deployBigQueryResouce = async (bqClient, rootDir, p) => {
-  const msgWithPath = (msg) => `${path.dirname(p)}: ${msg}`;
-  const jsonSerializer = (obj) => JSON.stringify(obj, null, 4);
-  const fsHandler = (err) => {
+const deployBigQueryResouce = async (bqClient: any, rootDir: string, p: string) => {
+  const msgWithPath = (msg: string) => `${path.dirname(p)}: ${msg}`;
+  // const jsonSerializer = (obj) => JSON.stringify(obj, null, 4);
+  const fsHandler = (err: Error) => {
     throw new Error(
       msgWithPath(err.message),
     );
   };
-  const bigqueryHandler = (err) => {
+  const bigqueryHandler = (err: any) => {
     throw new Error(
-      msgWithPath(err.errors.map((e) => e.message).join('\n')),
+      msgWithPath(err.errors.map((e: any) => e.message).join('\n')),
     );
   };
 
@@ -156,12 +163,12 @@ const deployBigQueryResouce = async (bqClient, rootDir, p) => {
   const [catalogId, schemaId, name] = path.dirname(path.relative(rootDir, p))
     .split('/');
   const query = await fs.promises.readFile(p)
-    .then((s) => s.toString())
-    .catch((err) => {
+    .then((s: any) => s.toString())
+    .catch((err: any) => {
       throw new Error(msgWithPath(err));
     });
 
-  const syncMetadata = async (table, dirPath) => {
+  const syncMetadata = async (table: any, dirPath: string) => {
     const metadataPath = path.join(dirPath, 'metadata.json');
     const fieldsPath = path.join(dirPath, 'schema.json');
     const [metadata] = await table.getMetadata();
@@ -169,12 +176,12 @@ const deployBigQueryResouce = async (bqClient, rootDir, p) => {
     // schema.json: local file <---> BigQuery Table
     if (fs.existsSync(fieldsPath)) {
       const oldFields = await fs.promises.readFile(fieldsPath)
-        .then((s) => JSON.parse(s.toString()))
-        .catch((err) => console.error(err));
+        .then(s => JSON.parse(s.toString()))
+        .catch((err: Error) => console.error(err));
       // Update
       let updateCnt = 0;
       Object.entries(metadata.schema.fields).map(
-        ([k, v]) => {
+        ([k, v]: [string, any]) => {
           if (k in oldFields) {
             if (
               metadata.schema.fields[k].description &&
@@ -321,7 +328,7 @@ async function pushBigQueryResources() {
   // console.log(catalogId, schemaId, tableId, p, path.basename(p))
   const results = await Promise
     .allSettled(
-      await walk(rootDir).map((p) =>
+      (await walk(rootDir)).map((p: string) =>
         deployBigQueryResouce(bqClient, rootDir, p)
       ),
     );
@@ -329,7 +336,7 @@ async function pushBigQueryResources() {
   console.dir(results, { depth: 3 });
 }
 
-const pathToBigQueryIdentifier = (fpath) => {
+const pathToBigQueryIdentifier = (fpath: string) => {
   const rootDir = path.normalize('./bigquery');
   const [catalogId, schemaId, name] = path.dirname(
     path.relative(rootDir, fpath),
@@ -337,13 +344,14 @@ const pathToBigQueryIdentifier = (fpath) => {
   return [catalogId, schemaId, name].filter((n) => n).join('.');
 };
 
-const extractSQLIdentifier = async (fpath) => {
+const extractSQLIdentifier = async (fpath: string) => {
   const rootDir = path.normalize('./bigquery');
+  const bqID = path.dirname(path.relative(rootDir, fpath)).replaceAll('/', '.')
   const [catalogId, schemaId, name] = path.dirname(
     path.relative(rootDir, fpath),
   ).split('/');
-  const sql = await fs.promises.readFile(fpath)
-    .then((s) => s.toString());
+  const sql: string = await fs.promises.readFile(fpath)
+    .then((s: any) => s.toString());
 
   // Exclude self-reference
   const denyList = [
@@ -352,54 +360,90 @@ const extractSQLIdentifier = async (fpath) => {
     `${schemaId}`,
   ];
 
+  const normalizeBqPath = (bqPath: string): string => {
+    const parts = bqPath.split('.');
+    if(parts.length == 2){
+      const [dst_schema, dst_name] = parts;
+      const dst_project = catalogId;
+      return `${dst_project}.${dst_schema}.${dst_name}`;
+    } else if(parts.length == 1) {
+      const [dst_schema] = parts;
+      return `${catalogId}.${dst_schema}`;
+    }
+      else {
+      const [dst_project, dst_schema, dst_name] = parts;
+      return `${dst_project}.${dst_schema}.${dst_name}`;
+    }
+  }
+
   return Array.from(sql.matchAll(/`(?:[a-zA-Z-0-9_-]+\.?){1,3}`/g))
     .map(([matchedStr]) => matchedStr.replace(/^`|`$/g, ''))
-    .filter((n) => !denyList.includes(n));
+    .map(normalizeBqPath)
+    // Append Schema dependencies
+    .concat(name !== null ? [`${catalogId}.${schemaId}`] : [])
+    .filter((n: string) => !denyList.includes(n))
+    .filter((n: string) => bqID !== n)
 };
 
 const buildDAG = async () => {
   const rootDir = path.normalize('./bigquery');
   const results = await Promise.all(
-    (await walk(rootDir)).filter((p) => p.endsWith('sql')).map(async (n) => ({
+    (await walk(rootDir)).filter((p: string) => p.endsWith('sql')).map(async (n: string) => ({
       file: n,
       bigquery: pathToBigQueryIdentifier(n),
       dependencies: await extractSQLIdentifier(n),
-    })),
+    } as BigQueryJobResource)),
   );
   const relations = [...results
     .reduce((ret, { bigquery: tgt, dependencies: deps }) => {
       const [src_project, src_schema] = tgt.split('.');
-      ret.add(JSON.stringify([tgt, `${src_project}.${src_schema}`]));
-      ret.delete(JSON.stringify([tgt, tgt]));
       deps.forEach(
-        (d) => {
-          const [dst_name, dst_schema, dst_project] = d.split('.').reverse();
+        (d: string) => {
           ret.add(
-            JSON.stringify([
-              tgt,
-              `${dst_project ?? src_project}.${dst_schema}.${dst_name}`,
-            ]),
+            JSON.stringify([tgt, d]),
           );
         },
       );
       return ret;
-    }, new Set())].map((n) => JSON.parse(n));
-  console.log(results);
-  console.log(relations);
-  console.log('Results', topologicalSort([...relations]));
+    }, new Set())
+  ].map((n: any) => JSON.parse(n));
 
   const bigquery2Obj = Object.fromEntries(results.map((n) => [n.bigquery, n]));
-  return topologicalSort([...relations]).map((bq) => bigquery2Obj[bq] ?? null)
-    .filter(
-      (n) => n,
-    );
+  const DAG = topologicalSort([...relations])
+    .filter(n => n in bigquery2Obj)
+    .map((bq) => bigquery2Obj[bq]);
+
+  const bqClient = new BigQuery();
+  const limit = pLimit(5);
+
+  const deployDAG: Map<string, {
+    promise: any,
+    bigquery: BigQueryJobResource
+  }> = new Map(
+    DAG.map(
+      (target: BigQueryJobResource) => (
+      [
+        target.bigquery, 
+        {
+          promise: limit(async () => {
+              await Promise.all(target.dependencies
+                .map((d: string) => deployDAG.get(d)?.promise))
+              await deployBigQueryResouce(bqClient, rootDir, target.file)
+          }),
+          bigquery: target
+        }
+      ]
+    )
+  ))
+
+  return await Promise.all(
+    Array.from(deployDAG.values())
+    .map(({promise}) => promise)
+  )
 };
 
 const main = async () => {
-  // console.log(catalogId, schemaId, tableId, p, path.basename(p))
-  // createCLI()
-  // await pullBigQueryResources()
-  // await pushBigQueryResources()
+  await buildDAG()
 };
 
 main();

@@ -1,4 +1,5 @@
 {
+  "type": "module",
   "dependencies": {
     "@google-cloud/bigquery": "^5.12.0",
     "@types/mock-fs": "^4.13.1",
@@ -13,5 +14,11 @@
     "test": "vitest",
     "coverage": "vitest run --coverage",
     "format": "deno fmt"
-  }
+  },
+  "devDependencies": {
+    "@types/node": "^12.20.50",
+    "ts-node": "^10.7.0",
+    "typescript": "^4.6.4"
+  },
+  "main": "src/index.js"
 }
