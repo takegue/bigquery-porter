@@ -1,0 +1,17 @@
+{
+  "dependencies": {
+    "@google-cloud/bigquery": "^5.12.0",
+    "@types/mock-fs": "^4.13.1",
+    "cac": "^6.7.12",
+    "mock-fs": "^5.1.2",
+    "node-query": "^0.3.3",
+    "node-sql-parser": "^4.3.0",
+    "p-limit": "^4.0.0",
+    "vitest": "^0.10.1"
+  },
+  "scripts": {
+    "test": "vitest",
+    "coverage": "vitest run --coverage",
+    "format": "deno fmt"
+  }
+}
