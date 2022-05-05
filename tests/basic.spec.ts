@@ -1,6 +1,7 @@
 
 import {expect, describe, it} from 'vitest';
-import {topologicalSort, Relation} from '../src/util';
+import {topologicalSort, Relation} from '../src/util.js';
+import {pushBigQueryResources, pullBigQueryResources} from '../src/index.js';
 
 describe('util test', () => {
     const cases: Array<{
@@ -29,3 +30,13 @@ describe('util test', () => {
     });
 })
 
+describe('integration test', () => {
+    it('Run push', async () => {
+      await pushBigQueryResources();
+    });
+
+    it('Run pull', async () => {
+      await pullBigQueryResources();
+    });
+})
+ 

@@ -18,7 +18,7 @@ type BigQueryJobResource = {
   dependencies: string[]
 }
 
-async function pullBigQueryResources() {
+export async function pullBigQueryResources() {
   const bqClient = new BigQuery();
   // Lists all datasets in the specified project
   bqClient.getDatasetsStream()
@@ -142,10 +142,11 @@ const deployBigQueryResouce = async (bqClient: any, rootDir: string, p: string) 
       throw new Error(msgWithPath(err));
     });
 
-  const syncMetadata = async (table: any, dirPath: string) => {
+  const syncMetadata = async (bqObject: any, dirPath: string) => {
     const metadataPath = path.join(dirPath, 'metadata.json');
     const fieldsPath = path.join(dirPath, 'schema.json');
-    const [metadata] = await table.getMetadata();
+    const [metadata] = await bqObject.getMetadata();
+    const jobs: Promise<any>[] = []
 
     // schema.json: local file <---> BigQuery Table
     if (fs.existsSync(fieldsPath)) {
@@ -165,6 +166,11 @@ const deployBigQueryResouce = async (bqClient: any, rootDir: string, p: string) 
           }
         },
       );
+
+      jobs.push(fs.promises.writeFile(
+        fieldsPath,
+        jsonSerializer(metadata.schema.fields),
+      ).catch(fsHandler))
     }
 
     // metadata.json: local file <--- BigQuery Table
@@ -178,21 +184,82 @@ const deployBigQueryResouce = async (bqClient: any, rootDir: string, p: string) 
       }).filter(([_, v]) => !!v && Object.keys(v).length > 0),
     );
 
-    // Sync
-    await Promise.all([
-      fs.promises.writeFile(
-        fieldsPath,
-        jsonSerializer(metadata.schema.fields),
-      ).catch(fsHandler),
-      ,
+    jobs.push(
       fs.promises.writeFile(
         metadataPath,
         jsonSerializer(localMetadata),
       ).catch(fsHandler),
-      table.setMetadata(metadata)
-        .catch(bigqueryHandler),
-    ]);
+      bqObject.setMetadata(metadata)
+        .catch(bigqueryHandler)
+    )
+
+    // Sync
+    await Promise.all(jobs);
   };
+
+  const fetchBQJobResource = async (job: any): Promise<any> => {
+    const schema = bqClient.dataset(schemaId);
+    switch (job.metadata.statistics.query.statementType) {
+      case 'CREATE_SCHEMA':
+      case 'DROP_SCHEMA':
+      case 'ALTER_SCHEMA':
+        return await schema.get()
+          .then(([d]: [any]) => d);
+      case 'CREATE_ROW_ACCESS_POLICY':
+      case 'DROP_ROW_ACCESS_POLICY':
+        //TODO: row access policy
+        // console.log(job.metadata.statistics);
+        break;
+      case 'CREATE_MODEL':
+      case 'EXPORT_MODEL':
+        //TODO: models
+        break;
+      case 'CREATE_FUNCTION':
+      case 'CREATE_TABLE_FUNCTION':
+      case 'DROP_FUNCTION':
+      case 'CREATE_PROCEDURE':
+      case 'DROP_PROCEDURE':
+        const routineId = name;
+        const [routine] = await schema.routine(routineId).get();
+        return routine;
+      case 'CREATE_VIEW':
+      case 'CREATE_TABLE_AS_SELECT':
+      case 'DROP_TABLE':
+      case 'DROP_VIEW':
+      case 'ALTER_TABLE':
+      case 'ALTER_VIEW':
+      case 'INSERT':
+      case 'UPDATE':
+      case 'DELETE':
+      case 'MERGE':
+      case 'CREATE_MATERIALIZED_VIEW':
+      case 'DROP_MATERIALIZED_VIEW':
+        const [table] = await schema.table(name).get();
+        return table;
+      case 'SCRIPT':
+        //TODO: script
+        const [childJobs, _] = await bqClient.getJobs({
+          parentJobId: job.id,
+        });
+
+        for(const ix in childJobs) {
+          const stat = childJobs[ix].metadata.statistics;
+          if (stat.query?.ddlTargetRoutine){
+            const [routine] = await schema.routine(stat.query.ddlTargetRoutine.routineId).get();
+            return routine
+          }
+          if (stat.query?.ddlTargetTable){
+            const [table] = await schema.table(stat.query.ddlTargetTable.tableId).get();
+            return table;
+          }
+        }
+        console.error(`No Handled: ${childJobs}`);
+        break
+      default:
+        console.error(`Not Found: ${job.metadata.statistics.query.statementType}`);
+    } 
+
+  }
 
   switch (path.basename(p)) {
     case 'ddl.sql':
@@ -206,74 +273,8 @@ const deployBigQueryResouce = async (bqClient: any, rootDir: string, p: string) 
       })
         .catch(bigqueryHandler);
       await job.getQueryResults();
-
-      switch (job.metadata.statistics.query.statementType) {
-        case 'CREATE_SCHEMA':
-        case 'DROP_SCHEMA':
-        case 'ALTER_SCHEMA':
-          break;
-        case 'CREATE_ROW_ACCESS_POLICY':
-        case 'DROP_ROW_ACCESS_POLICY':
-          //TODO: row access policy
-          console.log(job.metadata.statistics);
-          break;
-        case 'CREATE_MODEL':
-        case 'EXPORT_MODEL':
-          //TODO: models
-          console.log(job.metadata.statistics);
-          break;
-        case 'CREATE_FUNCTION':
-        case 'CREATE_TABLE_FUNCTION':
-        case 'DROP_FUNCTION':
-        case 'CREATE_PROCEDURE':
-        case 'DROP_PROCEDURE':
-          //TODO: rountines
-          const schema = bqClient.dataset(schemaId);
-          const routineId = name;
-          const [routine] = await schema.routine(routineId).get();
-          const metadata = routine.metadata;
-          const metadataPath = path.join(path.dirname(p), 'metadata.json');
-          const localMetadata = Object.fromEntries(
-            Object.entries({
-              routineType: metadata.routineType,
-              description: metadata.description,
-              // Filter predefined labels
-            }).filter(([_, v]) => !!v && Object.keys(v).length > 0),
-          );
-          await fs.promises.writeFile(
-            metadataPath,
-            jsonSerializer(localMetadata),
-          );
-          break;
-        case 'CREATE_VIEW':
-        case 'CREATE_AS_TABLE_SELECT':
-        case 'DROP_TABLE':
-        case 'DROP_VIEW':
-        case 'ALTER_TABLE':
-        case 'ALTER_VIEW':
-        case 'INSERT':
-        case 'UPDATE':
-        case 'DELETE':
-        case 'MERGE':
-        case 'CREATE_MATERIALIZED_VIEW':
-        case 'DROP_MATERIALIZED_VIEW':
-          {
-            const schema = bqClient.dataset(schemaId);
-            const [table] = await schema.table(name).get();
-            await syncMetadata(table, path.dirname(p));
-          }
-          break;
-        case 'SCRIPT':
-          //TODO: script
-          const [childJobs, _] = await bqClient.getJobs({
-            parentJobId: job.id,
-          });
-          const tgt = childJobs[0].metadata.statistics.query.ddlTargetRoutine;
-          console.dir(tgt);
-          break;
-        default:
-          console.dir(job.metadata);
-      }
+      await fetchBQJobResource(job)
+          .then((bqObj: any)=> syncMetadata(bqObj, path.dirname(p)))
       break;
     case 'view.sql':
       const schema = bqClient.dataset(schemaId);
@@ -370,7 +371,7 @@ const buildDAG = async () => {
     .filter((n):n is BigQueryJobResource => !!n);
 
   const bqClient = new BigQuery();
-  const limit = pLimit(5);
+  const limit = pLimit(10);
 
   const deployDAG: Map<string, {
     promise: any,
@@ -398,7 +399,7 @@ const buildDAG = async () => {
   )
 };
 
-async function pushBigQueryResources() {
+export async function pushBigQueryResources() {
     await buildDAG()
 }
 
