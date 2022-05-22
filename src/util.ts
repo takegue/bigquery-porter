@@ -1,6 +1,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
+import Parser from 'tree-sitter';
+import Language from 'tree-sitter-sql-bigquery';
+
+
 export async function walk(dir: string): Promise<string[]> {  const fs_files = await fs.promises.readdir(dir);
   const files: string[][] = await Promise.all(fs_files.map(async (file) => {
     const filePath = path.join(dir, file);
@@ -57,3 +61,47 @@ export function topologicalSort(relations: [string, string][]) {
 
   return [...L];
 }
+
+export async function  extractIdentifier(filePath: string) {
+
+  const parser = new Parser();
+  parser.setLanguage(Language)
+
+  const sourceCode = `
+CREATE SCHEMA mydataset
+OPTIONS(
+  location="hoge",
+  labels=[("label1","value1"),("label2","value2")]
+);
+`;
+  const tree = parser.parse(sourceCode);
+
+
+  const findBigQueryResourceIdentifier = function* (node: any): any {
+    const fields: string[] = node.fields;
+    if(fields.includes('nameNode')) {
+      yield node.nameNode;
+    }
+
+    if(fields.includes('tableNameNode')) {
+      yield node.tableNameNode;
+    }
+
+    if(fields.includes('routineNameNode')) {
+      yield node.routineNameNode;
+    }
+
+    for (let ix in node.namedChildren) {
+      for (let n of findBigQueryResourceIdentifier(node.namedChildren[ix])) {
+        yield n
+      }
+    }
+    return
+  }
+
+  for (let n of findBigQueryResourceIdentifier(tree.rootNode)) {
+    console.log(n.parent.type, n.text);
+  }
+
+}
+
