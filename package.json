@@ -1,9 +1,13 @@
 {
   "type": "module",
+  "bin": {
+    "bigquery-launchpad": "bin/bigquery-lanunchpad"
+  },
   "dependencies": {
     "@google-cloud/bigquery": "^5.12.0",
     "cac": "^6.7.12",
-    "p-limit": "^4.0.0"
+    "p-limit": "^4.0.0",
+    "tree-sitter-sql-bigquery": "^0.0.3"
   },
   "scripts": {
     "test": "vitest",
@@ -12,12 +16,12 @@
   },
   "devDependencies": {
     "@tsconfig/strictest": "^1.0.1",
+    "@types/mock-fs": "^4.13.1",
     "@types/node": "^12.20.50",
+    "mock-fs": "^5.1.2",
     "ts-node": "^10.7.0",
     "typescript": "^4.6.4",
-    "vitest": "^0.10.1",
-    "mock-fs": "^5.1.2",
-    "@types/mock-fs": "^4.13.1"
+    "vitest": "^0.10.1"
   },
   "main": "src/index.js"
 }
