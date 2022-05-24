@@ -72,3 +72,13 @@ describe('util test: sql extraction', () => {
     });
 })
 
+describe('integration test', () => {
+    it('Run push', async () => {
+      await pushBigQueryResources();
+    });
+
+    it('Run pull', async () => {
+      await pullBigQueryResources();
+    });
+})
+ 

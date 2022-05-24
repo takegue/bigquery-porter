@@ -3,9 +3,13 @@ import { BigQuery } from '@google-cloud/bigquery';
 import * as fs from 'fs';
 import * as path from 'path';
 import {cac} from 'cac';
-
 import pLimit from 'p-limit';
-import { topologicalSort, walk } from './util.js';
+import {
+  topologicalSort,
+  walk,
+  extractRefenrences,
+} from '../src/util.js';
+
 
 const cli = cac();
 
@@ -301,47 +305,37 @@ const pathToBigQueryIdentifier = (fpath: string) => {
   return [catalogId, schemaId, name].filter((n) => n).join('.');
 };
 
-const extractSQLIdentifier = async (fpath: string) => {
-  const rootDir = path.normalize('./bigquery');
-  const bqID = path.dirname(path.relative(rootDir, fpath)).replaceAll('/', '.')
-  const [catalogId, schemaId, name] = path.dirname(
-    path.relative(rootDir, fpath),
-  ).split('/');
+const normalizeBqPath = (bqPath: string, defaultProject?: string): string => {
+  const parts = bqPath.replace(/`/, '').split('.');
+
+  if(parts.length == 2){
+    const [dst_schema, dst_name] = parts;
+    const dst_project = defaultProject;
+    return `${dst_project}.${dst_schema}.${dst_name}`;
+  } else if(parts.length == 1) {
+    const [dst_schema] = parts;
+    return `${defaultProject}.${dst_schema}`;
+  }
+  else {
+    const [dst_project, dst_schema, dst_name] = parts;
+    return `${dst_project}.${dst_schema}.${dst_name}`;
+  }
+}
+
+const extractBigQueryDependencies = async (fpath: string, rootDir: string) => {
+  const projectID = path.relative(rootDir, fpath).split(path.sep)[0];
   const sql: string = await fs.promises.readFile(fpath)
     .then((s: any) => s.toString());
 
-  // Exclude self-reference
-  const denyList = [
-    `${catalogId}.${schemaId}.${name}`,
-    `${schemaId}.${name}`,
-    `${schemaId}`,
-  ];
-
-  const normalizeBqPath = (bqPath: string): string => {
-    const parts = bqPath.split('.');
-    if(parts.length == 2){
-      const [dst_schema, dst_name] = parts;
-      const dst_project = catalogId;
-      return `${dst_project}.${dst_schema}.${dst_name}`;
-    } else if(parts.length == 1) {
-      const [dst_schema] = parts;
-      return `${catalogId}.${dst_schema}`;
-    }
-      else {
-      const [dst_project, dst_schema, dst_name] = parts;
-      return `${dst_project}.${dst_schema}.${dst_name}`;
-    }
-  }
-
-  return Array.from(sql.matchAll(/`(?:[a-zA-Z-0-9_-]+\.?){1,3}`/g))
-    .map(([matchedStr]) => matchedStr?.replace(/^`|`$/g, ''))
-    .filter((s): s is string => typeof s === 'string')
-    .map(normalizeBqPath)
-    // Append Schema dependencies
-    .concat(name !== null ? [`${catalogId}.${schemaId}`] : [])
-    .filter((n: string) => !denyList.includes(n))
-    .filter((n: string) => bqID !== n)
-};
+  const refs = [...new Set(
+    extractRefenrences(sql)
+      .map(ref => normalizeBqPath(ref, projectID))
+  )]
+  ;
+  const schemas = [...new Set(refs.map(n => n.replace(/\.[^.]+$/, '')))];
+  console.log(projectID, schemas.concat(refs))
+  return schemas.concat(refs);
+}
 
 const buildDAG = async () => {
   const rootDir = path.normalize('./bigquery');
@@ -349,7 +343,7 @@ const buildDAG = async () => {
     (await walk(rootDir)).filter((p: string) => p.endsWith('sql')).map(async (n: string) => ({
       file: n,
       bigquery: pathToBigQueryIdentifier(n),
-      dependencies: await extractSQLIdentifier(n),
+      dependencies: await extractBigQueryDependencies(n, rootDir),
     } as BigQueryJobResource)),
   );
   const relations = [...results

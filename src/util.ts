@@ -66,16 +66,6 @@ export function topologicalSort(relations: [string, string][]) {
 const parser = new Parser();
 parser.setLanguage(Language);
 
-const _findStatementsTableName = function*(node: any): any {
-  let searched = node;
-  while (searched.parent != undefined) {
-    if(searched.type.match(/statement/)) {
-      yield searched
-    }
-    searched = searched.parent
-  };
-}
-
 const findBigQueryResourceIdentifier = function* (node: any): any {
   const resource_name = _extractBigQueryResourceIdentifier(node)
   if(resource_name != null) {
@@ -121,7 +111,7 @@ export function extractDestinations(sql: string): string[] {
   return ret;
 }
  
-export function extractRefenrences(sql: string): string[][] {
+export function extractRefenrences(sql: string): string[] {
   const tree = parser.parse(sql);
   let ret = [];
   let CTEs = new Set<string>();
