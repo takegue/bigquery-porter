@@ -1,9 +1,14 @@
 
 import {expect, describe, it} from 'vitest';
-import {topologicalSort, Relation} from '../src/util.js';
+import {
+  topologicalSort,
+  Relation,
+  extractDestinations,
+  extractRefenrences,
+} from '../src/util.js';
 import {pushBigQueryResources, pullBigQueryResources} from '../src/index.js';
 
-describe('util test', () => {
+describe('util test: toposort', () => {
     const cases: Array<{
         input: Relation[],
         expected: string[]
@@ -30,13 +35,40 @@ describe('util test', () => {
     });
 })
 
-describe('integration test', () => {
-    it('Run push', async () => {
-      await pushBigQueryResources();
+describe('util test: sql extraction', () => {
+    const cases: Array<{
+        input: string,
+        expectedDestinations: string[],
+        expectedReferences: string[],
+    }> = [
+        {
+            input: `create table \`child_table\` as select * 
+          from \`dataset.parent1_table\`, \`dataset.parent2_table\``,
+              expectedDestinations: ["`child_table`"],
+              expectedReferences: ["`dataset.parent1_table`", "`dataset.parent2_table`"],
+        },
+        {
+            input: `with cte as (select * from \`child_table\`) select * from cte`,
+            expectedDestinations: [],
+            expectedReferences: ["`child_table`"],
+
+        },
+        {
+            input: `select 1`,
+            expectedDestinations: [],
+            expectedReferences: [],
+        }
+    ];
+    it.each(cases)('identifier extraction: destinations', async (args) => {
+        const {input, expectedDestinations: expected} = args;
+        expect(extractDestinations(input))
+            .toMatchObject(expected)
     });
 
-    it('Run pull', async () => {
-      await pullBigQueryResources();
+    it.each(cases)('identifier extraction: references', async (args) => {
+        const {input, expectedReferences: expected} = args;
+        expect(extractRefenrences(input))
+            .toMatchObject(expected)
     });
 })
- 
+

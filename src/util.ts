@@ -62,46 +62,78 @@ export function topologicalSort(relations: [string, string][]) {
   return [...L];
 }
 
-export async function  extractIdentifier(filePath: string) {
 
-  const parser = new Parser();
-  parser.setLanguage(Language)
+const parser = new Parser();
+parser.setLanguage(Language);
 
-  const sourceCode = `
-CREATE SCHEMA mydataset
-OPTIONS(
-  location="hoge",
-  labels=[("label1","value1"),("label2","value2")]
-);
-`;
-  const tree = parser.parse(sourceCode);
-
-
-  const findBigQueryResourceIdentifier = function* (node: any): any {
-    const fields: string[] = node.fields;
-    if(fields.includes('nameNode')) {
-      yield node.nameNode;
+const _findStatementsTableName = function*(node: any): any {
+  let searched = node;
+  while (searched.parent != undefined) {
+    if(searched.type.match(/statement/)) {
+      yield searched
     }
-
-    if(fields.includes('tableNameNode')) {
-      yield node.tableNameNode;
-    }
-
-    if(fields.includes('routineNameNode')) {
-      yield node.routineNameNode;
-    }
-
-    for (let ix in node.namedChildren) {
-      for (let n of findBigQueryResourceIdentifier(node.namedChildren[ix])) {
-        yield n
-      }
-    }
-    return
-  }
-
-  for (let n of findBigQueryResourceIdentifier(tree.rootNode)) {
-    console.log(n.parent.type, n.text);
-  }
-
+    searched = searched.parent
+  };
 }
 
+const findBigQueryResourceIdentifier = function* (node: any): any {
+  const resource_name = _extractBigQueryResourceIdentifier(node)
+  if(resource_name != null) {
+    yield resource_name;
+  }
+
+  for (let ix in node.children) {
+    for (let n of findBigQueryResourceIdentifier(node.children[ix])) {
+      if(n != null) {
+        yield n;
+      }
+    }
+  }
+}
+
+
+const _extractBigQueryResourceIdentifier = (node: any) => {
+  const fields: string[] = node.fields ?? [];
+  if(fields.includes('tableNameNode')) {
+    return node.tableNameNode;
+  }
+
+  if(fields.includes('routineNameNode')) {
+    return node.routineNameNode;
+  }
+
+  if(fields.includes('aliasNameNode')) {
+    return node.aliasNameNode;
+  }
+
+  return null
+}
+
+export function extractDestinations(sql: string): string[] {
+  const tree = parser.parse(sql);
+  let ret = [];
+
+  for (let n of findBigQueryResourceIdentifier(tree.rootNode)) {
+      if (n.parent.type.match(/statement/)) {
+        ret.push(n.text)
+      }
+  }
+  return ret;
+}
+ 
+export function extractRefenrences(sql: string): string[][] {
+  const tree = parser.parse(sql);
+  let ret = [];
+  let CTEs = new Set<string>();
+
+  for (let n of findBigQueryResourceIdentifier(tree.rootNode)) {
+      if (n.parent.type.match(/non_recursive_cte/)) {
+        CTEs.add(n.text)
+      }
+
+      if (n.parent.type.match(/from_item/)) {
+        ret.push(n.text)
+      }
+  }
+  return ret.filter(n => !CTEs.has(n))
+}
