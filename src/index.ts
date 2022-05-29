@@ -154,6 +154,7 @@ const deployBigQueryResouce = async (bqClient: any, rootDir: string, p: string) 
   const syncMetadata = async (bqObject: any, dirPath: string) => {
     const metadataPath = path.join(dirPath, 'metadata.json');
     const fieldsPath = path.join(dirPath, 'schema.json');
+    const accessPath = path.join(dirPath, 'access.json');
     const [metadata] = await bqObject.getMetadata();
     const jobs: Promise<any>[] = []
 
@@ -181,6 +182,14 @@ const deployBigQueryResouce = async (bqClient: any, rootDir: string, p: string) 
       jobs.push(fs.promises.writeFile(
         fieldsPath,
         jsonSerializer(metadata.schema.fields),
+      ).catch(fsHandler))
+    }
+
+    // access.json: local file <--- BigQuery Dataset
+    if(metadata?.access) {
+      jobs.push(fs.promises.writeFile(
+        accessPath,
+        jsonSerializer(metadata.access),
       ).catch(fsHandler))
     }
 
