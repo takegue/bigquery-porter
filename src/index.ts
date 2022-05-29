@@ -372,7 +372,7 @@ const buildDAG = async () => {
     .filter((n):n is BigQueryJobResource => !!n);
 
   const bqClient = new BigQuery();
-  const limit = pLimit(10);
+  const limit = pLimit(2);
 
   const deployDAG: Map<string, {
     task: Task,
@@ -384,24 +384,30 @@ const buildDAG = async () => {
         target.bigquery, 
         {
           task: new Task(target.bigquery, 
-              () => limit(async () => {
-                  await Promise.all(
-                    target.dependencies
-                    .map(
-                      (d: string) => deployDAG.get(d)?.task.runningPromise)
-                  )
-                  await deployBigQueryResouce(bqClient, rootDir, target.file)
-              })),
+            async () => {
+              await Promise.all(
+                target.dependencies
+                .map(
+                  (d: string) => deployDAG.get(d)?.task.runningPromise)
+              )
+              await deployBigQueryResouce(bqClient, rootDir, target.file)
+            }),
           bigquery: target
           }
       ]
     )
   ))
 
-  const tasks = [...deployDAG.values()].map(({task}) => {task.run(); return task});
+  const tasks = [...deployDAG.values()]
+    .map(({task}) => {
+      limit(async () => await task.run()); return task}
+    );
   while(tasks.some(t => t.status != 'done')) {
     await new Promise(resolve => setTimeout(resolve, 100))
-    logUpdate(tasks.map(t => t.report()).join('\n'))
+    logUpdate(
+      `Tasks: remaing ${limit.pendingCount + limit.activeCount}\n`
+      + '  ' + tasks.map(t => t.report()).join('\n  ')
+    )
   }
 };
 

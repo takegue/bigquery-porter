@@ -2,6 +2,7 @@
 import readline from 'readline';
 import process from 'process';
 import pc from 'picocolors';
+import {F_CHECK, F_CROSS} from '../src/figures.js';
 
 export const clearScreen = () => {
  const repeatCount = (process.stdout?.rows ?? 0) - 2;
@@ -52,12 +53,12 @@ export class Task {
     let c = pc.red;
     switch (this.status) {
       case 'done':
-        s = "√";
+        s = F_CHECK;
         c = pc.green;
         break;
 
       case 'failed':
-        s = "x";
+        s = F_CROSS;
         c = pc.red;
         break;
 
