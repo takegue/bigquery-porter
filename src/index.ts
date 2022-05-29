@@ -10,6 +10,11 @@ import {
   extractRefenrences,
 } from '../src/util.js';
 
+import {
+  Task,
+  clearScreen,
+} from '../src/reporter.js';
+
 
 const cli = cac();
 
@@ -305,8 +310,8 @@ const pathToBigQueryIdentifier = (fpath: string) => {
   return [catalogId, schemaId, name].filter((n) => n).join('.');
 };
 
-const normalizeBqPath = (bqPath: string, defaultProject?: string): string => {
-  const parts = bqPath.replace(/`/, '').split('.');
+const normalizedBQPath = (bqPath: string, defaultProject?: string): string => {
+  const parts = bqPath.replace(/`/g, '').split('.');
 
   if(parts.length == 2){
     const [dst_schema, dst_name] = parts;
@@ -323,18 +328,18 @@ const normalizeBqPath = (bqPath: string, defaultProject?: string): string => {
 }
 
 const extractBigQueryDependencies = async (fpath: string, rootDir: string) => {
-  const projectID = path.relative(rootDir, fpath).split(path.sep)[0];
+  const [projectID, schema, resource] = path.relative(rootDir, path.dirname(fpath)).split(path.sep).slice(0, 3);
   const sql: string = await fs.promises.readFile(fpath)
     .then((s: any) => s.toString());
 
   const refs = [...new Set(
     extractRefenrences(sql)
-      .map(ref => normalizeBqPath(ref, projectID))
-  )]
-  ;
-  const schemas = [...new Set(refs.map(n => n.replace(/\.[^.]+$/, '')))];
-  console.log(projectID, schemas.concat(refs))
-  return schemas.concat(refs);
+      .map(ref => normalizedBQPath(ref, projectID))
+  )];
+  const refs_schemas = [...new Set(refs)].map(n => n.replace(/\.[^.]+$/, ''));
+
+  const additionals = ((schema !== undefined && resource !== undefined) ? [normalizedBQPath(schema, projectID)] : []);
+  return [...new Set(refs_schemas.concat(refs).concat(additionals))];
 }
 
 const buildDAG = async () => {
@@ -367,8 +372,10 @@ const buildDAG = async () => {
   const bqClient = new BigQuery();
   const limit = pLimit(10);
 
+  console.log(results, relations, DAG);
+
   const deployDAG: Map<string, {
-    promise: any,
+    task: Task,
     bigquery: BigQueryJobResource
   }> = new Map(
     DAG.map(
@@ -376,21 +383,27 @@ const buildDAG = async () => {
       [
         target.bigquery, 
         {
-          promise: limit(async () => {
-              await Promise.all(target.dependencies
-                .map((d: string) => deployDAG.get(d)?.promise))
-              await deployBigQueryResouce(bqClient, rootDir, target.file)
-          }),
+          task: new Task(target.bigquery, 
+              () => limit(async () => {
+                  await Promise.all(
+                    target.dependencies
+                    .map(
+                      (d: string) => deployDAG.get(d)?.task.runningPromise)
+                  )
+                  await deployBigQueryResouce(bqClient, rootDir, target.file)
+              })),
           bigquery: target
-        }
+          }
       ]
     )
   ))
 
-  return await Promise.all(
-    Array.from(deployDAG.values())
-    .map(({promise}) => promise)
-  )
+  const tasks = [...deployDAG.values()].map(({task}) => {task.run(); return task});
+  while(tasks.some(t => t.status != 'done')) {
+    await new Promise(resolve => setTimeout(resolve, 300))
+    clearScreen(0)
+    console.log(tasks.map(t => t.report()).join('\n'))
+  }
 };
 
 export async function pushBigQueryResources() {

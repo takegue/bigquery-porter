@@ -26,6 +26,13 @@ describe('util test: toposort', () => {
                 ['c', 'b'],
             ],
             expected: ['b', 'a', 'c']
+        },
+        {
+            input: [
+                ['c', 'b'],
+                ['b', 'a'],
+            ],
+            expected: ['a', 'b', 'c']
         }
     ];
     it.each(cases)('topological sort', async (args) => {
@@ -57,6 +64,13 @@ describe('util test: sql extraction', () => {
             input: `select 1`,
             expectedDestinations: [],
             expectedReferences: [],
+        },
+        {
+            input: `create or replace function \`sandbox.sample_function\`(argument int64)
+              options(description="test")
+              as (1)`,
+            expectedDestinations: ['`sandbox.sample_function`'],
+            expectedReferences: [],
         }
     ];
     it.each(cases)('identifier extraction: destinations', async (args) => {
@@ -72,13 +86,13 @@ describe('util test: sql extraction', () => {
     });
 })
 
-describe('integration test', () => {
-    it('Run push', async () => {
-      await pushBigQueryResources();
-    });
+// describe('integration test', () => {
+//     it('Run push', async () => {
+//       await pushBigQueryResources();
+//     });
 
-    it('Run pull', async () => {
-      await pullBigQueryResources();
-    });
-})
+//     it('Run pull', async () => {
+//       await pullBigQueryResources();
+//     });
+// })
  
