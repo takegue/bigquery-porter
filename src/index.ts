@@ -334,8 +334,9 @@ const normalizedBQPath = (bqPath: string, defaultProject?: string): string => {
   }
 }
 
-const extractBigQueryDependencies = async (fpath: string, rootDir: string) => {
-  const [projectID, schema, resource] = path.relative(rootDir, path.dirname(fpath)).split(path.sep).slice(0, 3);
+const extractBigQueryDependencies = async (fpath: string, bqClient: BigQuery) => {
+  const path2bq = await pathToBigQueryIdentifier(bqClient);
+  const [projectID, schema, resource] = path2bq(fpath).split('.')
   const sql: string = await fs.promises.readFile(fpath)
     .then((s: any) => s.toString());
 
@@ -345,6 +346,7 @@ const extractBigQueryDependencies = async (fpath: string, rootDir: string) => {
   )];
   const refs_schemas = [...new Set(refs)].map(n => n.replace(/\.[^.]+$/, ''));
 
+  // Add schema as explict dependencies without self 
   const additionals = ((schema !== undefined && resource !== undefined) ? [normalizedBQPath(schema, projectID)] : []);
   return [...new Set(refs_schemas.concat(refs).concat(additionals))];
 }
@@ -361,16 +363,15 @@ const buildDAG = async () => {
       .map(async (n: string) => ({
         file: n,
         bigquery: path2bq(n),
-        dependencies: await extractBigQueryDependencies(n, rootDir),
+        dependencies: await extractBigQueryDependencies(n, bqClient),
       } as BigQueryJobResource)),
   );
   const relations = [...results
     .reduce((ret, { bigquery: tgt, dependencies: deps }) => {
+      ret.add(JSON.stringify(['#sentinal', tgt]));
       deps.forEach(
         (d: string) => {
-          ret.add(
-            JSON.stringify([tgt, d]),
-          );
+          ret.add(JSON.stringify([tgt, d]));
         },
       );
       return ret;
