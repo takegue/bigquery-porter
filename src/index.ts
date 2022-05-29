@@ -1,4 +1,5 @@
 // Imports the Google Cloud client library
+import logUpdate from 'log-update';
 import { BigQuery } from '@google-cloud/bigquery';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -12,7 +13,6 @@ import {
 
 import {
   Task,
-  clearScreen,
 } from '../src/reporter.js';
 
 
@@ -158,24 +158,26 @@ const deployBigQueryResouce = async (bqClient: any, rootDir: string, p: string) 
     const jobs: Promise<any>[] = []
 
     // schema.json: local file <---> BigQuery Table
-    if (fs.existsSync(fieldsPath)) {
-      const oldFields = await fs.promises.readFile(fieldsPath)
-        .then(s => JSON.parse(s.toString()))
-        .catch((err: Error) => console.error(err));
-      // Update
-      Object.entries(metadata.schema.fields).map(
-        ([k, v]: [string, any]) => {
-          if (k in oldFields) {
-            if (
-              metadata.schema.fields[k].description &&
-              metadata.schema.fields[k].description != v.description
-            ) {
-              metadata.schema.fields[k].description = v.description;
+    if(metadata?.schema?.fields) {
+      if (fs.existsSync(fieldsPath)) {
+        const oldFields = await fs.promises.readFile(fieldsPath)
+          .then(s => JSON.parse(s.toString()))
+          .catch((err: Error) => console.error(err));
+        // Update
+        Object.entries(metadata.schema.fields).map(
+          ([k, v]: [string, any]) => {
+            if (k in oldFields) {
+              if (
+                metadata.schema.fields[k].description &&
+                metadata.schema.fields[k].description != v.description
+              ) {
+                metadata.schema.fields[k].description = v.description;
+              }
             }
-          }
-        },
-      );
+          },
+        );
 
+      }
       jobs.push(fs.promises.writeFile(
         fieldsPath,
         jsonSerializer(metadata.schema.fields),
@@ -372,8 +374,6 @@ const buildDAG = async () => {
   const bqClient = new BigQuery();
   const limit = pLimit(10);
 
-  console.log(results, relations, DAG);
-
   const deployDAG: Map<string, {
     task: Task,
     bigquery: BigQueryJobResource
@@ -400,9 +400,8 @@ const buildDAG = async () => {
 
   const tasks = [...deployDAG.values()].map(({task}) => {task.run(); return task});
   while(tasks.some(t => t.status != 'done')) {
-    await new Promise(resolve => setTimeout(resolve, 300))
-    clearScreen(0)
-    console.log(tasks.map(t => t.report()).join('\n'))
+    await new Promise(resolve => setTimeout(resolve, 100))
+    logUpdate(tasks.map(t => t.report()).join('\n'))
   }
 };
 

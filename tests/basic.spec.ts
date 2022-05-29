@@ -86,13 +86,14 @@ describe('util test: sql extraction', () => {
     });
 })
 
-// describe('integration test', () => {
-//     it('Run push', async () => {
-//       await pushBigQueryResources();
-//     });
+describe('integration test', () => {
+    // it('Run push', async () => {
+    //   await pushBigQueryResources();
+    // });
 
-//     it('Run pull', async () => {
-//       await pullBigQueryResources();
-//     });
-// })
+    it('Run pull', async () => {
+      await new Promise(resolve => setTimeout(resolve, 3000))
+      await pullBigQueryResources();
+    });
+})
  
