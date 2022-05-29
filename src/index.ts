@@ -304,7 +304,6 @@ const deployBigQueryResouce = async (bqClient: any, rootDir: string, p: string) 
   return null;
 };
 
-
 const pathToBigQueryIdentifier = async (bqClient: BigQuery) => {
   const defautlProjectID = await bqClient.getProjectId();
 
@@ -379,16 +378,14 @@ const buildDAG = async () => {
   ].map((n: any) => JSON.parse(n));
 
   const bigquery2Obj = Object.fromEntries(results.map((n) => [n.bigquery, n]));
-  const DAG = topologicalSort([...relations])
-    .map((bq) => bigquery2Obj[bq])
-    .filter((n):n is BigQueryJobResource => !!n);
-
-
-  const deployDAG: Map<string, {
+  const DAG: Map<string, {
     task: Task,
     bigquery: BigQueryJobResource
   }> = new Map(
-    DAG.map(
+    topologicalSort([...relations])
+    .map((bq) => bigquery2Obj[bq])
+    .filter((n):n is BigQueryJobResource => !!n)
+    .map(
       (target: BigQueryJobResource) => (
       [
         target.bigquery, 
@@ -398,7 +395,7 @@ const buildDAG = async () => {
               await Promise.all(
                 target.dependencies
                 .map(
-                  (d: string) => deployDAG.get(d)?.task.runningPromise)
+                  (d: string) => DAG.get(d)?.task.runningPromise)
               )
               await deployBigQueryResouce(bqClient, rootDir, target.file)
             }),
@@ -408,7 +405,7 @@ const buildDAG = async () => {
     )
   ))
 
-  const tasks = [...deployDAG.values()]
+  const tasks = [...DAG.values()]
     .map(({task}) => {
       limit(async () => await task.run()); return task}
     );
