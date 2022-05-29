@@ -17,8 +17,6 @@ import {
 
 
 const cli = cac();
-const bqClient = new BigQuery();
-const defautlProjectID = await bqClient.getProjectId();
 
 const baseDirectory = './bigquery';
 const jsonSerializer = (obj: any) => JSON.stringify(obj, null, 4);
@@ -30,6 +28,7 @@ type BigQueryJobResource = {
 }
 
 export async function pullBigQueryResources() {
+  const bqClient = new BigQuery();
   // Lists all datasets in the specified project
   bqClient.getDatasetsStream()
     .on('error', console.error)
@@ -306,13 +305,17 @@ const deployBigQueryResouce = async (bqClient: any, rootDir: string, p: string) 
 };
 
 
-const pathToBigQueryIdentifier = (fpath: string) => {
-  const rootDir = path.normalize('./bigquery');
-  const [catalogId, schemaId, name] = path.dirname(
-    path.relative(rootDir, fpath.replace("@default", defautlProjectID)),
-  ).split('/');
-  return [catalogId, schemaId, name].filter((n) => n).join('.');
-};
+const pathToBigQueryIdentifier = async (bqClient: BigQuery) => {
+  const defautlProjectID = await bqClient.getProjectId();
+
+  return (fpath: string) => {
+    const rootDir = path.normalize(baseDirectory);
+    const [catalogId, schemaId, name] = path.dirname(
+      path.relative(rootDir, fpath.replace("@default", defautlProjectID)),
+    ).split('/');
+    return [catalogId, schemaId, name].filter((n) => n).join('.');
+  };
+}
 
 const normalizedBQPath = (bqPath: string, defaultProject?: string): string => {
   const parts = bqPath.replace(/`/g, '').split('.');
@@ -347,13 +350,19 @@ const extractBigQueryDependencies = async (fpath: string, rootDir: string) => {
 }
 
 const buildDAG = async () => {
-  const rootDir = path.normalize('./bigquery');
+  const bqClient = new BigQuery();
+  const limit = pLimit(2);
+  const path2bq = await pathToBigQueryIdentifier(bqClient);
+
+  const rootDir = path.normalize(baseDirectory);
   const results = await Promise.all(
-    (await walk(rootDir)).filter((p: string) => p.endsWith('sql')).map(async (n: string) => ({
-      file: n,
-      bigquery: pathToBigQueryIdentifier(n),
-      dependencies: await extractBigQueryDependencies(n, rootDir),
-    } as BigQueryJobResource)),
+    (await walk(rootDir))
+      .filter((p: string) => p.endsWith('sql'))
+      .map(async (n: string) => ({
+        file: n,
+        bigquery: path2bq(n),
+        dependencies: await extractBigQueryDependencies(n, rootDir),
+      } as BigQueryJobResource)),
   );
   const relations = [...results
     .reduce((ret, { bigquery: tgt, dependencies: deps }) => {
@@ -373,8 +382,6 @@ const buildDAG = async () => {
     .map((bq) => bigquery2Obj[bq])
     .filter((n):n is BigQueryJobResource => !!n);
 
-  const bqClient = new BigQuery();
-  const limit = pLimit(2);
 
   const deployDAG: Map<string, {
     task: Task,
