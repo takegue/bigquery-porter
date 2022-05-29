@@ -17,6 +17,8 @@ import {
 
 
 const cli = cac();
+const bqClient = new BigQuery();
+const defautlProjectID = await bqClient.getProjectId();
 
 const baseDirectory = './bigquery';
 const jsonSerializer = (obj: any) => JSON.stringify(obj, null, 4);
@@ -28,7 +30,6 @@ type BigQueryJobResource = {
 }
 
 export async function pullBigQueryResources() {
-  const bqClient = new BigQuery();
   // Lists all datasets in the specified project
   bqClient.getDatasetsStream()
     .on('error', console.error)
@@ -304,10 +305,11 @@ const deployBigQueryResouce = async (bqClient: any, rootDir: string, p: string) 
   return null;
 };
 
+
 const pathToBigQueryIdentifier = (fpath: string) => {
   const rootDir = path.normalize('./bigquery');
   const [catalogId, schemaId, name] = path.dirname(
-    path.relative(rootDir, fpath),
+    path.relative(rootDir, fpath.replace("@default", defautlProjectID)),
   ).split('/');
   return [catalogId, schemaId, name].filter((n) => n).join('.');
 };
@@ -440,6 +442,7 @@ function createCLI() {
 
 
 const main = async () => {
+  // bqClient()
   createCLI()
 };
 
