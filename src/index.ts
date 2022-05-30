@@ -28,6 +28,74 @@ type BigQueryJobResource = {
   dependencies: string[]
 }
 
+type ErrorHanlder = (err: Error) => void
+
+const syncMetadataFunc = (fsHandler: ErrorHanlder, bigqueryHandler: ErrorHanlder) => async (bqObject: any, dirPath: string) => {
+  const metadataPath = path.join(dirPath, 'metadata.json');
+  const fieldsPath = path.join(dirPath, 'schema.json');
+  const accessPath = path.join(dirPath, 'access.json');
+  const [metadata] = await bqObject.getMetadata();
+  const jobs: Promise<any>[] = []
+
+  // schema.json: local file <---> BigQuery Table
+  if(metadata?.schema?.fields) {
+    if (fs.existsSync(fieldsPath)) {
+      const oldFields = await fs.promises.readFile(fieldsPath)
+        .then(s => JSON.parse(s.toString()))
+        .catch((err: Error) => console.error(err));
+      // Update
+      Object.entries(metadata.schema.fields).map(
+        ([k, v]: [string, any]) => {
+          if (k in oldFields) {
+            if (
+              metadata.schema.fields[k].description &&
+              metadata.schema.fields[k].description != v.description
+            ) {
+              metadata.schema.fields[k].description = v.description;
+            }
+          }
+        },
+      );
+    }
+    jobs.push(fs.promises.writeFile(
+      fieldsPath,
+      jsonSerializer(metadata.schema.fields),
+    ).catch(fsHandler))
+  }
+
+  // access.json: local file <--- BigQuery Dataset
+  if(metadata?.access) {
+    jobs.push(fs.promises.writeFile(
+      accessPath,
+      jsonSerializer(metadata.access),
+    ).catch(fsHandler))
+  }
+
+  // metadata.json: local file <--- BigQuery Table
+  const localMetadata = Object.fromEntries(
+    Object.entries({
+      type: metadata.type,
+      routineType: metadata.routineType,
+      modelType: metadata.modelType,
+      description: metadata.description,
+      // Filter predefined labels
+    }).filter(([_, v]) => !!v && Object.keys(v).length > 0),
+  );
+
+  jobs.push(
+    fs.promises.writeFile(
+      metadataPath,
+      jsonSerializer(localMetadata),
+    ).catch(fsHandler),
+    bqObject.setMetadata(metadata)
+      .catch(bigqueryHandler)
+  )
+
+  // Sync
+  await Promise.all(jobs);
+};
+
+
 export async function pullBigQueryResources() {
   type ResultBQResource = {type: string, path: string, name: string, ddl: string};
   interface BQResourceObject {
@@ -138,9 +206,9 @@ export async function pullBigQueryResources() {
           , ddl 
         from \`${dataset.id}.INFORMATION_SCHEMA.ROUTINES\`
         union all
-        select 
+        select distinct
           'TABLE' as type
-          , any_value(format('%s/%s', table_catalog, table_schema)) as path
+          , format('%s/%s', table_catalog, table_schema) as path
           , name
           , any_value(replace(ddl, table_name, name)) as ddl
         from \`${dataset.id}.INFORMATION_SCHEMA.TABLES\`
@@ -178,9 +246,9 @@ const deployBigQueryResouce = async (bqClient: any, rootDir: string, p: string) 
       msgWithPath(err.message),
     );
   };
-  const bigqueryHandler = (err: any) => {
+  const bigqueryHandler = (err: Error) => {
     throw new Error(
-      msgWithPath(err.errors.map((e: any) => e.message).join('\n')),
+      msgWithPath(err.message),
     );
   };
 
@@ -194,70 +262,7 @@ const deployBigQueryResouce = async (bqClient: any, rootDir: string, p: string) 
       throw new Error(msgWithPath(err));
     });
 
-  const syncMetadata = async (bqObject: any, dirPath: string) => {
-    const metadataPath = path.join(dirPath, 'metadata.json');
-    const fieldsPath = path.join(dirPath, 'schema.json');
-    const accessPath = path.join(dirPath, 'access.json');
-    const [metadata] = await bqObject.getMetadata();
-    const jobs: Promise<any>[] = []
-
-    // schema.json: local file <---> BigQuery Table
-    if(metadata?.schema?.fields) {
-      if (fs.existsSync(fieldsPath)) {
-        const oldFields = await fs.promises.readFile(fieldsPath)
-          .then(s => JSON.parse(s.toString()))
-          .catch((err: Error) => console.error(err));
-        // Update
-        Object.entries(metadata.schema.fields).map(
-          ([k, v]: [string, any]) => {
-            if (k in oldFields) {
-              if (
-                metadata.schema.fields[k].description &&
-                metadata.schema.fields[k].description != v.description
-              ) {
-                metadata.schema.fields[k].description = v.description;
-              }
-            }
-          },
-        );
-      }
-      jobs.push(fs.promises.writeFile(
-        fieldsPath,
-        jsonSerializer(metadata.schema.fields),
-      ).catch(fsHandler))
-    }
-
-    // access.json: local file <--- BigQuery Dataset
-    if(metadata?.access) {
-      jobs.push(fs.promises.writeFile(
-        accessPath,
-        jsonSerializer(metadata.access),
-      ).catch(fsHandler))
-    }
-
-    // metadata.json: local file <--- BigQuery Table
-    const localMetadata = Object.fromEntries(
-      Object.entries({
-        type: metadata.type,
-        routineType: metadata.routineType,
-        modelType: metadata.modelType,
-        description: metadata.description,
-        // Filter predefined labels
-      }).filter(([_, v]) => !!v && Object.keys(v).length > 0),
-    );
-
-    jobs.push(
-      fs.promises.writeFile(
-        metadataPath,
-        jsonSerializer(localMetadata),
-      ).catch(fsHandler),
-      bqObject.setMetadata(metadata)
-        .catch(bigqueryHandler)
-    )
-
-    // Sync
-    await Promise.all(jobs);
-  };
+  const syncMetadata = syncMetadataFunc(fsHandler, bigqueryHandler);
 
   const fetchBQJobResource = async (job: any): Promise<any> => {
     const schema = bqClient.dataset(schemaId);
