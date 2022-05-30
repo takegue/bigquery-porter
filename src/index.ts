@@ -28,8 +28,6 @@ type BigQueryJobResource = {
   dependencies: string[]
 }
 
-// type ErrorHanlder = (err: Error) => void
-
 const syncMetadata = async (bqObject: any, dirPath: string) => {
   const metadataPath = path.join(dirPath, 'metadata.json');
   const fieldsPath = path.join(dirPath, 'schema.json');
@@ -421,7 +419,15 @@ const buildDAG = async () => {
                 target.dependencies
                 .map(
                   (d: string) => DAG.get(d)?.task.runningPromise)
-              )
+              ).catch(() => {
+                const msg = target.dependencies
+                  .map(t => DAG.get(t)?.task)
+                  .filter(t => t && t.status == 'failed')
+                  .map(t => t?.name).join(', ')
+                ;
+                throw Error('Suspended: Parent job is faild: ' + msg)
+              })
+
               await deployBigQueryResouce(bqClient, rootDir, target.file)
             }),
           bigquery: target
