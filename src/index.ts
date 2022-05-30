@@ -95,7 +95,7 @@ const syncMetadata = async (bqObject: any, dirPath: string) => {
 
 
 export async function pullBigQueryResources() {
-  type ResultBQResource = {type: string, path: string, name: string, ddl: string};
+  type ResultBQResource = {type: string, path: string, name: string, ddl: string, resource_type: string};
   interface BQResourceObject {
     getMetadata(): Promise<[Metadata]>
   }
@@ -148,6 +148,7 @@ export async function pullBigQueryResources() {
   await bqClient.createQueryJob(`
     select 
       'SCHEMA' as type
+      , string(null) as resource_type
       , catalog_name as path
       , schema_name as name
       , ddl 
@@ -172,6 +173,7 @@ export async function pullBigQueryResources() {
       const [job] = await bqClient.createQueryJob(`
         select 
           'ROUTINE' as type
+          , routine_type as resource_type
           , format('%s/%s', routine_catalog, routine_schema) as path
           , routine_name as name
           , ddl 
@@ -179,6 +181,7 @@ export async function pullBigQueryResources() {
         union all
         select distinct
           'TABLE' as type
+          , any_value(table_type) as resource_type
           , format('%s/%s', table_catalog, table_schema) as path
           , name
           , any_value(replace(ddl, table_name, name)) as ddl
