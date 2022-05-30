@@ -1,6 +1,7 @@
 // Imports the Google Cloud client library
 import logUpdate from 'log-update';
 import { BigQuery } from '@google-cloud/bigquery';
+import type { Metadata } from '@google-cloud/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import {cac} from 'cac';
@@ -28,7 +29,95 @@ type BigQueryJobResource = {
 }
 
 export async function pullBigQueryResources() {
+  type ResultBQResource = {type: string, path: string, name: string, ddl: string};
+  interface BQResourceObject {
+    getMetadata(): Promise<[Metadata]>
+  }
+
   const bqClient = new BigQuery();
+
+  const fsWriter = async (
+    {type, path, name, ddl}: ResultBQResource,
+    bqObj: BQResourceObject
+  ) => {
+    const pathDir = `${baseDirectory}/${path}/${name}`;
+    const pathDDL = `${pathDir}/ddl.sql`;
+    const cleanedDDL = ddl
+      .replace(/\r\n/g, '\n')
+      .replace('CREATE PROCEDURE', 'CREATE OR REPLACE PROCEDURE')
+      .replace(
+        'CREATE TABLE FUNCTION',
+        'CREATE OR REPLACE TABLE FUNCTION',
+      )
+      .replace('CREATE FUNCTION', 'CREATE OR REPLACE FUNCTION')
+      .replace(/CREATE TABLE/, 'CREATE TABLE IF NOT EXISTS')
+      .replace(/CREATE VIEW/, 'CREATE OR REPLACE VIEW')
+      .replace(
+        /CREATE MATERIALIZED VIEW/,
+        'CREATE OR REPLACE MATERIALIZED VIEW',
+      );
+
+    if (!fs.existsSync(pathDir)) {
+      await fs.promises.mkdir(pathDir, { recursive: true });
+    }
+
+    const [metadata] = await bqObj.getMetadata();
+
+    if(metadata?.access) {
+      await fs.promises.writeFile(
+        'access.json',
+        jsonSerializer(metadata.access),
+      )
+    }
+
+    if(type == 'TABLE') {
+      const pathSchema = `${pathDir}/schema.json`;
+      await fs.promises.writeFile(
+        pathSchema,
+        jsonSerializer(metadata.schema.fields),
+      );
+
+      if (metadata?.view) {
+        const pathView = `${pathDir}/view.sql`;
+        await fs.promises.writeFile(
+          pathView,
+          metadata.view.query
+          .replace(/\r\n/g, '\n'),
+        );
+      }
+    }
+
+    await fs.promises.writeFile(pathDDL, cleanedDDL)
+      .then(
+        () =>
+        console.log(
+          `${type}: ${path}.${name} => ${pathDDL}`,
+        ),
+      );
+
+  }
+
+  bqClient.createQueryJob(`
+    select 
+      'SCHEMA' as type
+      , catalog_name as path
+      , schema_name as name
+      , ddl 
+    from \`INFORMATION_SCHEMA.SCHEMATA\`
+  `).then(async ([job]) => {
+    await job.getQueryResults()
+      .then(async ([records]) => {
+        await Promise.all(records
+          .map(async (r) => {
+            const [bqObj] = await bqClient.dataset(r.name).get()
+            await fsWriter(r, bqObj)
+          }));
+      });
+  })
+  .catch((err) => {
+    console.error(err);
+  });  
+
   // Lists all datasets in the specified project
   bqClient.getDatasetsStream()
     .on('error', console.error)
@@ -42,89 +131,43 @@ export async function pullBigQueryResources() {
 
       // TODO: INFORMATION_SCHEMA.TABLES quota error will occur
       await bqClient.createQueryJob(`
-          select 
-            routine_type as type
-            , routine_catalog as catalog
-            , routine_schema as schema
-            , routine_name as name
-            , ddl 
-          from \`${dataset.id}.INFORMATION_SCHEMA.ROUTINES\`
-          union all
-          select 
-            table_type as type
-            , table_catalog as catalog
-            , table_schema as schema
-            , table_name as name
-            , ddl 
-          from \`${dataset.id}.INFORMATION_SCHEMA.TABLES\`
-        `).then(async ([job]) => {
-        await job.getQueryResults()
-          .then(async (records) => {
-            await Promise.all(
-              records[0].map(async ({
-                type,
-                catalog,
-                schema,
-                name,
-                ddl,
-              }) => {
-                const pathDir = `${baseDirectory}/${catalog}/${schema}/${name}`;
-                const pathDDL = `${pathDir}/ddl.sql`;
-                const cleanedDDL = ddl
-                  .replace(/\r\n/g, '\n')
-                  .replace('CREATE PROCEDURE', 'CREATE OR REPLACE PROCEDURE')
-                  .replace(
-                    'CREATE TABLE FUNCTION',
-                    'CREATE OR REPLACE TABLE FUNCTION',
-                  )
-                  .replace('CREATE FUNCTION', 'CREATE OR REPLACE FUNCTION')
-                  .replace(/CREATE TABLE/, 'CREATE TABLE IF NOT EXISTS')
-                  .replace(/CREATE VIEW/, 'CREATE OR REPLACE VIEW')
-                  .replace(
-                    /CREATE MATERIALIZED VIEW/,
-                    'CREATE OR REPLACE MATERIALIZED VIEW',
-                  );
-
-                if (!fs.existsSync(pathDir)) {
-                  await fs.promises.mkdir(pathDir, { recursive: true });
-                }
-                if (
-                  type in
-                    { 'VIEW': true, 'TABLE': true, 'MATERIALIZED VIEW': true }
-                ) {
-                  const [table, _] = await dataset.table(name).get();
-                  const pathSchema = `${pathDir}/schema.json`;
-                  await fs.promises.writeFile(
-                    pathSchema,
-                    jsonSerializer(table.metadata.schema.fields),
-                  );
-
-                  if ('view' in table.metadata) {
-                    const pathView = `${pathDir}/view.sql`;
-                    await fs.promises.writeFile(
-                      pathView,
-                      table.metadata.view.query
-                        .replace(/\r\n/g, '\n'),
-                    );
-                  }
-                }
-                await fs.promises.writeFile(pathDDL, cleanedDDL)
-                  .then(
-                    () =>
-                      console.log(
-                        `${type}: ${catalog}:${schema}.${name} => ${pathDDL}`,
-                      ),
-                  );
-              }),
-            );
-          });
-      })
-        .catch((err) => {
-          console.error(err);
+        select 
+          'ROUTINE' as type
+          , format('%s/%s', routine_catalog, routine_schema) as path
+          , routine_name as name
+          , ddl 
+        from \`${dataset.id}.INFORMATION_SCHEMA.ROUTINES\`
+        union all
+        select 
+          'TABLE' as type
+          , any_value(format('%s/%s', table_catalog, table_schema)) as path
+          , name
+          , any_value(replace(ddl, table_name, name)) as ddl
+        from \`${dataset.id}.INFORMATION_SCHEMA.TABLES\`
+        left join unnest([struct(
+          safe.parse_date('%Y%m%d', regexp_extract(table_name, r'\d+$')) as _table_suffix,
+          regexp_replace(table_name, r'\d+$', '@_TABLE_SUFFIX') as newname
+        )])
+        left join unnest([struct(
+          if(_table_suffix is not null, newname, table_name) as name
+        )])
+        group by path, name
+      `).then(async ([job]) => {
+      await job.getQueryResults()
+        .then(async ([records]) => {
+          await Promise.all(records.map(
+            async r => {
+              const bqObj = r.type === 'TABLE'? dataset.table(r.name) : dataset.routine(r.name);
+              await fsWriter(r, bqObj)
+            }
+          ));
         });
+      })
+      .catch((err) => {
+        console.error(err);
+      });
     })
-    .on('end', () => {
-    });
+    .on('end', () => {});
 }
 
 const deployBigQueryResouce = async (bqClient: any, rootDir: string, p: string) => {
@@ -177,7 +220,6 @@ const deployBigQueryResouce = async (bqClient: any, rootDir: string, p: string) 
             }
           },
         );
-
       }
       jobs.push(fs.promises.writeFile(
         fieldsPath,
@@ -242,6 +284,7 @@ const deployBigQueryResouce = async (bqClient: any, rootDir: string, p: string) 
         const routineId = name;
         const [routine] = await schema.routine(routineId).get();
         return routine;
+      case 'CREATE_TABLE':
       case 'CREATE_VIEW':
       case 'CREATE_TABLE_AS_SELECT':
       case 'DROP_TABLE':
@@ -418,7 +461,7 @@ const buildDAG = async () => {
     .map(({task}) => {
       limit(async () => await task.run()); return task}
     );
-  while(tasks.some(t => t.status != 'done')) {
+  while(tasks.some(t => !t.done())) {
     await new Promise(resolve => setTimeout(resolve, 100))
     logUpdate(
       `Tasks: remaing ${limit.pendingCount + limit.activeCount}\n`

@@ -29,9 +29,10 @@ export function elegantSpinner() {
 export class Task {
   name: string;
   job: () => Promise<void>;
-  status: "pending" | "running" | "done" | "failed";
+  status: "pending" | "running" | "success" | "failed";
   spin: () => string;
   runningPromise: Promise<void> | undefined;
+  error: string | undefined;
 
   constructor(name: string, job: () => Promise<void>) {
     this.name = name;
@@ -44,15 +45,25 @@ export class Task {
     this.status = 'running'
     // start job
     this.runningPromise = this.job();
-    await this.runningPromise;
-    this.status = 'done';
+    await this.runningPromise
+        .then(() => {
+          this.status = 'success';
+        })
+        .catch(e => {
+          this.status = 'failed';
+          this.error = e.message.trim()
+        })
+  }
+
+  done() {
+    return ['success', 'failed'].includes(this.status)
   }
 
   report() {
     let s = '';
     let c = pc.red;
     switch (this.status) {
-      case 'done':
+      case 'success':
         s = F_CHECK;
         c = pc.green;
         break;
@@ -71,7 +82,9 @@ export class Task {
         return ''
     }
 
-    return c(`${s} ${this.name}`);
+    const title = c(`${s} ${this.name}`);
+    const detail = this.error ? `${pc.bold(this.error)}` : ''
+    return `${title}\n    ${detail}`.trim()
   }
 }
 
