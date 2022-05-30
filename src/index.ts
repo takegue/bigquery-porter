@@ -28,14 +28,15 @@ type BigQueryJobResource = {
   dependencies: string[]
 }
 
-type ErrorHanlder = (err: Error) => void
+// type ErrorHanlder = (err: Error) => void
 
-const syncMetadataFunc = (fsHandler: ErrorHanlder, bigqueryHandler: ErrorHanlder) => async (bqObject: any, dirPath: string) => {
+const syncMetadata = async (bqObject: any, dirPath: string) => {
   const metadataPath = path.join(dirPath, 'metadata.json');
   const fieldsPath = path.join(dirPath, 'schema.json');
   const accessPath = path.join(dirPath, 'access.json');
-  const [metadata] = await bqObject.getMetadata();
   const jobs: Promise<any>[] = []
+
+  const [metadata] = await bqObject.getMetadata();
 
   // schema.json: local file <---> BigQuery Table
   if(metadata?.schema?.fields) {
@@ -60,7 +61,7 @@ const syncMetadataFunc = (fsHandler: ErrorHanlder, bigqueryHandler: ErrorHanlder
     jobs.push(fs.promises.writeFile(
       fieldsPath,
       jsonSerializer(metadata.schema.fields),
-    ).catch(fsHandler))
+    ))
   }
 
   // access.json: local file <--- BigQuery Dataset
@@ -68,7 +69,7 @@ const syncMetadataFunc = (fsHandler: ErrorHanlder, bigqueryHandler: ErrorHanlder
     jobs.push(fs.promises.writeFile(
       accessPath,
       jsonSerializer(metadata.access),
-    ).catch(fsHandler))
+    ))
   }
 
   // metadata.json: local file <--- BigQuery Table
@@ -86,9 +87,8 @@ const syncMetadataFunc = (fsHandler: ErrorHanlder, bigqueryHandler: ErrorHanlder
     fs.promises.writeFile(
       metadataPath,
       jsonSerializer(localMetadata),
-    ).catch(fsHandler),
+    ),
     bqObject.setMetadata(metadata)
-      .catch(bigqueryHandler)
   )
 
   // Sync
@@ -122,29 +122,16 @@ export async function pullBigQueryResources() {
       .replace(/CREATE VIEW/, 'CREATE OR REPLACE VIEW')
       .replace(
         /CREATE MATERIALIZED VIEW/,
-        'CREATE OR REPLACE MATERIALIZED VIEW',
+        'CREATE IF NOT EXISTS MATERIALIZED VIEW',
       );
 
     if (!fs.existsSync(pathDir)) {
       await fs.promises.mkdir(pathDir, { recursive: true });
     }
-
-    const [metadata] = await bqObj.getMetadata();
-
-    if(metadata?.access) {
-      await fs.promises.writeFile(
-        'access.json',
-        jsonSerializer(metadata.access),
-      )
-    }
+    await syncMetadata(bqObj, pathDir)
 
     if(type == 'TABLE') {
-      const pathSchema = `${pathDir}/schema.json`;
-      await fs.promises.writeFile(
-        pathSchema,
-        jsonSerializer(metadata.schema.fields),
-      );
-
+      const [metadata] = await bqObj.getMetadata();
       if (metadata?.view) {
         const pathView = `${pathDir}/view.sql`;
         await fs.promises.writeFile(
@@ -156,13 +143,7 @@ export async function pullBigQueryResources() {
     }
 
     await fs.promises.writeFile(pathDDL, cleanedDDL)
-      .then(
-        () =>
-        console.log(
-          `${type}: ${path}.${name} => ${pathDDL}`,
-        ),
-      );
-
+      .then(() => console.log(`${type}: ${path}.${name} => ${pathDDL}`));
   }
 
   bqClient.createQueryJob(`
@@ -241,16 +222,6 @@ export async function pullBigQueryResources() {
 const deployBigQueryResouce = async (bqClient: any, rootDir: string, p: string) => {
   const msgWithPath = (msg: string) => `${path.dirname(p)}: ${msg}`;
   // const jsonSerializer = (obj) => JSON.stringify(obj, null, 4);
-  const fsHandler = (err: Error) => {
-    throw new Error(
-      msgWithPath(err.message),
-    );
-  };
-  const bigqueryHandler = (err: Error) => {
-    throw new Error(
-      msgWithPath(err.message),
-    );
-  };
 
   if (p && !p.endsWith('sql')) return null;
 
@@ -261,8 +232,6 @@ const deployBigQueryResouce = async (bqClient: any, rootDir: string, p: string) 
     .catch((err: any) => {
       throw new Error(msgWithPath(err));
     });
-
-  const syncMetadata = syncMetadataFunc(fsHandler, bigqueryHandler);
 
   const fetchBQJobResource = async (job: any): Promise<any> => {
     const schema = bqClient.dataset(schemaId);
@@ -339,7 +308,6 @@ const deployBigQueryResouce = async (bqClient: any, rootDir: string, p: string) 
           key1: 'value1',
         },
       })
-        .catch(bigqueryHandler);
       await job.getQueryResults();
       await fetchBQJobResource(job)
           .then((bqObj: any)=> syncMetadata(bqObj, path.dirname(p)))
