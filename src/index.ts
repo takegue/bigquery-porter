@@ -144,7 +144,8 @@ export async function pullBigQueryResources() {
       .then(() => console.log(`${type}: ${path}.${name} => ${pathDDL}`));
   }
 
-  bqClient.createQueryJob(`
+  // Import BigQuery dataset Metadata
+  await bqClient.createQueryJob(`
     select 
       'SCHEMA' as type
       , catalog_name as path
@@ -152,32 +153,23 @@ export async function pullBigQueryResources() {
       , ddl 
     from \`INFORMATION_SCHEMA.SCHEMATA\`
   `).then(async ([job]) => {
-    await job.getQueryResults()
-      .then(async ([records]) => {
-        await Promise.all(records
-          .map(async (r) => {
-            const [bqObj] = await bqClient.dataset(r.name).get()
-            await fsWriter(r, bqObj)
-          }));
-      });
+    const [records] = await job.getQueryResults()
+    await Promise.all(records
+      .map(async (r) => {
+        const [bqObj] = await bqClient.dataset(r.name).get()
+        await fsWriter(r, bqObj)
+      }));
   })
   .catch((err) => {
     console.error(err);
-  });  
+  });
 
   // Lists all datasets in the specified project
   bqClient.getDatasetsStream()
     .on('error', console.error)
     .on('data', async (dataset: any) => {
-      const projectID = dataset.metadata.datasetReference.projectId;
-      const datasetPath = `${baseDirectory}/${projectID}/${dataset.id}`;
-      if (!fs.existsSync(datasetPath)) {
-        // console.log(`Creating ${datasetPath}`);
-        await fs.promises.mkdir(datasetPath, { recursive: true });
-      }
-
       // TODO: INFORMATION_SCHEMA.TABLES quota error will occur
-      await bqClient.createQueryJob(`
+      const [job] = await bqClient.createQueryJob(`
         select 
           'ROUTINE' as type
           , format('%s/%s', routine_catalog, routine_schema) as path
@@ -199,20 +191,14 @@ export async function pullBigQueryResources() {
           if(_table_suffix is not null, newname, table_name) as name
         )])
         group by path, name
-      `).then(async ([job]) => {
-      await job.getQueryResults()
-        .then(async ([records]) => {
-          await Promise.all(records.map(
-            async r => {
-              const bqObj = r.type === 'TABLE'? dataset.table(r.name) : dataset.routine(r.name);
-              await fsWriter(r, bqObj)
-            }
-          ));
-        });
-      })
-      .catch((err) => {
-        console.error(err);
-      });
+      `)
+      const [records] = await job.getQueryResults()
+      await Promise.allSettled(records
+        .map(async r => {
+          const bqObj = r.type === 'TABLE'? dataset.table(r.name) : dataset.routine(r.name);
+          await fsWriter(r, bqObj)
+        })
+      )
     })
     .on('end', () => {});
 }
@@ -288,10 +274,10 @@ const deployBigQueryResouce = async (bqClient: any, rootDir: string, p: string) 
             return table;
           }
         }
-        console.error(`No Handled: ${childJobs}`);
+        console.error(`Not Supported: ${childJobs}`);
         break
       default:
-        console.error(`Not Found: ${job.metadata.statistics.query.statementType}`);
+        console.error(`Not Supported: ${job.metadata.statistics.query.statementType}`);
     } 
 
   }
