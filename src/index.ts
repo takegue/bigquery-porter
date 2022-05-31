@@ -86,7 +86,7 @@ const syncMetadata = async (bqObject: any, dirPath: string, versionhash?: string
   let description = metadata.description;
   let labels = metadata.labels ?? {};
   if (fs.existsSync(metadataPath)) {
-    const upstreamLastModifiedTime = new Date(metadata.lastModifiedTime * 1000);
+    const upstreamLastModifiedTime = new Date(parseInt(metadata.lastModifiedTime));
     const localLastModifiedAt = (await fs.promises.stat(metadataPath)).mtime;
     const local = await fs.promises.readFile(metadataPath)
         .then(s => JSON.parse(s.toString()))
@@ -96,14 +96,15 @@ const syncMetadata = async (bqObject: any, dirPath: string, versionhash?: string
       const versionTag = (m?.labels ?? {})['bqlunchpad-versionhash'];
       if(versionTag) {
         const [unixTimestamp] = versionTag.split('-')
-        return new Date(unixTimestamp * 1000);
+        if(unixTimestamp) {
+          return new Date(unixTimestamp * 1000);
+        }
       }
       return defaultModifiedAt;
     }
     const localUpdatedAt = extractUpdatedAtFromMetadata(local, localLastModifiedAt);
     const upstreamUpdatedAt = extractUpdatedAtFromMetadata(metadata, upstreamLastModifiedTime);
 
-    console.log(metadata, upstreamUpdatedAt, localUpdatedAt)
     if(upstreamUpdatedAt < localUpdatedAt) {
       description = local.description;
       labels = {...local.labels, ...syncLabels}
