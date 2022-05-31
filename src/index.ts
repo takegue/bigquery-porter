@@ -15,6 +15,7 @@ import {
 import {
   Task,
 } from '../src/reporter.js';
+// import { version } from 'process';
 
 
 const cli = cac();
@@ -28,16 +29,26 @@ type BigQueryJobResource = {
   dependencies: string[]
 }
 
-const syncMetadata = async (bqObject: any, dirPath: string) => {
+// type Labels = Map<string, string>;
+const syncMetadata = async (bqObject: any, dirPath: string, versionhash?: string) => {
+  type systemDefinedLabels = {
+    'bqlunchpad-versionhash': string
+  }
+
   const metadataPath = path.join(dirPath, 'metadata.json');
   const fieldsPath = path.join(dirPath, 'schema.json');
   const accessPath = path.join(dirPath, 'access.json');
+  const syncLabels: systemDefinedLabels = {
+    'bqlunchpad-versionhash': `${Math.floor(Date.now() / 1000)}-${versionhash}`
+  }
+
   const jobs: Promise<any>[] = []
 
   const [metadata] = await bqObject.getMetadata();
 
   // schema.json: local file <---> BigQuery Table
   if(metadata?.schema?.fields) {
+    // Merge upstream and downstream schema description
     if (fs.existsSync(fieldsPath)) {
       const oldFields = await fs.promises.readFile(fieldsPath)
         .then(s => JSON.parse(s.toString()))
@@ -56,13 +67,14 @@ const syncMetadata = async (bqObject: any, dirPath: string) => {
         },
       );
     }
+
     jobs.push(fs.promises.writeFile(
       fieldsPath,
       jsonSerializer(metadata.schema.fields),
     ))
   }
 
-  // access.json: local file <--- BigQuery Dataset
+  // access.json: local file <---> BigQuery Dataset
   if(metadata?.access) {
     jobs.push(fs.promises.writeFile(
       accessPath,
@@ -70,17 +82,53 @@ const syncMetadata = async (bqObject: any, dirPath: string) => {
     ))
   }
 
-  // metadata.json: local file <--- BigQuery Table
+  // metadata.json: local file <---> BigQuery Table
+  let description = metadata.description;
+  let labels = metadata.labels ?? {};
+  if (fs.existsSync(metadataPath)) {
+    const upstreamLastModifiedTime = new Date(metadata.lastModifiedTime * 1000);
+    const localLastModifiedAt = (await fs.promises.stat(metadataPath)).mtime;
+    const local = await fs.promises.readFile(metadataPath)
+        .then(s => JSON.parse(s.toString()))
+        .catch((err: Error) => console.error(err));
+
+    const extractUpdatedAtFromMetadata = (m: Metadata, defaultModifiedAt: Date) => {
+      const versionTag = (m?.labels ?? {})['bqlunchpad-versionhash'];
+      if(versionTag) {
+        const [unixTimestamp] = versionTag.split('-')
+        return new Date(unixTimestamp * 1000);
+      }
+      return defaultModifiedAt;
+    }
+    const localUpdatedAt = extractUpdatedAtFromMetadata(local, localLastModifiedAt);
+    const upstreamUpdatedAt = extractUpdatedAtFromMetadata(metadata, upstreamLastModifiedTime);
+
+    console.log(metadata, upstreamUpdatedAt, localUpdatedAt)
+    if(upstreamUpdatedAt < localUpdatedAt) {
+      description = local.description;
+      labels = {...local.labels, ...syncLabels}
+
+      metadata.description = description;
+      metadata.labels = labels;
+    }
+  }
+
   const localMetadata = Object.fromEntries(
     Object.entries({
       type: metadata.type,
       routineType: metadata.routineType,
       modelType: metadata.modelType,
-      description: metadata.description,
+      description: description,
       // Filter predefined labels
+      labels: Object.fromEntries(
+        Object.entries(labels)
+          .filter(([k]) => !(k in syncLabels))
+      ),
     }).filter(([_, v]) => !!v && Object.keys(v).length > 0),
   );
 
+  // Sync local metadata job
+  // TODO: rollback local changes when setMetadata is faild
   jobs.push(
     fs.promises.writeFile(
       metadataPath,
@@ -89,7 +137,6 @@ const syncMetadata = async (bqObject: any, dirPath: string) => {
     bqObject.setMetadata(metadata)
   )
 
-  // Sync
   await Promise.all(jobs);
 };
 
