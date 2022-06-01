@@ -36,13 +36,13 @@ const syncMetadata = async (
   options?: {versionhash?: string, push?: boolean}
 ) => {
   type systemDefinedLabels = {
-    'bqlunchpad-versionhash': string
+    'bqm-versionhash': string
   }
 
   const metadataPath = path.join(dirPath, 'metadata.json');
   const fieldsPath = path.join(dirPath, 'schema.json');
   const syncLabels: systemDefinedLabels = {
-    'bqlunchpad-versionhash': `${Math.floor(Date.now() / 1000)}-${options?.versionhash}`
+    'bqm-versionhash': `${Math.floor(Date.now() / 1000)}-${options?.versionhash}`
   }
 
   const jobs: Promise<any>[] = []
@@ -86,7 +86,13 @@ const syncMetadata = async (
         Object.entries(metadata?.labels ?? [])
         .filter(([k]) => !(k in syncLabels))
       ),
-      access: metadata?.access
+      // Dataset attribute
+      access: metadata?.access,
+
+      // UDF attribute
+      returnType: metadata?.returnType,
+      argument: metadata?.arguments,
+      language: metadata?.arguments,
     }).filter(([_, v]) => !!v && Object.keys(v).length > 0),
   );
 
@@ -142,6 +148,7 @@ export async function pullBigQueryResources() {
       )
       .replace('CREATE FUNCTION', 'CREATE OR REPLACE FUNCTION')
       .replace(/CREATE TABLE/, 'CREATE TABLE IF NOT EXISTS')
+      .replace(/CREATE TABLE/, 'CREATE SCHEMA IF NOT EXISTS')
       .replace(/CREATE VIEW/, 'CREATE OR REPLACE VIEW')
       .replace(
         /CREATE MATERIALIZED VIEW/,
@@ -323,7 +330,7 @@ const deployBigQueryResouce = async (bqClient: any, rootDir: string, p: string) 
       })
       await job.getQueryResults();
       await fetchBQJobResource(job)
-          .then((bqObj: any)=> syncMetadata(bqObj, path.dirname(p)))
+          .then((bqObj: any)=> syncMetadata(bqObj, path.dirname(p), {push: true}))
       break;
     case 'view.sql':
       const schema = bqClient.dataset(schemaId);
@@ -336,7 +343,7 @@ const deployBigQueryResouce = async (bqClient: any, rootDir: string, p: string) 
           view: query,
         })
       );
-      await syncMetadata(view, path.dirname(p));
+      await syncMetadata(view, path.dirname(p), {push: true});
       break;
   }
   return null;
@@ -483,7 +490,7 @@ function createCLI() {
     .option('--opt', '説明') // 引数オプション
     .action(async (options: any) => {
       // 実行したい処理
-      console.log('push command', options); // 引数の値をオブジェクトで受け取れる
+      console.log('pull command', options); // 引数の値をオブジェクトで受け取れる
       pullBigQueryResources();
     });
 
