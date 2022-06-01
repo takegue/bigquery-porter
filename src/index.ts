@@ -30,25 +30,28 @@ type BigQueryJobResource = {
 }
 
 // type Labels = Map<string, string>;
-const syncMetadata = async (bqObject: any, dirPath: string, versionhash?: string) => {
+const syncMetadata = async (
+  bqObject: any,
+  dirPath: string,
+  options?: {versionhash?: string, push?: boolean}
+) => {
   type systemDefinedLabels = {
     'bqlunchpad-versionhash': string
   }
 
   const metadataPath = path.join(dirPath, 'metadata.json');
   const fieldsPath = path.join(dirPath, 'schema.json');
-  const accessPath = path.join(dirPath, 'access.json');
   const syncLabels: systemDefinedLabels = {
-    'bqlunchpad-versionhash': `${Math.floor(Date.now() / 1000)}-${versionhash}`
+    'bqlunchpad-versionhash': `${Math.floor(Date.now() / 1000)}-${options?.versionhash}`
   }
 
   const jobs: Promise<any>[] = []
-
   const [metadata] = await bqObject.getMetadata();
 
   // schema.json: local file <---> BigQuery Table
   if(metadata?.schema?.fields) {
     // Merge upstream and downstream schema description
+    // due to some operation varnish whole description like view or materialized view
     if (fs.existsSync(fieldsPath)) {
       const oldFields = await fs.promises.readFile(fieldsPath)
         .then(s => JSON.parse(s.toString()))
@@ -56,13 +59,12 @@ const syncMetadata = async (bqObject: any, dirPath: string, versionhash?: string
       // Update
       Object.entries(metadata.schema.fields).map(
         ([k, v]: [string, any]) => {
-          if (k in oldFields) {
-            if (
-              metadata.schema.fields[k].description &&
-              metadata.schema.fields[k].description != v.description
-            ) {
-              metadata.schema.fields[k].description = v.description;
-            }
+          if (
+            k in oldFields
+            && metadata.schema.fields[k].description 
+            && metadata.schema.fields[k].description != v.description
+          ) {
+            metadata.schema.fields[k].description = v.description;
           }
         },
       );
@@ -74,71 +76,45 @@ const syncMetadata = async (bqObject: any, dirPath: string, versionhash?: string
     ))
   }
 
-  // access.json: local file <---> BigQuery Dataset
-  if(metadata?.access) {
-    jobs.push(fs.promises.writeFile(
-      accessPath,
-      jsonSerializer(metadata.access),
-    ))
-  }
-
-  // metadata.json: local file <---> BigQuery Table
-  let description = metadata.description;
-  let labels = metadata.labels ?? {};
-  if (fs.existsSync(metadataPath)) {
-    const upstreamLastModifiedTime = new Date(parseInt(metadata.lastModifiedTime));
-    const localLastModifiedAt = (await fs.promises.stat(metadataPath)).mtime;
-    const local = await fs.promises.readFile(metadataPath)
-        .then(s => JSON.parse(s.toString()))
-        .catch((err: Error) => console.error(err));
-
-    const extractUpdatedAtFromMetadata = (m: Metadata, defaultModifiedAt: Date) => {
-      const versionTag = (m?.labels ?? {})['bqlunchpad-versionhash'];
-      if(versionTag) {
-        const [unixTimestamp] = versionTag.split('-')
-        if(unixTimestamp) {
-          return new Date(unixTimestamp * 1000);
-        }
-      }
-      return defaultModifiedAt;
-    }
-    const localUpdatedAt = extractUpdatedAtFromMetadata(local, localLastModifiedAt);
-    const upstreamUpdatedAt = extractUpdatedAtFromMetadata(metadata, upstreamLastModifiedTime);
-
-    if(upstreamUpdatedAt < localUpdatedAt) {
-      description = local.description;
-      labels = {...local.labels, ...syncLabels}
-
-      metadata.description = description;
-      metadata.labels = labels;
-    }
-  }
-
-  const localMetadata = Object.fromEntries(
-    Object.entries({
+  const newMetadata = Object.fromEntries(Object.entries({
       type: metadata.type,
       routineType: metadata.routineType,
       modelType: metadata.modelType,
-      description: description,
+      description: metadata.description,
       // Filter predefined labels
       labels: Object.fromEntries(
-        Object.entries(labels)
-          .filter(([k]) => !(k in syncLabels))
+        Object.entries(metadata?.labels ?? [])
+        .filter(([k]) => !(k in syncLabels))
       ),
+      access: metadata?.access
     }).filter(([_, v]) => !!v && Object.keys(v).length > 0),
   );
 
-  // Sync local metadata job
-  // TODO: rollback local changes when setMetadata is faild
+  if (fs.existsSync(metadataPath)) {
+    const local = await fs.promises.readFile(metadataPath)
+      .then(s => JSON.parse(s.toString())) 
+
+    if(options?.push) {
+      Object.entries(newMetadata).forEach(([attr]) => {
+        metadata[attr] = local[attr];
+      })
+    } else {
+      Object.entries(newMetadata).forEach(([attr]) => {
+        newMetadata[attr] = local[attr] ?? metadata[attr];
+      })
+    }
+  }
+
+  // metadata
   jobs.push(
     fs.promises.writeFile(
       metadataPath,
-      jsonSerializer(localMetadata),
+      jsonSerializer(newMetadata),
     ),
-    bqObject.setMetadata(metadata)
-  )
+  );
+  jobs.push(bqObject.setMetadata(metadata));
 
-  await Promise.all(jobs);
+  await Promise.all(jobs)
 };
 
 
@@ -154,6 +130,7 @@ export async function pullBigQueryResources() {
     {type, path, name, ddl}: ResultBQResource,
     bqObj: BQResourceObject
   ) => {
+
     const pathDir = `${baseDirectory}/${path}/${name}`;
     const pathDDL = `${pathDir}/ddl.sql`;
     const cleanedDDL = ddl
@@ -174,7 +151,8 @@ export async function pullBigQueryResources() {
     if (!fs.existsSync(pathDir)) {
       await fs.promises.mkdir(pathDir, { recursive: true });
     }
-    await syncMetadata(bqObj, pathDir)
+    await syncMetadata(bqObj, pathDir, {push: false})
+      .catch(console.error);
 
     if(type == 'TABLE') {
       const [metadata] = await bqObj.getMetadata();
@@ -215,7 +193,6 @@ export async function pullBigQueryResources() {
 
   // Lists all datasets in the specified project
   bqClient.getDatasetsStream()
-    .on('error', console.error)
     .on('data', async (dataset: any) => {
       // TODO: INFORMATION_SCHEMA.TABLES quota error will occur
       const [job] = await bqClient.createQueryJob(`
@@ -251,6 +228,7 @@ export async function pullBigQueryResources() {
         })
       )
     })
+    .on('error', console.error)
     .on('end', () => {});
 }
 
