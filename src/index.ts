@@ -1,6 +1,6 @@
 // Imports the Google Cloud client library
 import logUpdate from 'log-update';
-import { BigQuery } from '@google-cloud/bigquery';
+import { BigQuery, GetDatasetsOptions } from '@google-cloud/bigquery';
 import type { Metadata } from '@google-cloud/common';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -46,7 +46,8 @@ const syncMetadata = async (
   }
 
   const jobs: Promise<any>[] = []
-  const [metadata] = await bqObject.getMetadata();
+
+  const [metadata] = await bqObject.getMetadata({projectId: bqObject.parent.metadata.datasetReference.projectId});
 
   // schema.json: local file <---> BigQuery Table
   if(metadata?.schema?.fields) {
@@ -104,33 +105,28 @@ const syncMetadata = async (
       Object.entries(newMetadata).forEach(([attr]) => {
         metadata[attr] = local[attr];
       })
+      jobs.push(bqObject.setMetadata(metadata));
     } else {
       Object.entries(newMetadata).forEach(([attr]) => {
         newMetadata[attr] = local[attr] ?? metadata[attr];
       })
     }
   }
-
-  // metadata
-  jobs.push(
-    fs.promises.writeFile(
-      metadataPath,
-      jsonSerializer(newMetadata),
-    ),
-  );
-  jobs.push(bqObject.setMetadata(metadata));
+  jobs.push(fs.promises.writeFile(metadataPath, jsonSerializer(newMetadata)));
 
   await Promise.all(jobs)
 };
 
 
-export async function pullBigQueryResources() {
+export async function pullBigQueryResources(projectId?: string) {
+
   type ResultBQResource = {type: string, path: string, name: string, ddl: string, resource_type: string};
   interface BQResourceObject {
     getMetadata(): Promise<[Metadata]>
   }
-
   const bqClient = new BigQuery();
+  const defaultProjectId = await bqClient.getProjectId()
+  projectId = projectId ?? defaultProjectId;
 
   const fsWriter = async (
     {type, path, name, ddl}: ResultBQResource,
@@ -159,7 +155,7 @@ export async function pullBigQueryResources() {
       await fs.promises.mkdir(pathDir, { recursive: true });
     }
     await syncMetadata(bqObj, pathDir, {push: false})
-      .catch(console.error);
+      .catch(e => {console.log(e); throw e;})
 
     if(type == 'TABLE') {
       const [metadata] = await bqObj.getMetadata();
@@ -174,7 +170,7 @@ export async function pullBigQueryResources() {
     }
 
     await fs.promises.writeFile(pathDDL, cleanedDDL)
-      .then(() => console.log(`${type}: ${path}.${name} => ${pathDDL}`));
+      .then(() => console.log(`${type}: ${path.replace('/', '.')}.${name} => ${pathDDL}`));
   }
 
   // Import BigQuery dataset Metadata
@@ -185,7 +181,7 @@ export async function pullBigQueryResources() {
       , catalog_name as path
       , schema_name as name
       , ddl 
-    from \`INFORMATION_SCHEMA.SCHEMATA\`
+    from \`${projectId}.INFORMATION_SCHEMA.SCHEMATA\`
   `).then(async ([job]) => {
     const [records] = await job.getQueryResults()
     await Promise.all(records
@@ -198,8 +194,8 @@ export async function pullBigQueryResources() {
     console.error(err);
   });
 
-  // Lists all datasets in the specified project
-  bqClient.getDatasetsStream()
+  // projectId is hidden options in type script
+  bqClient.getDatasetsStream({projectId} as GetDatasetsOptions)
     .on('data', async (dataset: any) => {
       // TODO: INFORMATION_SCHEMA.TABLES quota error will occur
       const [job] = await bqClient.createQueryJob(`
@@ -209,7 +205,7 @@ export async function pullBigQueryResources() {
           , format('%s/%s', routine_catalog, routine_schema) as path
           , routine_name as name
           , ddl 
-        from \`${dataset.id}.INFORMATION_SCHEMA.ROUTINES\`
+        from \`${projectId}.${dataset.id}.INFORMATION_SCHEMA.ROUTINES\`
         union all
         select distinct
           'TABLE' as type
@@ -217,7 +213,7 @@ export async function pullBigQueryResources() {
           , format('%s/%s', table_catalog, table_schema) as path
           , name
           , any_value(replace(ddl, table_name, name)) as ddl
-        from \`${dataset.id}.INFORMATION_SCHEMA.TABLES\`
+        from \`${projectId}.${dataset.id}.INFORMATION_SCHEMA.TABLES\`
         left join unnest([struct(
           safe.parse_date('%Y%m%d', regexp_extract(table_name, r'\d+$')) as _table_suffix,
           regexp_replace(table_name, r'\d+$', '@_TABLE_SUFFIX') as newname
@@ -486,12 +482,13 @@ function createCLI() {
     });
 
   cli
-    .command('pull', '説明') // コマンド
-    .option('--opt', '説明') // 引数オプション
-    .action(async (options: any) => {
+    .command('pull [...projects]', 'pull dataset and its tabald and routine information')
+    .action(async (projects: string[], options: any) => {
       // 実行したい処理
-      console.log('pull command', options); // 引数の値をオブジェクトで受け取れる
-      pullBigQueryResources();
+      console.log('pull command', projects, options); // 引数の値をオブジェクトで受け取れる
+      await Promise.allSettled(
+        projects.map(async (p) => await pullBigQueryResources(p))
+      )
     });
 
   cli.help();
