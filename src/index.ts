@@ -267,11 +267,7 @@ export async function pullBigQueryResources({
       return
     }
 
-    // const ddlBody = bqObj.definitionBody ?? bqObj?.view?.query ?? bqObj?.materializedView?.query;
-    // const ddlHeader = `CREATE OR REPLACE ${typeof bqObj}`
-    // const bqObj2DDL = `${ddlHeader} ${ddlBody}` ;
     const ddlStatement = bqObj2DDL[bqObj.id]?.ddl;
-    console.log(catalogId, bqObj.id, ddlStatement)
     if(!ddlStatement) {
       return
     }
@@ -286,7 +282,7 @@ export async function pullBigQueryResources({
       )
       .replace('CREATE FUNCTION', 'CREATE OR REPLACE FUNCTION')
       .replace(/CREATE TABLE/, 'CREATE TABLE IF NOT EXISTS')
-      .replace(/CREATE TABLE/, 'CREATE SCHEMA IF NOT EXISTS')
+      .replace(/CREATE SCHEMA/, 'CREATE SCHEMA IF NOT EXISTS')
       .replace(/CREATE VIEW/, 'CREATE OR REPLACE VIEW')
       .replace(
         /CREATE MATERIALIZED VIEW/,
