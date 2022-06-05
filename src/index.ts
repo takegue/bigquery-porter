@@ -1,7 +1,7 @@
 // Imports the Google Cloud client library
 import logUpdate from 'log-update';
-import { BigQuery, GetDatasetsOptions } from '@google-cloud/bigquery';
-import type { Metadata } from '@google-cloud/common';
+import { BigQuery, Dataset, GetDatasetsOptions } from '@google-cloud/bigquery';
+// import type { Metadata } from '@google-cloud/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import {cac} from 'cac';
@@ -48,8 +48,11 @@ const syncMetadata = async (
 
   const jobs: Promise<any>[] = []
 
-  const [metadata] = await bqObject.getMetadata({projectId: bqObject.parent.metadata.datasetReference.projectId});
-
+  const projectId =
+      bqObject.metadata?.datasetReference?.projectId
+      ?? bqObject.parent.metadata?.datasetReference?.projectId;
+  const [metadata] = await bqObject.getMetadata({projectId, location: bqObject.location});
+  
   // schema.json: local file <---> BigQuery Table
   if(metadata?.schema?.fields) {
     // Merge upstream and downstream schema description
@@ -90,6 +93,7 @@ const syncMetadata = async (
       ),
       // Dataset attribute
       access: metadata?.access,
+      location: bqObject instanceof Dataset ? metadata?.location : undefined,
 
       // UDF attribute
       returnType: metadata?.returnType,
@@ -121,10 +125,12 @@ const syncMetadata = async (
 
 export async function pullBigQueryResources(projectId?: string) {
 
-  type ResultBQResource = {type: string, path: string, name: string, ddl: string, resource_type: string};
-  interface BQResourceObject {
-    getMetadata(): Promise<[Metadata]>
-  }
+  type ResultBQResource = {type: string, path: string, name: string, ddl: string | undefined, resource_type: string};
+  // interface BQResourceObject {
+  //   parent: any,
+  //   metadata: Metadata,
+  //   getMetadata(options?: any): Promise<[Metadata]>
+  // }
   const throttle = pThrottle({
     limit: 20,
     interval: 500
@@ -153,10 +159,38 @@ export async function pullBigQueryResources(projectId?: string) {
 
   const fsWriter = async (
     {type, path, name, ddl}: ResultBQResource,
-    bqObj: BQResourceObject
+    bqObj: any
   ) => {
-
     const pathDir = `${baseDirectory}/${path}/${name}`;
+    const projectId = (
+      bqObj.metadata?.datasetReference?.projectId
+        ?? bqObj.parent.metadata?.datasetReference?.projectId
+    ) as string;
+    bqObj['projectId'] = projectId;
+
+    if (!fs.existsSync(pathDir)) {
+      await fs.promises.mkdir(pathDir, { recursive: true });
+    }
+    console.log(`${type}: ${path.replace('/', '.')}.${name} => ${pathDir}`)
+
+    await syncMetadata(bqObj, pathDir, {push: false})
+      .catch(e => {console.log('syncerror', e, bqObj); throw e;})
+
+    if(type == 'TABLE') {
+      let [metadata] =  await bqObj.getMetadata({projectId});
+      if (metadata?.view) {
+        const pathView = `${pathDir}/view.sql`;
+        await fs.promises.writeFile(
+          pathView,
+          metadata.view.query
+          .replace(/\r\n/g, '\n'),
+        );
+      }
+    }
+
+    if(!ddl) {
+      return
+    }
     const pathDDL = `${pathDir}/ddl.sql`;
     const cleanedDDL = ddl
       .replace(/\r\n/g, '\n')
@@ -174,52 +208,43 @@ export async function pullBigQueryResources(projectId?: string) {
         'CREATE IF NOT EXISTS MATERIALIZED VIEW',
       );
 
-    if (!fs.existsSync(pathDir)) {
-      await fs.promises.mkdir(pathDir, { recursive: true });
-    }
-    await syncMetadata(bqObj, pathDir, {push: false})
-      .catch(e => {console.log(e); throw e;})
-
-    if(type == 'TABLE') {
-      let [metadata] =  await bqObj.getMetadata();
-      if (metadata?.view) {
-        const pathView = `${pathDir}/view.sql`;
-        await fs.promises.writeFile(
-          pathView,
-          metadata.view.query
-          .replace(/\r\n/g, '\n'),
-        );
-      }
-    }
-
     await fs.promises.writeFile(pathDDL, cleanedDDL)
-      .then(() => console.log(`${type}: ${path.replace('/', '.')}.${name} => ${pathDDL}`));
   }
 
-  // Import BigQuery dataset Metadata
-  await bqClient.createQueryJob(`
-    select 
-      'SCHEMA' as type
-      , string(null) as resource_type
-      , catalog_name as path
-      , schema_name as name
-      , ddl 
-    from \`${projectId}.INFORMATION_SCHEMA.SCHEMATA\`
-  `).then(async ([job]) => {
+  const schemaDDL = await (async () => {
+    // Import BigQuery dataset Metadata
+    const [job] = await bqClient.createQueryJob(`
+      select 
+        'SCHEMA' as type
+        , string(null) as resource_type
+        , catalog_name as path
+        , schema_name as name
+        , ddl 
+      from \`${projectId}.INFORMATION_SCHEMA.SCHEMATA\`
+    `).catch(e => {
+      console.log(e.message)
+      return []
+    })
+    if(!job) {
+      return undefined
+    }
     const [records] = await job.getQueryResults()
-    await Promise.all(records
-      .map(async (r) => {
-        const [bqObj] = await bqClient.dataset(r.name).get()
-        await fsWriter(r, bqObj)
-      }));
-  })
-  .catch((err) => {
-    console.error(err);
-  });
+    return Object.fromEntries(records.map((r: ResultBQResource)  => [r.name, r]))
+  })() ?? {};
 
   // projectId is hidden options in type script
   bqClient.getDatasetsStream({projectId} as GetDatasetsOptions)
     .on('data', async (dataset: any) => {
+      const schemaObj = {
+        type: "SCHEMA", 
+        path: dataset.metadata.datasetReference.projectId as string,
+        name: dataset.metadata.datasetReference.datasetId as string,
+        resource_type: '',
+        ddl: schemaDDL[dataset.metadata?.datasetReference.datasetId]?.ddl
+      }
+      await fsWriter(schemaObj, dataset)
+        .catch(e => console.log('dataset ', e, dataset));
+
       // TODO: INFORMATION_SCHEMA.TABLES quota error will occur
       const [job] = await bqClient.createQueryJob(`
         select 
@@ -238,8 +263,8 @@ export async function pullBigQueryResources(projectId?: string) {
           , any_value(replace(ddl, table_name, name)) as ddl
         from \`${projectId}.${dataset.id}.INFORMATION_SCHEMA.TABLES\`
         left join unnest([struct(
-          safe.parse_date('%Y%m%d', regexp_extract(table_name, r'\d+$')) as _table_suffix,
-          regexp_replace(table_name, r'\d+$', '@_TABLE_SUFFIX') as newname
+          safe.parse_date('%Y%m%d', regexp_extract(table_name, r'\\d+$')) as _table_suffix,
+          regexp_replace(table_name, r'\\d+$', '@_TABLE_SUFFIX') as newname
         )])
         left join unnest([struct(
           if(_table_suffix is not null, newname, table_name) as name
@@ -251,6 +276,7 @@ export async function pullBigQueryResources(projectId?: string) {
         .map(async r => {
           const bqObj = r.type === 'TABLE'? dataset.table(r.name) : dataset.routine(r.name);
           await fsWriter(r, bqObj)
+            .catch(e => console.log('table ', e));
         })
       )
     })
