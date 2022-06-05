@@ -1,5 +1,7 @@
 // Imports the Google Cloud client library
 import logUpdate from 'log-update';
+import readlinePromises from 'readline';
+import { isatty } from 'tty';
 import { BigQuery, Dataset, Table, Routine, GetDatasetsOptions } from '@google-cloud/bigquery';
 // import type { Metadata } from '@google-cloud/common';
 import * as fs from 'fs';
@@ -16,7 +18,7 @@ import {
 import {
   Task,
 } from '../src/reporter.js';
-// import { version } from 'process';
+import 'process';
 
 
 const cli = cac();
@@ -54,13 +56,13 @@ execute immediate (
 """-- SQL TEMPLATE
 select
   'ROUTINE' as type
-  , routine_name
+  , routine_name as name
   , ddl
 from \`%s.INFORMATION_SCHEMA.ROUTINES\`
 union distinct
 select distinct
   'TABLE' as type
-  , table_name
+  , table_name as name
   , ddl
 from \`%s.INFORMATION_SCHEMA.TABLES\`
 """
@@ -100,7 +102,7 @@ const syncMetadata = async (
   // schema.json: local file <---> BigQuery Table
   if(metadata?.schema?.fields) {
     // Merge upstream and downstream schema description
-    // due to some bigquery operation purge whole description like view or materialized view
+    // due to some bigquery operations like view or materialized view purge description
     if (fs.existsSync(fieldsPath)) {
       const oldFields = await fs.promises.readFile(fieldsPath)
         .then(s => JSON.parse(s.toString()))
@@ -226,6 +228,8 @@ export async function pullBigQueryResources({
     return tree.reverse()
   }
 
+
+  let bqObj2DDL:any = {};
   const fsWriter = async (
     bqObj: any,
   ) => {
@@ -263,10 +267,11 @@ export async function pullBigQueryResources({
       return
     }
 
-    const ddlBody = bqObj.definitionBody ?? bqObj?.view?.query ?? bqObj?.materializedView?.query;
-    const ddlHeader = `CREATE OR REPLACE ${typeof bqObj}`
-    const ddlStatement = `${ddlHeader} ${ddlBody}` ;
-
+    // const ddlBody = bqObj.definitionBody ?? bqObj?.view?.query ?? bqObj?.materializedView?.query;
+    // const ddlHeader = `CREATE OR REPLACE ${typeof bqObj}`
+    // const bqObj2DDL = `${ddlHeader} ${ddlBody}` ;
+    const ddlStatement = bqObj2DDL[bqObj.id]?.ddl;
+    console.log(catalogId, bqObj.id, ddlStatement)
     if(!ddlStatement) {
       return
     }
@@ -291,13 +296,19 @@ export async function pullBigQueryResources({
     await fs.promises.writeFile(pathDDL, cleanedDDL)
   }
 
-  let bqObj2DDL = {};
   const [datasets] = await bqClient.getDatasets({projectId} as GetDatasetsOptions);
+
   if(withDDL) {
-    const ddlFetcher = async (sql: string) => {
+    const ddlFetcher = async (sql: string, params: { [param: string]: any }
+    ) => {
       // Import BigQuery dataset Metadata
-      const [job] = await bqClient.createQueryJob(sql)
-        .catch(e => {console.log(e.message)
+      const [job] = await bqClient
+        .createQueryJob({
+          query: sql,
+          params 
+        })
+        .catch(e => {
+          console.log(e.message)
           return []
         })
       if(!job) {
@@ -307,9 +318,14 @@ export async function pullBigQueryResources({
       return Object.fromEntries(records.map((r: ResultBQResource)  => [r.name, r]))
     }
 
-    const schemaDDL = await ddlFetcher(sqlDDLForSchemata(projectId ?? defaultProjectId));
-    const resourceDDL = await ddlFetcher(sqlDDLForProject);
-    bqObj2DDL = {...bqObj2DDL, ...schemaDDL, ...resourceDDL}
+    const schemaDDL = await ddlFetcher(sqlDDLForSchemata(projectId ?? defaultProjectId), {});
+    const resourceDDL = await ddlFetcher(sqlDDLForProject, {
+      projectId: projectId ?? defaultProjectId,
+      datasets: datasets
+        .filter(d => d.location == 'US')
+        .map(d => d?.id ?? d.metadata?.id)
+    });
+    bqObj2DDL = {...schemaDDL, ...resourceDDL}
   }
 
   await Promise.allSettled(
@@ -486,15 +502,14 @@ const extractBigQueryDependencies = async (fpath: string, bqClient: BigQuery) =>
   return [...new Set(refs_schemas.concat(refs).concat(additionals))];
 }
 
-const buildDAG = async () => {
-  const bqClient = new BigQuery();
+const buildDAG = async (rootPath: string, files: string[]) => {
   const limit = pLimit(2);
+  const bqClient = new BigQuery();
   const path2bq = await pathToBigQueryIdentifier(bqClient);
 
-  const rootDir = path.normalize(baseDirectory);
+  const rootDir = path.normalize(rootPath);
   const results = await Promise.all(
-    (await walk(rootDir))
-      .filter((p: string) => p.endsWith('sql'))
+    files
       .map(async (n: string) => ({
         file: n,
         bigquery: path2bq(n),
@@ -562,18 +577,49 @@ const buildDAG = async () => {
   }
 };
 
-export async function pushBigQueryResources() {
-  await buildDAG()
+export async function pushBigQueryResources(options: {rootDir: string, projectId?: string}) {
+  const rootDir = options.rootDir ?? baseDirectory;
+  const inputFiles: string[] = await (async () => {
+    if(isatty(0)) {
+      return await walk(rootDir)
+    }
+    const rl = readlinePromises.createInterface({
+      input: process.stdin,
+    });
+    const buffer: string[] = [];
+    for await (const line of rl) {
+      buffer.push(line)
+    }
+    return buffer
+  })();
+
+  const files = inputFiles
+    .filter((p: string) => p.endsWith('sql'))
+    .filter((p: string) => p.includes(options.projectId ?? '@default'))
+  ;
+  console.log(inputFiles)
+
+  await buildDAG(rootDir, files)
 }
 
 function createCLI() {
   cli
-    .command('push', '説明') // コマンド
-    .option('--opt', '説明') // 引数オプション
-    .action(async (options: any) => {
-      // 実行したい処理
-      console.log('push command', options); // 引数の値をオブジェクトで受け取れる
-      await pushBigQueryResources()
+    // Global Options
+    .option('--concurrency', "API Call Concurrency", {
+      default: 8,
+      type: [Number],
+    })
+    .option('-C, --root-path', "API Call Concurrency", {
+      default: "bigquery",
+      type: [Number],
+    })
+    .command('push [...projects]', '説明')
+    .action(async (projects: string[], cmdOptions: any) => {
+      const options = {
+        rootDir: cmdOptions.rootPath as string,
+        projectId: projects[0] as string,
+      }
+      await pushBigQueryResources(options)
     });
 
   cli
@@ -583,17 +629,17 @@ function createCLI() {
       type: [Boolean],
     })
     .action(async (projects: string[], cmdOptions: any) => {
-      console.log(projects);
       const options = {
         withDDL: cmdOptions.withDdl
       }
+      console.log(options);
 
       if(projects.length > 0) {
         await Promise.allSettled(
           projects.map(async (p) => await pullBigQueryResources({projectId: p, ...options}))
         )
       } else {
-        await pullBigQueryResources({})
+        await pullBigQueryResources({...options})
       }
     });
 
@@ -606,5 +652,6 @@ const main = async () => {
   // bqClient()
   createCLI()
 };
+
 
 main();
