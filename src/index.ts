@@ -1,6 +1,6 @@
 // Imports the Google Cloud client library
 import logUpdate from 'log-update';
-import { BigQuery, Dataset, GetDatasetsOptions } from '@google-cloud/bigquery';
+import { BigQuery, Dataset, Table, Routine, GetDatasetsOptions } from '@google-cloud/bigquery';
 // import type { Metadata } from '@google-cloud/common';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -24,6 +24,51 @@ const cli = cac();
 const baseDirectory = './bigquery';
 const jsonSerializer = (obj: any) => JSON.stringify(obj, null, 4);
 
+const sqlDDLForSchemata = (projectId: string) => `
+select 
+  'SCHEMA' as type
+  , schema_name as name
+  , ddl 
+from \`${projectId}.INFORMATION_SCHEMA.SCHEMATA\`
+`;
+
+//FIXME: BigQuery Runtime Error on many datasets
+//FIXME: BigQuery Runtime Error on many tables in one dataset
+//This sql can get only resources in default location.
+const sqlDDLForProject = `
+declare catalog string default @projectId;
+declare schemas array<string> default @datasets;
+if schemas is null then
+  execute immediate format(
+    "select as struct array_agg(distinct schema_name) as schemas from \`%s.INFORMATION_SCHEMA.SCHEMATA\`"
+    , catalog
+  ) into schemas;
+end if;
+
+execute immediate (
+  select as value
+    string_agg(template, "union distinct")
+  from unnest(schemas) schema
+  left join unnest([format("%s.%s", catalog, schema)]) identifier 
+  left join unnest([format(
+"""-- SQL TEMPLATE
+select
+  'ROUTINE' as type
+  , routine_name
+  , ddl
+from \`%s.INFORMATION_SCHEMA.ROUTINES\`
+union distinct
+select distinct
+  'TABLE' as type
+  , table_name
+  , ddl
+from \`%s.INFORMATION_SCHEMA.TABLES\`
+"""
+  , identifier, identifier
+)]) template
+)`
+
+
 type BigQueryJobResource = {
   file: string,
   bigquery: string,
@@ -43,20 +88,19 @@ const syncMetadata = async (
   const metadataPath = path.join(dirPath, 'metadata.json');
   const fieldsPath = path.join(dirPath, 'schema.json');
   const syncLabels: systemDefinedLabels = {
-    'bqm-versionhash': `${Math.floor(Date.now() / 1000)}-${options?.versionhash}`
+    'bqm-versionhash': `${Math.floor(Date.now() / 1000)}-${options?.versionhash ?? 'HEAD'}`
   }
-
   const jobs: Promise<any>[] = []
 
   const projectId =
       bqObject.metadata?.datasetReference?.projectId
       ?? bqObject.parent.metadata?.datasetReference?.projectId;
   const [metadata] = await bqObject.getMetadata({projectId, location: bqObject.location});
-  
+
   // schema.json: local file <---> BigQuery Table
   if(metadata?.schema?.fields) {
     // Merge upstream and downstream schema description
-    // due to some operation varnish whole description like view or materialized view
+    // due to some bigquery operation purge whole description like view or materialized view
     if (fs.existsSync(fieldsPath)) {
       const oldFields = await fs.promises.readFile(fieldsPath)
         .then(s => JSON.parse(s.toString()))
@@ -95,10 +139,16 @@ const syncMetadata = async (
       access: metadata?.access,
       location: bqObject instanceof Dataset ? metadata?.location : undefined,
 
-      // UDF attribute
-      returnType: metadata?.returnType,
+      // Routine atributes
       argument: metadata?.arguments,
-      language: metadata?.arguments,
+      language: metadata?.language,
+
+      // SCALAR FUNCTION / PROCEDURE attribute
+      returnType: metadata?.returnType,
+
+      // TABLE FUNCTION attribute
+      returnTableType: metadata?.returnTableType
+
     }).filter(([_, v]) => !!v && Object.keys(v).length > 0),
   );
 
@@ -123,7 +173,11 @@ const syncMetadata = async (
 };
 
 
-export async function pullBigQueryResources(projectId?: string) {
+export async function pullBigQueryResources({
+  projectId,
+  withDDL
+}: {projectId?: string, withDDL?: boolean}
+) {
 
   type ResultBQResource = {type: string, path: string, name: string, ddl: string | undefined, resource_type: string};
   // interface BQResourceObject {
@@ -140,6 +194,7 @@ export async function pullBigQueryResources(projectId?: string) {
     {
       get: (obj: any, sKey: any) => {
         const member = obj[sKey]
+        // Request Throttling 
         if(member instanceof Function && sKey == 'request') {
           return async (...args: any[]) => {
             let result: any;
@@ -155,29 +210,45 @@ export async function pullBigQueryResources(projectId?: string) {
   );
 
   const defaultProjectId = await bqClient.getProjectId()
-  projectId = projectId ?? defaultProjectId;
+
+  const bqTreePath = (bqObj: any, defaultProject: string) => {
+    let tree: string[] = [];
+    let it = bqObj ;
+    while(it.id) {
+      tree.push(it.id)
+      it = it?.parent
+    }
+    tree.push(
+      defaultProject
+      ?? bqObj.metadata?.datasetReference?.projectId
+      ?? bqObj.parent.metadata?.datasetReference?.projectId
+    )
+    return tree.reverse()
+  }
 
   const fsWriter = async (
-    {type, path, name, ddl}: ResultBQResource,
-    bqObj: any
+    bqObj: any,
   ) => {
-    const pathDir = `${baseDirectory}/${path}/${name}`;
-    const projectId = (
+    const path = bqTreePath(bqObj, projectId ?? "@default").join('/')
+    const bqId = bqTreePath(bqObj, projectId ?? defaultProjectId).join('.')
+    const pathDir = `${baseDirectory}/${path}`;
+    const catalogId = (
       bqObj.metadata?.datasetReference?.projectId
-        ?? bqObj.parent.metadata?.datasetReference?.projectId
+      ?? bqObj.parent.metadata?.datasetReference?.projectId
+      ?? defaultProjectId
     ) as string;
-    bqObj['projectId'] = projectId;
+    bqObj['projectId'] = catalogId;
 
     if (!fs.existsSync(pathDir)) {
       await fs.promises.mkdir(pathDir, { recursive: true });
     }
-    console.log(`${type}: ${path.replace('/', '.')}.${name} => ${pathDir}`)
+    console.log(`${bqId} => ${pathDir}`)
 
     await syncMetadata(bqObj, pathDir, {push: false})
       .catch(e => {console.log('syncerror', e, bqObj); throw e;})
 
-    if(type == 'TABLE') {
-      let [metadata] =  await bqObj.getMetadata({projectId});
+    if(bqObj.metadata.type  == 'VIEW') {
+      let [metadata] =  await bqObj.getMetadata();
       if (metadata?.view) {
         const pathView = `${pathDir}/view.sql`;
         await fs.promises.writeFile(
@@ -188,11 +259,20 @@ export async function pullBigQueryResources(projectId?: string) {
       }
     }
 
-    if(!ddl) {
+    if(!withDDL) {
       return
     }
+
+    const ddlBody = bqObj.definitionBody ?? bqObj?.view?.query ?? bqObj?.materializedView?.query;
+    const ddlHeader = `CREATE OR REPLACE ${typeof bqObj}`
+    const ddlStatement = `${ddlHeader} ${ddlBody}` ;
+
+    if(!ddlStatement) {
+      return
+    }
+
     const pathDDL = `${pathDir}/ddl.sql`;
-    const cleanedDDL = ddl
+    const cleanedDDL = ddlStatement
       .replace(/\r\n/g, '\n')
       .replace('CREATE PROCEDURE', 'CREATE OR REPLACE PROCEDURE')
       .replace(
@@ -211,77 +291,43 @@ export async function pullBigQueryResources(projectId?: string) {
     await fs.promises.writeFile(pathDDL, cleanedDDL)
   }
 
-  const schemaDDL = await (async () => {
-    // Import BigQuery dataset Metadata
-    const [job] = await bqClient.createQueryJob(`
-      select 
-        'SCHEMA' as type
-        , string(null) as resource_type
-        , catalog_name as path
-        , schema_name as name
-        , ddl 
-      from \`${projectId}.INFORMATION_SCHEMA.SCHEMATA\`
-    `).catch(e => {
-      console.log(e.message)
-      return []
-    })
-    if(!job) {
-      return undefined
-    }
-    const [records] = await job.getQueryResults()
-    return Object.fromEntries(records.map((r: ResultBQResource)  => [r.name, r]))
-  })() ?? {};
-
-  // projectId is hidden options in type script
-  bqClient.getDatasetsStream({projectId} as GetDatasetsOptions)
-    .on('data', async (dataset: any) => {
-      const schemaObj = {
-        type: "SCHEMA", 
-        path: dataset.metadata.datasetReference.projectId as string,
-        name: dataset.metadata.datasetReference.datasetId as string,
-        resource_type: '',
-        ddl: schemaDDL[dataset.metadata?.datasetReference.datasetId]?.ddl
-      }
-      await fsWriter(schemaObj, dataset)
-        .catch(e => console.log('dataset ', e, dataset));
-
-      // TODO: INFORMATION_SCHEMA.TABLES quota error will occur
-      const [job] = await bqClient.createQueryJob(`
-        select 
-          'ROUTINE' as type
-          , routine_type as resource_type
-          , format('%s/%s', routine_catalog, routine_schema) as path
-          , routine_name as name
-          , ddl 
-        from \`${projectId}.${dataset.id}.INFORMATION_SCHEMA.ROUTINES\`
-        union all
-        select distinct
-          'TABLE' as type
-          , any_value(table_type) as resource_type
-          , format('%s/%s', table_catalog, table_schema) as path
-          , name
-          , any_value(replace(ddl, table_name, name)) as ddl
-        from \`${projectId}.${dataset.id}.INFORMATION_SCHEMA.TABLES\`
-        left join unnest([struct(
-          safe.parse_date('%Y%m%d', regexp_extract(table_name, r'\\d+$')) as _table_suffix,
-          regexp_replace(table_name, r'\\d+$', '@_TABLE_SUFFIX') as newname
-        )])
-        left join unnest([struct(
-          if(_table_suffix is not null, newname, table_name) as name
-        )])
-        group by path, name
-      `)
-      const [records] = await job.getQueryResults()
-      await Promise.allSettled(records
-        .map(async r => {
-          const bqObj = r.type === 'TABLE'? dataset.table(r.name) : dataset.routine(r.name);
-          await fsWriter(r, bqObj)
-            .catch(e => console.log('table ', e));
+  let bqObj2DDL = {};
+  const [datasets] = await bqClient.getDatasets({projectId} as GetDatasetsOptions);
+  if(withDDL) {
+    const ddlFetcher = async (sql: string) => {
+      // Import BigQuery dataset Metadata
+      const [job] = await bqClient.createQueryJob(sql)
+        .catch(e => {console.log(e.message)
+          return []
         })
-      )
-    })
-    .on('error', console.error)
-    .on('end', () => {});
+      if(!job) {
+        return undefined
+      }
+      const [records] = await job.getQueryResults()
+      return Object.fromEntries(records.map((r: ResultBQResource)  => [r.name, r]))
+    }
+
+    const schemaDDL = await ddlFetcher(sqlDDLForSchemata(projectId ?? defaultProjectId));
+    const resourceDDL = await ddlFetcher(sqlDDLForProject);
+    bqObj2DDL = {...bqObj2DDL, ...schemaDDL, ...resourceDDL}
+  }
+
+  await Promise.allSettled(
+    datasets.map(async (dataset: any) => [
+        // Schema
+        // fsWriter(dataset, schemaDDL[dataset.metadata?.datasetReference.datasetId]?.ddl)
+        fsWriter(dataset)
+          .catch(e => console.log('dataset ', e, dataset)), 
+        // Tables
+        ...(await dataset.getTables().then(
+          ([rets]: [Table[]]) => rets.map((bqObj) => fsWriter(bqObj)))),
+        // Routines
+        ...(await dataset.getRoutines().then(
+          ([rets]: [Routine[]]) => rets.map((bqObj) => fsWriter(bqObj)))),
+      ]
+    ).flat()
+  )
+
 }
 
 const deployBigQueryResouce = async (bqClient: any, rootDir: string, p: string) => {
@@ -517,7 +563,7 @@ const buildDAG = async () => {
 };
 
 export async function pushBigQueryResources() {
-    await buildDAG()
+  await buildDAG()
 }
 
 function createCLI() {
@@ -532,12 +578,23 @@ function createCLI() {
 
   cli
     .command('pull [...projects]', 'pull dataset and its tabald and routine information')
-    .action(async (projects: string[], options: any) => {
-      // 実行したい処理
-      console.log('pull command', projects, options); // 引数の値をオブジェクトで受け取れる
-      await Promise.allSettled(
-        projects.map(async (p) => await pullBigQueryResources(p))
-      )
+    .option('--with-ddl', "Pulling BigQuery Resources with DDL SQL", {
+      default: false,
+      type: [Boolean],
+    })
+    .action(async (projects: string[], cmdOptions: any) => {
+      console.log(projects);
+      const options = {
+        withDDL: cmdOptions.withDdl
+      }
+
+      if(projects.length > 0) {
+        await Promise.allSettled(
+          projects.map(async (p) => await pullBigQueryResources({projectId: p, ...options}))
+        )
+      } else {
+        await pullBigQueryResources({})
+      }
     });
 
   cli.help();
