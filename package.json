@@ -8,6 +8,7 @@
     "cac": "^6.7.12",
     "log-update": "^5.0.1",
     "p-limit": "^4.0.0",
+    "p-throttle": "^5.0.0",
     "picocolors": "^1.0.0",
     "tree-sitter": "^0.20.0",
     "tree-sitter-sql-bigquery": "^0.0.6"

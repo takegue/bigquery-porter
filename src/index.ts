@@ -6,6 +6,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import {cac} from 'cac';
 import pLimit from 'p-limit';
+import pThrottle from 'p-throttle';
 import {
   topologicalSort,
   walk,
@@ -124,7 +125,29 @@ export async function pullBigQueryResources(projectId?: string) {
   interface BQResourceObject {
     getMetadata(): Promise<[Metadata]>
   }
-  const bqClient = new BigQuery();
+  const throttle = pThrottle({
+    limit: 20,
+    interval: 500
+  });
+  const bqClient= new Proxy<BigQuery>(
+    new BigQuery(),
+    {
+      get: (obj: any, sKey: any) => {
+        const member = obj[sKey]
+        if(member instanceof Function && sKey == 'request') {
+          return async (...args: any[]) => {
+            let result: any;
+            await throttle(async () => {
+              result = member.apply(obj, args);
+            })()
+            return result
+          }
+        }
+        return member;
+      }
+    },
+  );
+
   const defaultProjectId = await bqClient.getProjectId()
   projectId = projectId ?? defaultProjectId;
 
@@ -158,7 +181,7 @@ export async function pullBigQueryResources(projectId?: string) {
       .catch(e => {console.log(e); throw e;})
 
     if(type == 'TABLE') {
-      const [metadata] = await bqObj.getMetadata();
+      let [metadata] =  await bqObj.getMetadata();
       if (metadata?.view) {
         const pathView = `${pathDir}/view.sql`;
         await fs.promises.writeFile(
