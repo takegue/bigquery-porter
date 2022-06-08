@@ -6,7 +6,8 @@ import {
   extractDestinations,
   extractRefenrences,
 } from '../src/util.js';
-import {pushBigQueryResources, pullBigQueryResources} from '../src/index.js';
+// import {pushBigQueryResources, pullBigQueryResources} from '../src/index.js';
+import {BigQueryResource, bq2path} from '../src/bigquery.js';
 
 describe('util test: toposort', () => {
     const cases: Array<{
@@ -86,14 +87,109 @@ describe('util test: sql extraction', () => {
     });
 })
 
-describe('integration test', () => {
-    // it('Run push', async () => {
-    //   await pushBigQueryResources();
-    // });
+describe('biquery: bq2path', () => {
+  const client: BigQueryResource = {
+    baseUrl: 'https://bigquery.googleapis.com/bigquery/v2',
+    projectId: 'awesome-project',
+  }
 
-    it('Run pull', async () => {
-      await new Promise(resolve => setTimeout(resolve, 3000))
-      await pullBigQueryResources();
-    });
+  const dataset: BigQueryResource = {
+    baseUrl: '/dataset',
+    projectId: 'awesome-project',
+    id: 'sandbox',
+    parent: client,
+  }
+
+  const cases: Array<{
+    input: [BigQueryResource, boolean],
+    expected: string
+  }> = [
+    {
+      input: [dataset, false],
+      expected: "awesome-project/sandbox"
+    },
+    { 
+      input: [{
+          baseUrl: '/table',
+          projectId: 'awesome-project',
+          id: 'table_id',
+          parent: dataset,
+        },
+        false
+      ],
+      expected: "awesome-project/sandbox/table_id"
+    },
+    { 
+      input: [{
+          baseUrl: '/routine',
+          projectId: 'awesome-project',
+          id: 'routine_id',
+          parent: dataset,
+        },
+        false
+      ],
+      expected: "awesome-project/sandbox/@routines/routine_id"
+    },
+    { 
+      input: [{
+          baseUrl: '/model',
+          projectId: 'awesome-project',
+          id: 'model_id',
+          parent: dataset,
+        },
+        false
+      ],
+      expected: "awesome-project/sandbox/@models/model_id"
+    },
+    {
+      input: [{
+          baseUrl: '/unknown',
+          projectId: 'awesome-project',
+          id: 'unknown_id',
+          parent: dataset,
+        },
+        false
+      ],
+      expected: "awesome-project/sandbox/@unknowns/unknown_id"
+    },
+    { 
+      input: [{
+          baseUrl: '/table',
+          projectId: 'awesome-project',
+          id: 'table_id',
+          parent: dataset,
+        },
+        true
+      ],
+      expected: "@default/sandbox/table_id"
+    },
+    { 
+      input: [{
+          baseUrl: '/routine',
+          projectId: 'awesome-project',
+          id: 'routine_id',
+          parent: dataset,
+        },
+        true
+      ],
+      expected: "@default/sandbox/@routines/routine_id"
+    }
+  ];
+  it.each(cases)('topological sort', async (args) => {
+    const {input, expected} = args;
+    expect(bq2path(...input)).toMatchObject(expected)
+  });
 })
+
+
+// describe('integration test', () => {
+//     // it('Run push', async () => {
+//     //   await pushBigQueryResources();
+//     // });
+
+//     it('Run pull', async () => {
+//       await new Promise(resolve => setTimeout(resolve, 3000))
+//       await pullBigQueryResources();
+//     });
+// })
  
