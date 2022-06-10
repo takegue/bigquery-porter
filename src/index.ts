@@ -24,7 +24,6 @@ import 'process';
 
 const cli = cac();
 
-const baseDirectory = './bigquery';
 const jsonSerializer = (obj: any) => JSON.stringify(obj, null, 4);
 
 const sqlDDLForSchemata = (projectId: string) => `
@@ -340,9 +339,9 @@ export async function pullBigQueryResources({
 
 }
 
-const deployBigQueryResouce = async (bqClient: BigQuery, p: string) => {
+const deployBigQueryResouce = async (bqClient: BigQuery, rootPath: string, p: string) => {
   const msgWithPath = (msg: string) => `${path.dirname(p)}: ${msg}`;
-  const path2bq = await pathToBigQueryIdentifier(bqClient);
+  const path2bq = await pathToBigQueryIdentifier(bqClient, rootPath);
   // const jsonSerializer = (obj) => JSON.stringify(obj, null, 4);
 
   if (p && !p.endsWith('sql')) return undefined;
@@ -463,11 +462,11 @@ const deployBigQueryResouce = async (bqClient: BigQuery, p: string) => {
   return null;
 };
 
-const pathToBigQueryIdentifier = async (bqClient: BigQuery) => {
+const pathToBigQueryIdentifier = async (bqClient: BigQuery, rootPath: string) => {
   const defautlProjectID = await bqClient.getProjectId();
 
   return (fpath: string) => {
-    const rootDir = path.normalize(baseDirectory);
+    const rootDir = path.normalize(rootPath);
     const [catalogId, schemaId, namespace_or_name, name_or_missing] = path.dirname(
       path.relative(rootDir, fpath.replace("@default", defautlProjectID)),
     ).split('/');
@@ -493,8 +492,8 @@ const normalizedBQPath = (bqPath: string, defaultProject?: string): string => {
   }
 }
 
-const extractBigQueryDependencies = async (fpath: string, bqClient: BigQuery) => {
-  const path2bq = await pathToBigQueryIdentifier(bqClient);
+const extractBigQueryDependencies = async (rootPath: string, fpath: string, bqClient: BigQuery) => {
+  const path2bq = await pathToBigQueryIdentifier(bqClient, rootPath);
   const [projectID, schema, resource] = path2bq(fpath).split('.')
   const sql: string = await fs.promises.readFile(fpath)
     .then((s: any) => s.toString());
@@ -510,19 +509,17 @@ const extractBigQueryDependencies = async (fpath: string, bqClient: BigQuery) =>
   return [...new Set(refs_schemas.concat(refs).concat(additionals))];
 }
 
-const buildDAG = async (rootPath: string, files: string[]) => {
-  const limit = pLimit(5);
+const buildDAG = async (rootPath: string, files: string[], concurrency: number) => {
+  const limit = pLimit(concurrency);
   const bqClient = new BigQuery();
-  const path2bq = await pathToBigQueryIdentifier(bqClient);
+  const path2bq = await pathToBigQueryIdentifier(bqClient, rootPath);
 
-  const rootDir = path.normalize(rootPath);
-  console.log(rootDir)
   const results = await Promise.all(
     files
       .map(async (n: string) => ({
         file: n,
         bigquery: path2bq(n),
-        dependencies: await extractBigQueryDependencies(n, bqClient),
+        dependencies: await extractBigQueryDependencies(rootPath, n, bqClient),
       } as BigQueryJobResource)),
   );
   const relations = [...results
@@ -565,7 +562,7 @@ const buildDAG = async (rootPath: string, files: string[]) => {
                 throw Error('Suspended: Parent job is faild: ' + msg)
               })
 
-              await deployBigQueryResouce(bqClient, target.file)
+              await deployBigQueryResouce(bqClient, rootPath, target.file)
             }),
           bigquery: target
           }
@@ -590,8 +587,8 @@ const buildDAG = async (rootPath: string, files: string[]) => {
   }
 };
 
-export async function pushBigQueryResources(options: {rootDir: string, projectId?: string}) {
-  const rootDir = options.rootDir ?? baseDirectory;
+export async function pushBigQueryResources(options: {rootDir: string, projectId?: string, concurrency?: number}) {
+  const rootDir = options.rootDir;
   const inputFiles: string[] = await (async () => {
     if(isatty(0)) {
       return await walk(rootDir)
@@ -611,30 +608,35 @@ export async function pushBigQueryResources(options: {rootDir: string, projectId
     .filter((p: string) => p.includes(options.projectId ?? '@default'))
   ;
 
-  await buildDAG(rootDir, files)
+  await buildDAG(rootDir, files, options.concurrency ?? 1)
 }
 
 function createCLI() {
   cli
     // Global Options
-    .option('--concurrency', "API Call Concurrency", {
+    .option('-n, --threads <threads>', "API Call Concurrency", {
       default: 8,
-      type: [Number],
     })
-    .option('-C, --root-path', "API Call Concurrency", {
-      default: "bigquery",
+    .option('-C, --root-path <rootPath>', "Root Directory", {
+      default: ["./bigquery"],
       type: [String],
-    })
+    });
+  cli
     .command('push [...projects]', '説明')
     .action(async (projects: string[], cmdOptions: any) => {
+      const rootDir = cmdOptions.rootPath[0];
+      if(!rootDir) {
+        console.error("CLI Error")
+        return
+      }
+
       const options = {
-        rootDir: cmdOptions.rootPath,
+        rootDir: rootDir,
         projectId: projects[0] as string,
-        concurrency: cmdOptions.concurrency,
+        concurrency: cmdOptions.threads,
       }
       await pushBigQueryResources(options)
     });
-
   cli
     .command('pull [...projects]', 'pull dataset and its tabald and routine information')
     .option("--all", "Pulling All BugQuery Datasets", {

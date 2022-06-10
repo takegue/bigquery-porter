@@ -105,6 +105,14 @@ describe('biquery: bq2path', () => {
     expected: string
   }> = [
     {
+      input: [client, false],
+      expected: "awesome-project"
+    },
+    {
+      input: [client, true],
+      expected: "@default"
+    },
+    {
       input: [dataset, false],
       expected: "awesome-project/sandbox"
     },
