@@ -2,8 +2,7 @@
 import logUpdate from 'log-update';
 import readlinePromises from 'readline';
 import { isatty } from 'tty';
-import { BigQuery, Dataset, Table, Routine, GetDatasetsOptions } from '@google-cloud/bigquery';
-// import type { Metadata } from '@google-cloud/common';
+import { BigQuery, Dataset, Model, Table, Routine, GetDatasetsOptions } from '@google-cloud/bigquery';
 import * as fs from 'fs';
 import * as path from 'path';
 import {cac} from 'cac';
@@ -14,6 +13,8 @@ import {
   walk,
   extractRefenrences,
 } from '../src/util.js';
+import { bq2path } from '../src/bigquery.js';
+
 
 import {
   Task,
@@ -96,7 +97,7 @@ const syncMetadata = async (
 
   const projectId =
       bqObject.metadata?.datasetReference?.projectId
-      ?? bqObject.parent.metadata?.datasetReference?.projectId;
+      ?? bqObject.parent?.metadata?.datasetReference?.projectId;
   const [metadata] = await bqObject.getMetadata({projectId, location: bqObject.location});
 
   // schema.json: local file <---> BigQuery Table
@@ -129,8 +130,10 @@ const syncMetadata = async (
 
   const newMetadata = Object.fromEntries(Object.entries({
       type: metadata.type,
+      etag: metadata.etag,
       routineType: metadata.routineType,
       modelType: metadata.modelType,
+
       description: metadata.description,
       // Filter predefined labels
       labels: Object.fromEntries(
@@ -142,15 +145,19 @@ const syncMetadata = async (
       location: bqObject instanceof Dataset ? metadata?.location : undefined,
 
       // Routine atributes
-      argument: metadata?.arguments,
+      arguments: metadata?.arguments,
       language: metadata?.language,
 
       // SCALAR FUNCTION / PROCEDURE attribute
       returnType: metadata?.returnType,
 
       // TABLE FUNCTION attribute
-      returnTableType: metadata?.returnTableType
+      returnTableType: metadata?.returnTableType,
 
+      // MODEL attribute
+      featureColumns: metadata?.featureColumns,
+      labelColumns: metadata?.labelColumns,
+      trainingRuns: metadata?.trainingRuns,
     }).filter(([_, v]) => !!v && Object.keys(v).length > 0),
   );
 
@@ -213,28 +220,11 @@ export async function pullBigQueryResources({
 
   const defaultProjectId = await bqClient.getProjectId()
 
-  const bqTreePath = (bqObj: any, defaultProject: string) => {
-    let tree: string[] = [];
-    let it = bqObj ;
-    while(it.id) {
-      tree.push(it.id)
-      it = it?.parent
-    }
-    tree.push(
-      defaultProject
-      ?? bqObj.metadata?.datasetReference?.projectId
-      ?? bqObj.parent.metadata?.datasetReference?.projectId
-    )
-    return tree.reverse()
-  }
-
-
   let bqObj2DDL:any = {};
   const fsWriter = async (
     bqObj: any,
   ) => {
-    const path = bqTreePath(bqObj, projectId ?? "@default").join('/')
-    const bqId = bqTreePath(bqObj, projectId ?? defaultProjectId).join('.')
+    const path = bq2path(bqObj, projectId === undefined);
     const pathDir = `${baseDirectory}/${path}`;
     const catalogId = (
       bqObj.metadata?.datasetReference?.projectId
@@ -246,7 +236,8 @@ export async function pullBigQueryResources({
     if (!fs.existsSync(pathDir)) {
       await fs.promises.mkdir(pathDir, { recursive: true });
     }
-    console.log(`${bqId} => ${pathDir}`)
+    const bqId = bqObj.metadata.id ?? `${bqObj.projectId}:${bqObj.parent.id}.${bqObj.id}`;
+    console.log(`${bqId} => ${pathDir}`);
 
     await syncMetadata(bqObj, pathDir, {push: false})
       .catch(e => {console.log('syncerror', e, bqObj); throw e;})
@@ -282,11 +273,12 @@ export async function pullBigQueryResources({
       )
       .replace('CREATE FUNCTION', 'CREATE OR REPLACE FUNCTION')
       .replace(/CREATE TABLE/, 'CREATE TABLE IF NOT EXISTS')
+      .replace(/CREATE MODEL/, 'CREATE MODEL IF NOT EXISTS')
       .replace(/CREATE SCHEMA/, 'CREATE SCHEMA IF NOT EXISTS')
       .replace(/CREATE VIEW/, 'CREATE OR REPLACE VIEW')
       .replace(
         /CREATE MATERIALIZED VIEW/,
-        'CREATE IF NOT EXISTS MATERIALIZED VIEW',
+        'CREATE MATERIALIZED VIEW IF NOT EXISTS ',
       );
 
     await fs.promises.writeFile(pathDDL, cleanedDDL)
@@ -327,43 +319,50 @@ export async function pullBigQueryResources({
   await Promise.allSettled(
     datasets.map(async (dataset: any) => [
         // Schema
-        // fsWriter(dataset, schemaDDL[dataset.metadata?.datasetReference.datasetId]?.ddl)
         fsWriter(dataset)
           .catch(e => console.log('dataset ', e, dataset)), 
-        // Tables
+
+        // // Tables
         ...(await dataset.getTables().then(
           ([rets]: [Table[]]) => rets.map((bqObj) => fsWriter(bqObj)))),
         // Routines
         ...(await dataset.getRoutines().then(
           ([rets]: [Routine[]]) => rets.map((bqObj) => fsWriter(bqObj)))),
+        // Models
+        ...(await dataset.getModels().then(
+          ([rets]: [Model[]]) => rets.map((bqObj) => fsWriter(bqObj)))),
       ]
     ).flat()
   )
 
 }
 
-const deployBigQueryResouce = async (bqClient: any, rootDir: string, p: string) => {
+const deployBigQueryResouce = async (bqClient: BigQuery, p: string) => {
   const msgWithPath = (msg: string) => `${path.dirname(p)}: ${msg}`;
+  const path2bq = await pathToBigQueryIdentifier(bqClient);
   // const jsonSerializer = (obj) => JSON.stringify(obj, null, 4);
 
-  if (p && !p.endsWith('sql')) return null;
+  if (p && !p.endsWith('sql')) return undefined;
 
-  const [_, schemaId, name] = path.dirname(path.relative(rootDir, p))
-    .split('/');
+  const [_, schemaId, name] =  path2bq(p).split('.');
   const query = await fs.promises.readFile(p)
     .then((s: any) => s.toString())
     .catch((err: any) => {
       throw new Error(msgWithPath(err));
     });
 
-  const fetchBQJobResource = async (job: any): Promise<any> => {
+  if(!schemaId) {
+    return undefined;
+  }
+
+  const fetchBQJobResource = async (job: any): Promise<Dataset|Routine|Table|undefined> => {
     const schema = bqClient.dataset(schemaId);
     switch (job.metadata.statistics.query.statementType) {
       case 'CREATE_SCHEMA':
       case 'DROP_SCHEMA':
       case 'ALTER_SCHEMA':
-        return await schema.get()
-          .then(([d]: [any]) => d);
+        const [dataset] = await schema.get();
+        return dataset;
       case 'CREATE_ROW_ACCESS_POLICY':
       case 'DROP_ROW_ACCESS_POLICY':
         //TODO: row access policy
@@ -379,6 +378,9 @@ const deployBigQueryResouce = async (bqClient: any, rootDir: string, p: string) 
       case 'CREATE_PROCEDURE':
       case 'DROP_PROCEDURE':
         const routineId = name;
+        if(!routineId) {
+          return undefined;
+        }
         const [routine] = await schema.routine(routineId).get();
         return routine;
       case 'CREATE_TABLE':
@@ -394,6 +396,9 @@ const deployBigQueryResouce = async (bqClient: any, rootDir: string, p: string) 
       case 'MERGE':
       case 'CREATE_MATERIALIZED_VIEW':
       case 'DROP_MATERIALIZED_VIEW':
+        if(!name) {
+          return undefined;
+        }
         const [table] = await schema.table(name).get();
         return table;
       case 'SCRIPT':
@@ -403,7 +408,7 @@ const deployBigQueryResouce = async (bqClient: any, rootDir: string, p: string) 
         });
 
         for(const ix in childJobs) {
-          const stat = childJobs[ix].metadata.statistics;
+          const stat = childJobs[ix]?.metadata.statistics;
           if (stat.query?.ddlTargetRoutine){
             const [routine] = await schema.routine(stat.query.ddlTargetRoutine.routineId).get();
             return routine
@@ -418,7 +423,7 @@ const deployBigQueryResouce = async (bqClient: any, rootDir: string, p: string) 
       default:
         console.error(`Not Supported: ${job.metadata.statistics.query.statementType}`);
     } 
-
+    return undefined;
   }
 
   switch (path.basename(p)) {
@@ -438,6 +443,9 @@ const deployBigQueryResouce = async (bqClient: any, rootDir: string, p: string) 
     case 'view.sql':
       const schema = bqClient.dataset(schemaId);
       const tableId = name;
+      if(!tableId) {
+        return undefined;
+      }
       const api = schema.table(tableId);
       const [isExist] = await api.exists();
 
@@ -457,9 +465,10 @@ const pathToBigQueryIdentifier = async (bqClient: BigQuery) => {
 
   return (fpath: string) => {
     const rootDir = path.normalize(baseDirectory);
-    const [catalogId, schemaId, name] = path.dirname(
+    const [catalogId, schemaId, namespace_or_name, name_or_missing] = path.dirname(
       path.relative(rootDir, fpath.replace("@default", defautlProjectID)),
     ).split('/');
+    const name = name_or_missing ?? namespace_or_name;
     return [catalogId, schemaId, name].filter((n) => n).join('.');
   };
 }
@@ -499,11 +508,12 @@ const extractBigQueryDependencies = async (fpath: string, bqClient: BigQuery) =>
 }
 
 const buildDAG = async (rootPath: string, files: string[]) => {
-  const limit = pLimit(2);
+  const limit = pLimit(5);
   const bqClient = new BigQuery();
   const path2bq = await pathToBigQueryIdentifier(bqClient);
 
   const rootDir = path.normalize(rootPath);
+  console.log(rootDir)
   const results = await Promise.all(
     files
       .map(async (n: string) => ({
@@ -552,7 +562,7 @@ const buildDAG = async (rootPath: string, files: string[]) => {
                 throw Error('Suspended: Parent job is faild: ' + msg)
               })
 
-              await deployBigQueryResouce(bqClient, rootDir, target.file)
+              await deployBigQueryResouce(bqClient, target.file)
             }),
           bigquery: target
           }
@@ -593,7 +603,6 @@ export async function pushBigQueryResources(options: {rootDir: string, projectId
     .filter((p: string) => p.endsWith('sql'))
     .filter((p: string) => p.includes(options.projectId ?? '@default'))
   ;
-  console.log(inputFiles)
 
   await buildDAG(rootDir, files)
 }
@@ -628,7 +637,6 @@ function createCLI() {
       const options = {
         withDDL: cmdOptions.withDdl
       }
-      console.log(options);
 
       if(projects.length > 0) {
         await Promise.allSettled(

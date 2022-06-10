@@ -28,14 +28,12 @@ const bq2path = (bqObj: BigQueryResource, asDefaultProject: boolean) => {
 
   if(asDefaultProject) {
     tree.push("@default");
-  } else {
-    if(bqObj.projectId) {
-      tree.push(bqObj.projectId);
-    }
-  }
+  } else if (bqObj.projectId) {
+    tree.push(bqObj.projectId);
+  } 
 
-  const ns =  bqObj.baseUrl?.replace('/', '@').replace(/$/, 's');
-  if(ns && depth == 3 && !["/table"].includes(bqObj.baseUrl as string)) {
+  const ns =  bqObj.baseUrl?.replace('/', '@');
+  if(ns && depth == 3 && !["/tables"].includes(bqObj.baseUrl as string)) {
     tree.splice(1, 0, ns)
   }
   return tree.reverse().join('/')

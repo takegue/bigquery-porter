@@ -110,7 +110,7 @@ describe('biquery: bq2path', () => {
     },
     { 
       input: [{
-          baseUrl: '/table',
+          baseUrl: '/tables',
           projectId: 'awesome-project',
           id: 'table_id',
           parent: dataset,
@@ -121,7 +121,7 @@ describe('biquery: bq2path', () => {
     },
     { 
       input: [{
-          baseUrl: '/routine',
+          baseUrl: '/routines',
           projectId: 'awesome-project',
           id: 'routine_id',
           parent: dataset,
@@ -132,7 +132,7 @@ describe('biquery: bq2path', () => {
     },
     { 
       input: [{
-          baseUrl: '/model',
+          baseUrl: '/models',
           projectId: 'awesome-project',
           id: 'model_id',
           parent: dataset,
@@ -150,11 +150,11 @@ describe('biquery: bq2path', () => {
         },
         false
       ],
-      expected: "awesome-project/sandbox/@unknowns/unknown_id"
+      expected: "awesome-project/sandbox/@unknown/unknown_id"
     },
     { 
       input: [{
-          baseUrl: '/table',
+          baseUrl: '/tables',
           projectId: 'awesome-project',
           id: 'table_id',
           parent: dataset,
@@ -165,7 +165,7 @@ describe('biquery: bq2path', () => {
     },
     { 
       input: [{
-          baseUrl: '/routine',
+          baseUrl: '/routines',
           projectId: 'awesome-project',
           id: 'routine_id',
           parent: dataset,
