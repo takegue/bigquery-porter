@@ -130,7 +130,7 @@ const syncMetadata = async (
 
   const newMetadata = Object.fromEntries(Object.entries({
       type: metadata.type,
-      etag: metadata.etag,
+      // etag: metadata.etag,
       routineType: metadata.routineType,
       modelType: metadata.modelType,
 
@@ -144,9 +144,9 @@ const syncMetadata = async (
       access: metadata?.access,
       location: bqObject instanceof Dataset ? metadata?.location : undefined,
 
-      // Routine atributes
-      arguments: metadata?.arguments,
+      // Routine Common atributes
       language: metadata?.language,
+      arguments: metadata?.arguments,
 
       // SCALAR FUNCTION / PROCEDURE attribute
       returnType: metadata?.returnType,
@@ -184,16 +184,12 @@ const syncMetadata = async (
 
 export async function pullBigQueryResources({
   projectId,
-  withDDL
-}: {projectId?: string, withDDL?: boolean}
+  rootDir,
+  withDDL,
+  forceAll,
+}: {projectId?: string, rootDir: string, withDDL?: boolean, forceAll?: boolean}
 ) {
-
   type ResultBQResource = {type: string, path: string, name: string, ddl: string | undefined, resource_type: string};
-  // interface BQResourceObject {
-  //   parent: any,
-  //   metadata: Metadata,
-  //   getMetadata(options?: any): Promise<[Metadata]>
-  // }
   const throttle = pThrottle({
     limit: 20,
     interval: 500
@@ -201,8 +197,8 @@ export async function pullBigQueryResources({
   const bqClient= new Proxy<BigQuery>(
     new BigQuery(),
     {
-      get: (obj: any, sKey: any) => {
-        const member = obj[sKey]
+      get: (obj: BigQuery, sKey: string|symbol) => {
+        const member = (obj as any)[sKey]
         // Request Throttling 
         if(member instanceof Function && sKey == 'request') {
           return async (...args: any[]) => {
@@ -225,7 +221,7 @@ export async function pullBigQueryResources({
     bqObj: any,
   ) => {
     const path = bq2path(bqObj, projectId === undefined);
-    const pathDir = `${baseDirectory}/${path}`;
+    const pathDir = `${rootDir}/${path}`;
     const catalogId = (
       bqObj.metadata?.datasetReference?.projectId
       ?? bqObj.parent.metadata?.datasetReference?.projectId
@@ -284,7 +280,14 @@ export async function pullBigQueryResources({
     await fs.promises.writeFile(pathDDL, cleanedDDL)
   }
 
-  const [datasets] = await bqClient.getDatasets({projectId} as GetDatasetsOptions);
+
+  const [datasets] = await bqClient
+    .getDatasets({projectId} as GetDatasetsOptions)
+
+  const projectDir = `${rootDir}/${bq2path(bqClient, projectId === undefined)}`
+  const fsDatasets = forceAll ? undefined : await fs.promises.readdir(projectDir);
+  const allowedDatasets = datasets
+    .filter(d => forceAll || (d.id && fsDatasets?.includes(d.id)))
 
   if(withDDL) {
     const ddlFetcher = async (sql: string, params: { [param: string]: any }
@@ -317,20 +320,20 @@ export async function pullBigQueryResources({
   }
 
   await Promise.allSettled(
-    datasets.map(async (dataset: any) => [
-        // Schema
-        fsWriter(dataset)
-          .catch(e => console.log('dataset ', e, dataset)), 
+    allowedDatasets.map(async (dataset: any) => [
+      // Schema
+      fsWriter(dataset)
+        .catch(e => console.log('dataset ', e, dataset)), 
 
-        // // Tables
-        ...(await dataset.getTables().then(
-          ([rets]: [Table[]]) => rets.map((bqObj) => fsWriter(bqObj)))),
-        // Routines
-        ...(await dataset.getRoutines().then(
-          ([rets]: [Routine[]]) => rets.map((bqObj) => fsWriter(bqObj)))),
-        // Models
-        ...(await dataset.getModels().then(
-          ([rets]: [Model[]]) => rets.map((bqObj) => fsWriter(bqObj)))),
+      // // Tables
+      ...(await dataset.getTables().then(
+        ([rets]: [Table[]]) => rets.map((bqObj) => fsWriter(bqObj)))),
+      // Routines
+      ...(await dataset.getRoutines().then(
+        ([rets]: [Routine[]]) => rets.map((bqObj) => fsWriter(bqObj)))),
+      // Models
+      ...(await dataset.getModels().then(
+        ([rets]: [Model[]]) => rets.map((bqObj) => fsWriter(bqObj)))),
       ]
     ).flat()
   )
@@ -573,12 +576,16 @@ const buildDAG = async (rootPath: string, files: string[]) => {
   const tasks = [...DAG.values()]
     .map(({task}) => {
       limit(async () => await task.run()); return task}
-    );
+    )
+  
   while(tasks.some(t => !t.done())) {
     await new Promise(resolve => setTimeout(resolve, 100))
     logUpdate(
       `Tasks: remaing ${limit.pendingCount + limit.activeCount}\n`
-      + '  ' + tasks.map(t => t.report()).join('\n  ')
+      + '  ' 
+      + tasks
+        .sort((l, r) => l.name.localeCompare(r.name))
+        .map(t => t.report()).filter(s => s).join('\n  ')
     )
   }
 };
@@ -616,26 +623,39 @@ function createCLI() {
     })
     .option('-C, --root-path', "API Call Concurrency", {
       default: "bigquery",
-      type: [Number],
+      type: [String],
     })
     .command('push [...projects]', '説明')
     .action(async (projects: string[], cmdOptions: any) => {
       const options = {
-        rootDir: cmdOptions.rootPath as string,
+        rootDir: cmdOptions.rootPath,
         projectId: projects[0] as string,
+        concurrency: cmdOptions.concurrency,
       }
       await pushBigQueryResources(options)
     });
 
   cli
     .command('pull [...projects]', 'pull dataset and its tabald and routine information')
+    .option("--all", "Pulling All BugQuery Datasets", {
+      default: false,
+      type: [Boolean],
+    })
     .option('--with-ddl', "Pulling BigQuery Resources with DDL SQL", {
       default: false,
       type: [Boolean],
     })
+    .option('--dry-run', "Dry run", {
+      default: "bigquery",
+      type: [Number],
+    })
     .action(async (projects: string[], cmdOptions: any) => {
       const options = {
-        withDDL: cmdOptions.withDdl
+        rootDir: cmdOptions.rootPath,
+        withDDL: cmdOptions.withDdl,
+        forceAll: cmdOptions.all,
+        concurrency: cmdOptions.concurrency,
+        dryRun: cmdOptions.dryRun,
       }
 
       if(projects.length > 0) {
@@ -643,7 +663,7 @@ function createCLI() {
           projects.map(async (p) => await pullBigQueryResources({projectId: p, ...options}))
         )
       } else {
-        await pullBigQueryResources({...options})
+        await pullBigQueryResources(options)
       }
     });
 
