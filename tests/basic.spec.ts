@@ -134,7 +134,6 @@ describe('biquery: bq2path', () => {
     { 
       input: [{
           baseUrl: '/routines',
-          projectId: 'awesome-project',
           id: 'routine_id',
           parent: dataset,
         },
@@ -178,7 +177,6 @@ describe('biquery: bq2path', () => {
     { 
       input: [{
           baseUrl: '/routines',
-          projectId: 'awesome-project',
           id: 'routine_id',
           parent: dataset,
         },
@@ -196,9 +194,13 @@ describe('biquery: bq2path', () => {
 
 describe('biquery: normalizedBQPath', () => {
   const cases: Array<{
-    input: [string, string],
+    input: [string, string | undefined],
     expected: string
   }> = [
+    { 
+      input: ["project_id.sbx.hoge", undefined],
+      expected: "project_id.sbx.hoge"
+    },
     { 
       input: ["project_id.sbx.hoge", "@default"],
       expected: "project_id.sbx.hoge"

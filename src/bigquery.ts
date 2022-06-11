@@ -30,7 +30,9 @@ const bq2path = (bqObj: BigQueryResource, asDefaultProject: boolean) => {
     tree.push("@default");
   } else if (bqObj.projectId) {
     tree.push(bqObj.projectId);
-  } 
+  } else if (bqObj.parent?.projectId) {
+    tree.push(bqObj.parent.projectId);
+  }  
 
   const ns =  bqObj.baseUrl?.replace('/', '@');
   if(ns && depth == 3 && !["/tables"].includes(bqObj.baseUrl as string)) {
