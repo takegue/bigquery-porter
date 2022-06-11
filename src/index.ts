@@ -14,7 +14,7 @@ import {
   extractRefenrences,
   humanFileSize,
 } from '../src/util.js';
-import { bq2path, normalizedBQPath } from '../src/bigquery.js';
+import { BigQueryResource, bq2path, normalizedBQPath } from '../src/bigquery.js';
 import logUpdate from 'log-update';
 
 import {
@@ -223,22 +223,24 @@ export async function pullBigQueryResources({
 
   let bqObj2DDL:any = {};
   const fsWriter = async (
-    bqObj: any,
+    bqObj: Dataset | Model | Table | Routine
   ) => {
-    const path = bq2path(bqObj, projectId === undefined);
+    const path = bq2path(bqObj as BigQueryResource, projectId === undefined);
     const pathDir = `${rootDir}/${path}`;
     const catalogId = (
       bqObj.metadata?.datasetReference?.projectId
-      ?? bqObj.parent.metadata?.datasetReference?.projectId
+      ?? (bqObj.parent as Dataset).metadata.datasetReference.projectId
       ?? defaultProjectId
     ) as string;
     bqObj['projectId'] = catalogId;
+    const retFiles = [];
 
     if (!fs.existsSync(pathDir)) {
       await fs.promises.mkdir(pathDir, { recursive: true });
     }
     await syncMetadata(bqObj, pathDir, {push: false})
       .catch(e => {console.log('syncerror', e, bqObj); throw e;})
+    retFiles.push(['metadata.json'])
 
     if(bqObj.metadata.type  == 'VIEW') {
       let [metadata] =  await bqObj.getMetadata();
@@ -250,17 +252,18 @@ export async function pullBigQueryResources({
           .replace(/\r\n/g, '\n'),
         );
       }
+      retFiles.push(['view.sql'])
       // View don't capture ddl
-      return 
+      return retFiles
     }
 
-    if(!withDDL) {
-      return
+    if(!withDDL || !bqObj.id) {
+      return retFiles
     }
 
     const ddlStatement = bqObj2DDL[bqObj.id]?.ddl;
     if(!ddlStatement) {
-      return
+      return retFiles
     }
 
     const pathDDL = `${pathDir}/ddl.sql`;
@@ -282,6 +285,8 @@ export async function pullBigQueryResources({
       );
 
     await fs.promises.writeFile(pathDDL, cleanedDDL)
+
+    return retFiles
   }
 
 
@@ -331,13 +336,16 @@ export async function pullBigQueryResources({
     const bqId = bqObj.metadata.id ?? `${projectId}:${parent.id}.${bqObj.id}`;
     const task = new Task(
         bqId,
-        async () => {await fsWriter(bqObj); return 'completed'}
+        async () => {
+          const updated = await fsWriter(bqObj)
+          return `Updated: ${updated.join(', ')}`
+        }
     )
     reporter.push(task)
     task.run()
   };
 
-  reporter.push(new Task("Task Registretion",
+  reporter.push(new Task("# Check All Dataset and Resources",
     async () => {
       allowedDatasets
         .forEach(async (dataset: Dataset) => {
