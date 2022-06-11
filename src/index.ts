@@ -347,16 +347,18 @@ export async function pullBigQueryResources({
 
   reporter.push(new Task("# Check All Dataset and Resources",
     async () => {
-      allowedDatasets
-        .forEach(async (dataset: Dataset) => {
+      let cnt = 0;
+      await Promise.allSettled(allowedDatasets
+        .map(async (dataset: Dataset) => {
           registerTask(dataset)
-          await Promise.allSettled([
-            await dataset.getTables().then(([rets]) => rets.forEach(registerTask)),
-            await dataset.getRoutines().then(([rets]) => rets.forEach(registerTask)),
-            await dataset.getModels().then(([rets]) => rets.forEach(registerTask)),
+          cnt++;
+          return await Promise.allSettled([
+            await dataset.getTables().then(([rets]) => {cnt += rets.length; rets.forEach(registerTask)}),
+            await dataset.getRoutines().then(([rets]) => {cnt += rets.length; rets.forEach(registerTask)}),
+            await dataset.getModels().then(([rets]) => {cnt += rets.length; rets.forEach(registerTask)}),
           ])
-        })
-      return 'completed'
+        }))
+      return `Total ${cnt}`
     }
   ))
   for await (let report of reporter.show_until_finished()) {
