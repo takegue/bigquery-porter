@@ -1,7 +1,7 @@
 // Imports the Google Cloud client library
 import readlinePromises from 'readline';
 import { isatty } from 'tty';
-import { BigQuery, Dataset, Model, Table, Routine, GetDatasetsOptions, Query} from '@google-cloud/bigquery';
+import { BigQuery, Dataset, Model, Table, Routine, GetDatasetsOptions, GetJobsOptions, Query, Job} from '@google-cloud/bigquery';
 import type { ServiceObject } from '@google-cloud/common';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -95,8 +95,8 @@ const syncMetadata = async (
   const jobs: Promise<any>[] = []
 
   const projectId =
-      bqObject.metadata?.datasetReference?.projectId
-      ?? (bqObject.parent as ServiceObject).metadata?.datasetReference?.projectId;
+    bqObject.metadata?.datasetReference?.projectId
+    ?? (bqObject.parent as ServiceObject).metadata?.datasetReference?.projectId;
 
   const apiQuery: {projectId: string, location?: string} = {projectId};
   if(bqObject instanceof Dataset && bqObject.location) {
@@ -249,7 +249,7 @@ export async function pullBigQueryResources({
         await fs.promises.writeFile(
           pathView,
           metadata.view.query
-          .replace(/\r\n/g, '\n'),
+            .replace(/\r\n/g, '\n'),
         );
       }
       retFiles.push(['view.sql'])
@@ -295,9 +295,6 @@ export async function pullBigQueryResources({
 
   const projectDir = `${rootDir}/${bq2path(bqClient, projectId === undefined)}`
   const fsDatasets = forceAll ? undefined : await fs.promises.readdir(projectDir);
-  const allowedDatasets = datasets
-    .filter(d => forceAll || (d.id && fsDatasets?.includes(d.id)))
-
   if(withDDL) {
     const ddlFetcher = async (sql: string, params: { [param: string]: any }
     ) => {
@@ -345,6 +342,9 @@ export async function pullBigQueryResources({
     task.run()
   };
 
+  const allowedDatasets = datasets
+    .filter(d => forceAll || (d.id && fsDatasets?.includes(d.id)))
+
   reporter.push(new Task("# Check All Dataset and Resources",
     async () => {
       let cnt = 0;
@@ -389,9 +389,35 @@ const deployBigQueryResouce = async (
     throw new Error("Invalid SchemaId");
   }
 
-  const fetchBQJobResource = async (job: any): Promise<Dataset|Routine|Table|undefined> => {
+  const fetchBQJobResource = async (job: Job): Promise<Dataset|Routine|Table|undefined> => {
+    await job.promise()
+      .catch(e => e)
+    await job.getMetadata()
+    if(job.metadata.status.errorResult) {
+      throw new Error(job.metadata.status.errorResult.message);
+    }
+
+    if(!job.id) {
+      throw new Error("Invalid SchemaId");
+    }
+
     const schema = bqClient.dataset(schemaId);
     switch (job.metadata.statistics.query.statementType) {
+      case 'SCRIPT':
+        const [childJobs] = await bqClient.getJobs({parentJobId: job.id} as GetJobsOptions);
+        for(const ix in childJobs) {
+          const stat = childJobs[ix]?.metadata.statistics;
+          if (stat.query?.ddlTargetRoutine){
+            const [routine] = await schema.routine(stat.query.ddlTargetRoutine.routineId).get();
+            return routine
+          }
+          if (stat.query?.ddlTargetTable){
+            const [table] = await schema.table(stat.query.ddlTargetTable.tableId).get();
+            return table;
+          }
+        }
+        throw new Error(`Not Supported: ${childJobs}`);
+
       case 'CREATE_SCHEMA':
       case 'DROP_SCHEMA':
       case 'ALTER_SCHEMA':
@@ -435,26 +461,9 @@ const deployBigQueryResouce = async (
         }
         const [table] = await schema.table(name).get();
         return table;
-      case 'SCRIPT':
-        //TODO: script
-        const [childJobs, _] = await bqClient.getJobs({
-          parentJobId: job.id,
-        });
 
-        for(const ix in childJobs) {
-          const stat = childJobs[ix]?.metadata.statistics;
-          if (stat.query?.ddlTargetRoutine){
-            const [routine] = await schema.routine(stat.query.ddlTargetRoutine.routineId).get();
-            return routine
-          }
-          if (stat.query?.ddlTargetTable){
-            const [table] = await schema.table(stat.query.ddlTargetTable.tableId).get();
-            return table;
-          }
-        }
-        throw new Error(`Not Supported: ${childJobs}`);
       default:
-        throw new Error(`Not Supported: ${job.metadata.statistics.query.statementType}`);
+        throw new Error(`Not Supported: ${job} ${job.metadata.statistics.query.statementType}`);
     } 
     return undefined;
   }
@@ -467,7 +476,6 @@ const deployBigQueryResouce = async (
         query,
         priority: 'BATCH'
       })
-      // console.log(ijob)
       if(ijob.configuration?.dryRun && ijob.statistics?.totalBytesProcessed !== undefined) {
         return humanFileSize(parseInt(ijob.statistics.totalBytesProcessed))
       }
@@ -611,7 +619,17 @@ const buildDAG = async (rootPath: string, files: string[], concurrency: number, 
   }
 };
 
-export async function pushBigQueryResources(options: {rootDir: string, projectId?: string, concurrency?: number, dryRun?: boolean, maximumBytesBilled?: string}) {
+export async function pushBigQueryResources(
+  options: {
+    rootDir: string,
+    projectId?: string,
+    concurrency?: number,
+    dryRun?: boolean,
+    maximumBytesBilled?: string
+    labels?: {[label: string]: string}
+    params?: any[] | {[param: string]: any}
+  }
+) {
   const rootDir = options.rootDir;
   const inputFiles: string[] = await (async () => {
     if(isatty(0)) {
@@ -639,9 +657,12 @@ export async function pushBigQueryResources(options: {rootDir: string, projectId
   if(options.maximumBytesBilled) {
     jobOption.maximumBytesBilled = options.maximumBytesBilled;
   }
-  // if(options.labels) {
-  //   jobOption.labels = options.labels;
-  // }
+  if(options.labels) {
+    jobOption.labels = options.labels;
+  }
+  if(options.params) {
+    jobOption.params = options.params;
+  }
 
   // console.log(jobOption)
   await buildDAG(rootDir, files, options.concurrency ?? 1, jobOption)
@@ -662,7 +683,15 @@ function createCLI() {
       '--label <key:value>',
       'A label to set on a query job. The format is "key:value"; repeat this option to specify a list of values',
       {
-        type: [Number],
+        type: [String],
+    })
+    .option(
+      '--parameter <key:value>',
+      `Either a file containing a JSON list of query parameters, or a query parameter in the form "name:type:value".`
+      + `An empty name produces a positional parameter. The type may be omitted to assume STRING: name::value or ::value.`
+      + `The value "NULL" produces a null value. repeat this option to specify a list of values`,
+      {
+        type: [String],
     })
     .option('--maximum_bytes_billed <number of bytes>', "The upper limit of bytes billed for the query.")
     .option('--dry-run', "Dry Run", {
@@ -681,6 +710,18 @@ function createCLI() {
         concurrency: cmdOptions.threads,
         dryRun: cmdOptions.dryRun,
       }
+
+      if(cmdOptions.parameter) {
+        (options as any)['params'] = Object.fromEntries(
+          (cmdOptions.parameter as string[])
+          .map(s => {
+            const elms = s.split(':');
+            const rawValue = elms[2];
+            return [elms[0], rawValue];
+          })
+        )
+      }
+
       await pushBigQueryResources(options)
     });
   cli
