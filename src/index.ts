@@ -481,6 +481,10 @@ const deployBigQueryResouce = async (
       }
       await fetchBQJobResource(job)
           .then((bqObj: any)=> syncMetadata(bqObj, path.dirname(p), {push: true}))
+
+      if(job.metadata.statistics?.totalBytesProcessed !== undefined) {
+        return humanFileSize(parseInt(job.metadata.statistics?.totalBytesProcessed))
+      }
       break;
     case 'view.sql':
       const schema = bqClient.dataset(schemaId);
