@@ -39,8 +39,26 @@ const bq2path = (bqObj: BigQueryResource, asDefaultProject: boolean) => {
   return tree.reverse().join('/')
 }
 
+const normalizedBQPath = (bqPath: string, defaultProject?: string): string => {
+  const parts = bqPath.replace(/`/g, '').split('.');
+
+  if(parts.length == 2){
+    const [dst_schema, dst_name] = parts;
+    const dst_project = defaultProject;
+    return `${dst_project}.${dst_schema}.${dst_name}`;
+  } else if(parts.length == 1) {
+    const [dst_schema] = parts;
+    return `${defaultProject}.${dst_schema}`;
+  }
+  else {
+    const [dst_project, dst_schema, dst_name] = parts;
+    return `${dst_project}.${dst_schema}.${dst_name}`;
+  }
+}
+
 
 export {
   BigQueryResource,
-  bq2path
+  normalizedBQPath,
+  bq2path,
 }

@@ -13,11 +13,11 @@ export const clearScreen = () => {
  readline.clearScreenDown(process.stdout)
 }
 
-export const spinnerFrames = process.platform === 'win32'
+const spinnerFrames = process.platform === 'win32'
   ? ['-', '\\', '|', '/']
   : ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 
-export function elegantSpinner() {
+function elegantSpinner() {
   let index = 0
 
   return () => {
@@ -26,15 +26,17 @@ export function elegantSpinner() {
   }
 }
 
-export class Task {
+type TaskJob = Promise<string | undefined>;
+class Task {
   name: string;
-  job: () => Promise<void>;
+  job: () => TaskJob;
   status: "pending" | "running" | "success" | "failed";
   spin: () => string;
-  runningPromise: Promise<void> | undefined;
+  runningPromise: TaskJob | undefined;
   error: string | undefined;
+  message: string | undefined;
 
-  constructor(name: string, job: () => Promise<void>) {
+  constructor(name: string, job: () => TaskJob) {
     this.name = name;
     this.job = job;
     this.status = 'pending';
@@ -46,8 +48,9 @@ export class Task {
     // start job
     this.runningPromise = this.job();
     await this.runningPromise
-        .then(() => {
+        .then((msg) => {
           this.status = 'success';
+          this.message = msg;
         })
         .catch(e => {
           this.status = 'failed';
@@ -69,7 +72,7 @@ export class Task {
         break;
 
       case 'failed':
-        s = F_CROSS;
+        s = ` ${F_CROSS}`;
         c = pc.red;
         break;
 
@@ -83,9 +86,38 @@ export class Task {
     }
 
     const title = c(`${s} ${this.name}`);
-    const detail = this.error ? `${pc.bold(this.error)}` : ''
-    return `${title}\n    ${detail}`.trim()
+    if (this.error) {
+      return `${title}\n    ${pc.bold(this.error)}`.trim()
+    } else {
+      const msg = this.message ? ` (${this.message ?? ''})` : ''
+      return `${title} ${msg}`.trim()
+    }
   }
 }
 
+class Reporter {
 
+  tasks: Task[]
+  constructor(tasks: Task[]) {
+    this.tasks = tasks
+  }
+
+  push(task: Task) {
+    this.tasks.push(task)
+  }
+
+  async* show_until_finished () {
+    this.tasks.forEach(t => t.run())
+    while(this.tasks.some(t => !t.done())) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+      yield this.tasks
+          .sort((l, r) => l.name.localeCompare(r.name))
+          .map(t => t.report()).filter(s => s).join('\n  ')
+    }
+  }
+}
+
+export {
+ Task,
+ Reporter
+}

@@ -1,8 +1,8 @@
 // Imports the Google Cloud client library
-import logUpdate from 'log-update';
 import readlinePromises from 'readline';
 import { isatty } from 'tty';
-import { BigQuery, Dataset, Model, Table, Routine, GetDatasetsOptions } from '@google-cloud/bigquery';
+import { BigQuery, Dataset, Model, Table, Routine, GetDatasetsOptions, Query} from '@google-cloud/bigquery';
+import type { ServiceObject } from '@google-cloud/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import {cac} from 'cac';
@@ -12,18 +12,18 @@ import {
   topologicalSort,
   walk,
   extractRefenrences,
+  humanFileSize,
 } from '../src/util.js';
-import { bq2path } from '../src/bigquery.js';
-
+import { bq2path, normalizedBQPath } from '../src/bigquery.js';
+import logUpdate from 'log-update';
 
 import {
   Task,
+  Reporter,
 } from '../src/reporter.js';
 import 'process';
 
-
 const cli = cac();
-
 const jsonSerializer = (obj: any) => JSON.stringify(obj, null, 4);
 
 const sqlDDLForSchemata = (projectId: string) => `
@@ -79,7 +79,7 @@ type BigQueryJobResource = {
 
 // type Labels = Map<string, string>;
 const syncMetadata = async (
-  bqObject: any,
+  bqObject: Dataset | Table | Routine | Model,
   dirPath: string,
   options?: {versionhash?: string, push?: boolean}
 ) => {
@@ -96,8 +96,14 @@ const syncMetadata = async (
 
   const projectId =
       bqObject.metadata?.datasetReference?.projectId
-      ?? bqObject.parent?.metadata?.datasetReference?.projectId;
-  const [metadata] = await bqObject.getMetadata({projectId, location: bqObject.location});
+      ?? (bqObject.parent as ServiceObject).metadata?.datasetReference?.projectId;
+
+  const apiQuery: {projectId: string, location?: string} = {projectId};
+  if(bqObject instanceof Dataset && bqObject.location) {
+    apiQuery.location = bqObject.location;
+  }
+  // const location =  ?  : (bqObject.parent as Dataset).location;
+  const [metadata] = await bqObject.getMetadata(apiQuery);
 
   // schema.json: local file <---> BigQuery Table
   if(metadata?.schema?.fields) {
@@ -168,7 +174,7 @@ const syncMetadata = async (
       Object.entries(newMetadata).forEach(([attr]) => {
         metadata[attr] = local[attr];
       })
-      jobs.push(bqObject.setMetadata(metadata));
+      jobs.push((bqObject as any).setMetadata(metadata));
     } else {
       Object.entries(newMetadata).forEach(([attr]) => {
         newMetadata[attr] = local[attr] ?? metadata[attr];
@@ -231,9 +237,6 @@ export async function pullBigQueryResources({
     if (!fs.existsSync(pathDir)) {
       await fs.promises.mkdir(pathDir, { recursive: true });
     }
-    const bqId = bqObj.metadata.id ?? `${bqObj.projectId}:${bqObj.parent.id}.${bqObj.id}`;
-    console.log(`${bqId} => ${pathDir}`);
-
     await syncMetadata(bqObj, pathDir, {push: false})
       .catch(e => {console.log('syncerror', e, bqObj); throw e;})
 
@@ -247,6 +250,8 @@ export async function pullBigQueryResources({
           .replace(/\r\n/g, '\n'),
         );
       }
+      // View don't capture ddl
+      return 
     }
 
     if(!withDDL) {
@@ -318,28 +323,45 @@ export async function pullBigQueryResources({
     bqObj2DDL = {...schemaDDL, ...resourceDDL}
   }
 
-  await Promise.allSettled(
-    allowedDatasets.map(async (dataset: any) => [
-      // Schema
-      fsWriter(dataset)
-        .catch(e => console.log('dataset ', e, dataset)), 
 
-      // // Tables
-      ...(await dataset.getTables().then(
-        ([rets]: [Table[]]) => rets.map((bqObj) => fsWriter(bqObj)))),
-      // Routines
-      ...(await dataset.getRoutines().then(
-        ([rets]: [Routine[]]) => rets.map((bqObj) => fsWriter(bqObj)))),
-      // Models
-      ...(await dataset.getModels().then(
-        ([rets]: [Model[]]) => rets.map((bqObj) => fsWriter(bqObj)))),
-      ]
-    ).flat()
-  )
+  const reporter = new Reporter([]);
+  const registerTask = (bqObj: Dataset | Table | Routine | Model) => {
+    const parent = (bqObj.parent as ServiceObject)
+    const projectId = bqObj.projectId ?? parent.projectId;
+    const bqId = bqObj.metadata.id ?? `${projectId}:${parent.id}.${bqObj.id}`;
+    const task = new Task(
+        bqId,
+        async () => {await fsWriter(bqObj); return 'completed'}
+    )
+    reporter.push(task)
+    task.run()
+  };
 
+  reporter.push(new Task("Task Registretion",
+    async () => {
+      allowedDatasets
+        .forEach(async (dataset: Dataset) => {
+          registerTask(dataset)
+          await Promise.allSettled([
+            await dataset.getTables().then(([rets]) => rets.forEach(registerTask)),
+            await dataset.getRoutines().then(([rets]) => rets.forEach(registerTask)),
+            await dataset.getModels().then(([rets]) => rets.forEach(registerTask)),
+          ])
+        })
+      return 'completed'
+    }
+  ))
+  for await (let report of reporter.show_until_finished()) {
+    logUpdate('  ' + report)
+  }
 }
 
-const deployBigQueryResouce = async (bqClient: BigQuery, rootPath: string, p: string) => {
+const deployBigQueryResouce = async (
+  bqClient: BigQuery,
+  rootPath: string,
+  p: string,
+  BigQueryJobOptions?: Query
+) => {
   const msgWithPath = (msg: string) => `${path.dirname(p)}: ${msg}`;
   const path2bq = await pathToBigQueryIdentifier(bqClient, rootPath);
   // const jsonSerializer = (obj) => JSON.stringify(obj, null, 4);
@@ -354,7 +376,7 @@ const deployBigQueryResouce = async (bqClient: BigQuery, rootPath: string, p: st
     });
 
   if(!schemaId) {
-    return undefined;
+    throw new Error("Invalid SchemaId");
   }
 
   const fetchBQJobResource = async (job: any): Promise<Dataset|Routine|Table|undefined> => {
@@ -381,7 +403,7 @@ const deployBigQueryResouce = async (bqClient: BigQuery, rootPath: string, p: st
       case 'DROP_PROCEDURE':
         const routineId = name;
         if(!routineId) {
-          return undefined;
+          throw new Error("Invalid routineId");
         }
         const [routine] = await schema.routine(routineId).get();
         return routine;
@@ -399,7 +421,7 @@ const deployBigQueryResouce = async (bqClient: BigQuery, rootPath: string, p: st
       case 'CREATE_MATERIALIZED_VIEW':
       case 'DROP_MATERIALIZED_VIEW':
         if(!name) {
-          return undefined;
+          throw new Error("Invalid tableId");
         }
         const [table] = await schema.table(name).get();
         return table;
@@ -420,10 +442,9 @@ const deployBigQueryResouce = async (bqClient: BigQuery, rootPath: string, p: st
             return table;
           }
         }
-        console.error(`Not Supported: ${childJobs}`);
-        break
+        throw new Error(`Not Supported: ${childJobs}`);
       default:
-        console.error(`Not Supported: ${job.metadata.statistics.query.statementType}`);
+        throw new Error(`Not Supported: ${job.metadata.statistics.query.statementType}`);
     } 
     return undefined;
   }
@@ -431,14 +452,15 @@ const deployBigQueryResouce = async (bqClient: BigQuery, rootPath: string, p: st
   switch (path.basename(p)) {
     case 'ddl.sql':
       // https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#jobconfiguration
-      const [job] = await bqClient.createQueryJob({
+      const [job, ijob] = await bqClient.createQueryJob({
+        ...BigQueryJobOptions,
         query,
-        priority: 'BATCH',
-        labels: {
-          key1: 'value1',
-        },
+        priority: 'BATCH'
       })
-      await job.getQueryResults();
+      // console.log(ijob)
+      if(ijob.configuration?.dryRun && ijob.statistics?.totalBytesProcessed !== undefined) {
+        return humanFileSize(parseInt(ijob.statistics.totalBytesProcessed))
+      }
       await fetchBQJobResource(job)
           .then((bqObj: any)=> syncMetadata(bqObj, path.dirname(p), {push: true}))
       break;
@@ -446,8 +468,20 @@ const deployBigQueryResouce = async (bqClient: BigQuery, rootPath: string, p: st
       const schema = bqClient.dataset(schemaId);
       const tableId = name;
       if(!tableId) {
-        return undefined;
+        return;
       }
+      if(BigQueryJobOptions?.dryRun) {
+        const [_, ret] = await bqClient.createQueryJob({
+          ...BigQueryJobOptions,
+          query: `CREATE OR REPLACE VIEW \`${schema.id}.${tableId}\` as\n${query}`,
+          priority: 'BATCH'
+        })
+
+        if(ret.statistics?.totalBytesProcessed !== undefined) {
+          return humanFileSize(parseInt(ret.statistics.totalBytesProcessed))
+        }
+      }
+
       const api = schema.table(tableId);
       const [isExist] = await api.exists();
 
@@ -459,7 +493,7 @@ const deployBigQueryResouce = async (bqClient: BigQuery, rootPath: string, p: st
       await syncMetadata(view, path.dirname(p), {push: true});
       break;
   }
-  return null;
+  return;
 };
 
 const pathToBigQueryIdentifier = async (bqClient: BigQuery, rootPath: string) => {
@@ -473,23 +507,6 @@ const pathToBigQueryIdentifier = async (bqClient: BigQuery, rootPath: string) =>
     const name = name_or_missing ?? namespace_or_name;
     return [catalogId, schemaId, name].filter((n) => n).join('.');
   };
-}
-
-const normalizedBQPath = (bqPath: string, defaultProject?: string): string => {
-  const parts = bqPath.replace(/`/g, '').split('.');
-
-  if(parts.length == 2){
-    const [dst_schema, dst_name] = parts;
-    const dst_project = defaultProject;
-    return `${dst_project}.${dst_schema}.${dst_name}`;
-  } else if(parts.length == 1) {
-    const [dst_schema] = parts;
-    return `${defaultProject}.${dst_schema}`;
-  }
-  else {
-    const [dst_project, dst_schema, dst_name] = parts;
-    return `${dst_project}.${dst_schema}.${dst_name}`;
-  }
 }
 
 const extractBigQueryDependencies = async (rootPath: string, fpath: string, bqClient: BigQuery) => {
@@ -509,7 +526,7 @@ const extractBigQueryDependencies = async (rootPath: string, fpath: string, bqCl
   return [...new Set(refs_schemas.concat(refs).concat(additionals))];
 }
 
-const buildDAG = async (rootPath: string, files: string[], concurrency: number) => {
+const buildDAG = async (rootPath: string, files: string[], concurrency: number, jobOption: Query) => {
   const limit = pLimit(concurrency);
   const bqClient = new BigQuery();
   const path2bq = await pathToBigQueryIdentifier(bqClient, rootPath);
@@ -532,7 +549,7 @@ const buildDAG = async (rootPath: string, files: string[], concurrency: number) 
       );
       return ret;
     }, new Set())
-  ].map((n: any) => JSON.parse(n));
+  ].map(n => (typeof n === 'string') ? JSON.parse(n) : {});
 
   const bigquery2Obj = Object.fromEntries(results.map((n) => [n.bigquery, n]));
   const DAG: Map<string, {
@@ -561,8 +578,7 @@ const buildDAG = async (rootPath: string, files: string[], concurrency: number) 
                 ;
                 throw Error('Suspended: Parent job is faild: ' + msg)
               })
-
-              await deployBigQueryResouce(bqClient, rootPath, target.file)
+              return await deployBigQueryResouce(bqClient, rootPath, target.file, jobOption)
             }),
           bigquery: target
           }
@@ -574,20 +590,18 @@ const buildDAG = async (rootPath: string, files: string[], concurrency: number) 
     .map(({task}) => {
       limit(async () => await task.run()); return task}
     )
-  
-  while(tasks.some(t => !t.done())) {
-    await new Promise(resolve => setTimeout(resolve, 100))
+
+  const reporter = new Reporter(tasks);
+  for await (let report of reporter.show_until_finished()) {
     logUpdate(
       `Tasks: remaing ${limit.pendingCount + limit.activeCount}\n`
-      + '  ' 
-      + tasks
-        .sort((l, r) => l.name.localeCompare(r.name))
-        .map(t => t.report()).filter(s => s).join('\n  ')
+      + '   '
+      + report
     )
   }
 };
 
-export async function pushBigQueryResources(options: {rootDir: string, projectId?: string, concurrency?: number}) {
+export async function pushBigQueryResources(options: {rootDir: string, projectId?: string, concurrency?: number, dryRun?: boolean, maximumBytesBilled?: string}) {
   const rootDir = options.rootDir;
   const inputFiles: string[] = await (async () => {
     if(isatty(0)) {
@@ -608,7 +622,19 @@ export async function pushBigQueryResources(options: {rootDir: string, projectId
     .filter((p: string) => p.includes(options.projectId ?? '@default'))
   ;
 
-  await buildDAG(rootDir, files, options.concurrency ?? 1)
+  const jobOption: Query = {};
+  if(options.dryRun) {
+    jobOption.dryRun = options.dryRun;
+  }
+  if(options.maximumBytesBilled) {
+    jobOption.maximumBytesBilled = options.maximumBytesBilled;
+  }
+  // if(options.labels) {
+  //   jobOption.labels = options.labels;
+  // }
+
+  // console.log(jobOption)
+  await buildDAG(rootDir, files, options.concurrency ?? 1, jobOption)
 }
 
 function createCLI() {
@@ -620,9 +646,18 @@ function createCLI() {
     .option('-C, --root-path <rootPath>', "Root Directory", {
       default: ["./bigquery"],
       type: [String],
-    });
-  cli
+    })
     .command('push [...projects]', '説明')
+    .option(
+      '--label <key:value>',
+      'A label to set on a query job. The format is "key:value"; repeat this option to specify a list of values',
+      {
+        type: [Number],
+    })
+    .option('--maximum_bytes_billed <number of bytes>', "The upper limit of bytes billed for the query.")
+    .option('--dry-run', "Dry Run", {
+      default: false,
+    })
     .action(async (projects: string[], cmdOptions: any) => {
       const rootDir = cmdOptions.rootPath[0];
       if(!rootDir) {
@@ -634,6 +669,7 @@ function createCLI() {
         rootDir: rootDir,
         projectId: projects[0] as string,
         concurrency: cmdOptions.threads,
+        dryRun: cmdOptions.dryRun,
       }
       await pushBigQueryResources(options)
     });
@@ -647,17 +683,12 @@ function createCLI() {
       default: false,
       type: [Boolean],
     })
-    .option('--dry-run', "Dry run", {
-      default: "bigquery",
-      type: [Number],
-    })
     .action(async (projects: string[], cmdOptions: any) => {
       const options = {
         rootDir: cmdOptions.rootPath,
         withDDL: cmdOptions.withDdl,
         forceAll: cmdOptions.all,
         concurrency: cmdOptions.concurrency,
-        dryRun: cmdOptions.dryRun,
       }
 
       if(projects.length > 0) {

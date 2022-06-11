@@ -5,7 +5,8 @@ import Parser from 'tree-sitter';
 import Language from 'tree-sitter-sql-bigquery';
 
 
-export async function walk(dir: string): Promise<string[]> {  const fs_files = await fs.promises.readdir(dir);
+async function walk(dir: string): Promise<string[]> {  
+  const fs_files = await fs.promises.readdir(dir);
   const files: string[][] = await Promise.all(fs_files.map(async (file) => {
     const filePath = path.join(dir, file);
     const stats = await fs.promises.stat(filePath);
@@ -26,8 +27,8 @@ export async function walk(dir: string): Promise<string[]> {  const fs_files = a
   ) as string[];
 }
 
-export type Relation = [string, string];
-export function topologicalSort(relations: [string, string][]) {
+type Relation = [string, string];
+function topologicalSort(relations: [string, string][]) {
   const [E, G, N] = relations.reduce((
       [E, G, N]: [Map<string, number>, Map<string, Set<string>>, Set<string>],
       [src, dst]: [string, string]
@@ -99,7 +100,7 @@ const _extractBigQueryResourceIdentifier = (node: any) => {
   return null
 }
 
-export function extractDestinations(sql: string): string[] {
+function extractDestinations(sql: string): string[] {
   const tree = parser.parse(sql);
   let ret = [];
 
@@ -111,7 +112,7 @@ export function extractDestinations(sql: string): string[] {
   return ret;
 }
  
-export function extractRefenrences(sql: string): string[] {
+function extractRefenrences(sql: string): string[] {
   const tree = parser.parse(sql);
   let ret = [];
   let CTEs = new Set<string>();
@@ -126,4 +127,46 @@ export function extractRefenrences(sql: string): string[] {
       }
   }
   return ret.filter(n => !CTEs.has(n))
+}
+
+/**
+ * Format bytes as human-readable text.
+ * 
+ * @param bytes Number of bytes.
+ * @param si True to use metric (SI) units, aka powers of 1000. False to use 
+ *           binary (IEC), aka powers of 1024.
+ * @param dp Number of decimal places to display.
+ * 
+ * @return Formatted string.
+ */
+function humanFileSize(bytes: number, si=false, dp=1) {
+  const thresh = si ? 1000 : 1024;
+
+  if (Math.abs(bytes) < thresh) {
+    return bytes + ' B';
+  }
+
+  const units = si 
+    ? ['kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'] 
+    : ['KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB'];
+  let u = -1;
+  const r = 10**dp;
+
+  do {
+    bytes /= thresh;
+    ++u;
+  } while (Math.round(Math.abs(bytes) * r) / r >= thresh && u < units.length - 1);
+
+
+  return bytes.toFixed(dp) + ' ' + units[u];
+}
+
+
+export {
+  humanFileSize,
+  extractRefenrences,
+  extractDestinations,
+  walk,
+  Relation,
+  topologicalSort
 }

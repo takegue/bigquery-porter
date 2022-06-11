@@ -7,7 +7,11 @@ import {
   extractRefenrences,
 } from '../src/util.js';
 // import {pushBigQueryResources, pullBigQueryResources} from '../src/index.js';
-import {BigQueryResource, bq2path} from '../src/bigquery.js';
+import {
+  BigQueryResource,
+  normalizedBQPath,
+  bq2path
+} from '../src/bigquery.js';
 
 describe('util test: toposort', () => {
     const cases: Array<{
@@ -190,14 +194,26 @@ describe('biquery: bq2path', () => {
 })
 
 
-// describe('integration test', () => {
-//     // it('Run push', async () => {
-//     //   await pushBigQueryResources();
-//     // });
-
-//     it('Run pull', async () => {
-//       await new Promise(resolve => setTimeout(resolve, 3000))
-//       await pullBigQueryResources();
-//     });
-// })
- 
+describe('biquery: normalizedBQPath', () => {
+  const cases: Array<{
+    input: [string, string],
+    expected: string
+  }> = [
+    { 
+      input: ["project_id.sbx.hoge", "@default"],
+      expected: "project_id.sbx.hoge"
+    },
+    { 
+      input: ["sbx.hoge", "@default"],
+      expected: "@default.sbx.hoge"
+    },
+    { 
+      input: ["sbx", "@default"],
+      expected: "@default.sbx"
+    }
+  ];
+  it.each(cases)('topological sort', async (args) => {
+    const {input, expected} = args;
+    expect(normalizedBQPath(...input)).toMatchObject(expected)
+  });
+})
