@@ -1,7 +1,7 @@
 {
   "type": "module",
   "bin": {
-    "bigquery-launchpad": "bin/bigquery-lanunchpad"
+    "bqport": "src/index.js"
   },
   "dependencies": {
     "@google-cloud/bigquery": "^5.12.0",

@@ -1,7 +1,6 @@
 # BigQuery Asset Manager
 
-BQRM is a tool to manage BigQuery Metadata and Deployment. 
-Supported DAG Deployment. Try it!
+BigQuery Porter is a tool to manage BigQuery Metadata and Deployment. 
 
 ## Get Started
 
@@ -11,11 +10,11 @@ Supported DAG Deployment. Try it!
 npm i <package_name>
 ```
 
-Set upt your OAuth and GCP Default Project.
+Set up your OAuth and GCP Default Project.
 
 ### Usage
 
-#### Download BigQuery Metadata
+1. Download BigQuery Metadata
 
 次のコマンドは、GCP Projectのメタ情報をローカルのファイルシステムと連携します。
 
@@ -23,7 +22,6 @@ Set upt your OAuth and GCP Default Project.
 npx <package_name> pull --all --with-ddl @default
 ```
 
-##### Basic Directory Structure
 
 ```
 ```
