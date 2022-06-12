@@ -30,7 +30,7 @@ npx bqport pull --all --with-ddl @default
 次のコマンドを実行すると、GCPのデフォルトプロジェクトにデプロイされます。 この実行は並列化されており、またSQLからの依存関係を読み取り実行を行います。
 
 ```
-npx <package_name> push
+npx bqport push
 ```
 
 #### Partial Deployment from STDIN
