@@ -28,5 +28,5 @@
     "vitest": "^0.10.1"
   },
   "main": "src/index.js",
-  "version": "0.0.1"
+  "version": "0.0.2"
 }
