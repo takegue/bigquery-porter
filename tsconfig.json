@@ -1,17 +1,17 @@
 {
   "extends": "@tsconfig/strictest/tsconfig.json",
   "compilerOptions": {
+    "module": "esnext",
+    "target": "es2020",
     "incremental": true,
-
-    "target": "esnext",
     "moduleResolution": "node",
 
-    "module": "esnext",
     "paths": {
-      "*": ["src/*.d.ts"]
+      "*": ["./src/*.d.ts"]
     },
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "outDir": "dist"
   }
 }

@@ -1,8 +1,17 @@
 {
+  "name": "bigquery-porter",
+  "description": "BigQuery Porter is a tool to manage BigQuery Metadata and Deployment. ",
+  "main": "src/index.js",
   "type": "module",
   "bin": {
     "bqport": "src/index.js"
   },
+  "keywords": [
+    "deployment",
+    "metadata",
+    "bigquery"
+  ],
+  "repository": "https://github.com/takegue/bigquery-porter",
   "dependencies": {
     "@google-cloud/bigquery": "^5.12.0",
     "cac": "^6.7.12",
@@ -16,7 +25,8 @@
   "scripts": {
     "test": "vitest",
     "coverage": "vitest run --coverage",
-    "format": "deno fmt"
+    "format": "deno fmt",
+    "build": "tsc"
   },
   "devDependencies": {
     "@tsconfig/strictest": "^1.0.1",
@@ -27,6 +37,5 @@
     "typescript": "^4.6.4",
     "vitest": "^0.10.1"
   },
-  "main": "src/index.js",
   "version": "0.0.2"
 }
