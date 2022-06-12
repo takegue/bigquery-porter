@@ -23,6 +23,39 @@ npx bqport pull --all --with-ddl @default
 ```
 
 ```
+bigquery: Root Directory
+`-- @default: Project Name. @default means current project
+    `-- sandbox
+        |-- @models
+        |   `-- mymodel
+        |       `-- metadata.json
+        |-- @routines
+        |   |-- sample_function
+        |   |   |-- ddl.sql
+        |   |   `-- metadata.json
+        |   |-- sample_procedure
+        |   |   |-- ddl.sql
+        |   |   `-- metadata.json
+        |   |-- sample_table
+        |   |   |-- ddl.sql
+        |   |   `-- metadata.json
+        |   `-- sample_tvf
+        |       |-- ddl.sql
+        |       `-- metadata.json
+        |-- ddl.sql
+        |-- metadata.json
+        |-- sample_materialized_view
+        |   |-- ddl.sql
+        |   |-- metadata.json
+        |   `-- schema.json
+        |-- sample_table
+        |   |-- ddl.sql
+        |   |-- metadata.json
+        |   `-- schema.json
+        `-- sample_view
+            |-- metadata.json
+            |-- schema.json
+            `-- view.sql
 ```
 
 #### Deploy Your BigQuery Resources

@@ -1,3 +1,6 @@
 {
-    "type": "VIEW"
+    "type": "VIEW",
+    "labels": {
+        "bqlunchpad-versionhash": "1654041193-undefined"
+    }
 }
