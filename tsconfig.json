@@ -1,14 +1,14 @@
 {
- "extends": "@tsconfig/strictest/tsconfig.json",
+  "extends": "@tsconfig/strictest/tsconfig.json",
   "compilerOptions": {
-    "incremental": true, 
+    "incremental": true,
 
     "target": "esnext",
     "moduleResolution": "node",
 
     "module": "esnext",
     "paths": {
-        "*": ["src/*.d.ts"]
+      "*": ["src/*.d.ts"]
     },
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,

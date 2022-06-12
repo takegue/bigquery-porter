@@ -1,36 +1,35 @@
-
 import readline from 'readline';
 import process from 'process';
 import pc from 'picocolors';
-import {F_CHECK, F_CROSS} from '../src/figures.js';
+import { F_CHECK, F_CROSS } from '../src/figures.js';
 
 export const clearScreen = () => {
- const repeatCount = (process.stdout?.rows ?? 0) - 2;
- const blank = repeatCount > 0 ? '\n'.repeat(repeatCount) : '';
- console.log(blank)
+  const repeatCount = (process.stdout?.rows ?? 0) - 2;
+  const blank = repeatCount > 0 ? '\n'.repeat(repeatCount) : '';
+  console.log(blank);
 
- readline.cursorTo(process.stdout, 0, 0)
- readline.clearScreenDown(process.stdout)
-}
+  readline.cursorTo(process.stdout, 0, 0);
+  readline.clearScreenDown(process.stdout);
+};
 
 const spinnerFrames = process.platform === 'win32'
   ? ['-', '\\', '|', '/']
-  : ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+  : ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 
 function elegantSpinner() {
-  let index = 0
+  let index = 0;
 
   return () => {
-    index = ++index % spinnerFrames.length
+    index = ++index % spinnerFrames.length;
     return spinnerFrames[index] ?? '';
-  }
+  };
 }
 
 type TaskJob = Promise<string | undefined>;
 class Task {
   name: string;
   job: () => TaskJob;
-  status: "pending" | "running" | "success" | "failed";
+  status: 'pending' | 'running' | 'success' | 'failed';
   spin: () => string;
   runningPromise: TaskJob | undefined;
   error: string | undefined;
@@ -44,22 +43,22 @@ class Task {
   }
 
   async run() {
-    this.status = 'running'
+    this.status = 'running';
     // start job
     this.runningPromise = this.job();
     await this.runningPromise
-        .then((msg) => {
-          this.status = 'success';
-          this.message = msg;
-        })
-        .catch(e => {
-          this.status = 'failed';
-          this.error = e.message.trim()
-        })
+      .then((msg) => {
+        this.status = 'success';
+        this.message = msg;
+      })
+      .catch((e) => {
+        this.status = 'failed';
+        this.error = e.message.trim();
+      });
   }
 
   done() {
-    return ['success', 'failed'].includes(this.status)
+    return ['success', 'failed'].includes(this.status);
   }
 
   report() {
@@ -82,42 +81,38 @@ class Task {
         break;
 
       case 'pending':
-        return ''
+        return '';
     }
 
     const title = c(`${s} ${this.name}`);
     if (this.error) {
-      return `${title}\n    ${pc.bold(this.error)}`.trim()
+      return `${title}\n    ${pc.bold(this.error)}`.trim();
     } else {
-      const msg = this.message ? ` (${this.message ?? ''})` : ''
-      return `${title} ${msg}`.trim()
+      const msg = this.message ? ` (${this.message ?? ''})` : '';
+      return `${title} ${msg}`.trim();
     }
   }
 }
 
 class Reporter {
-
-  tasks: Task[]
+  tasks: Task[];
   constructor(tasks: Task[]) {
-    this.tasks = tasks
+    this.tasks = tasks;
   }
 
   push(task: Task) {
-    this.tasks.push(task)
+    this.tasks.push(task);
   }
 
-  async* show_until_finished () {
-    this.tasks.forEach(t => t.run())
-    while(this.tasks.some(t => !t.done())) {
-      await new Promise(resolve => setTimeout(resolve, 100))
+  async *show_until_finished() {
+    this.tasks.forEach((t) => t.run());
+    while (this.tasks.some((t) => !t.done())) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
       yield this.tasks
-          .sort((l, r) => l.name.localeCompare(r.name))
-          .map(t => t.report()).filter(s => s).join('\n  ')
+        .sort((l, r) => l.name.localeCompare(r.name))
+        .map((t) => t.report()).filter((s) => s).join('\n  ');
     }
   }
 }
 
-export {
- Task,
- Reporter
-}
+export { Reporter, Task };
