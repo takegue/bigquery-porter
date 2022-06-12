@@ -1,4 +1,4 @@
-# BigQuery Asset Manager
+# BigQuery Porter
 
 BigQuery Porter is a tool to manage BigQuery Metadata and Deployment. 
 
@@ -7,7 +7,7 @@ BigQuery Porter is a tool to manage BigQuery Metadata and Deployment.
 ### Installation
 
 ```
-npm i <package_name>
+npm i bigquery-porter
 ```
 
 Set up your OAuth and GCP Default Project.
@@ -18,10 +18,9 @@ Set up your OAuth and GCP Default Project.
 
 次のコマンドは、GCP Projectのメタ情報をローカルのファイルシステムと連携します。
 
+```sh
+npx bqport pull --all --with-ddl @default
 ```
-npx <package_name> pull --all --with-ddl @default
-```
-
 
 ```
 ```
