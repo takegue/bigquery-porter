@@ -242,6 +242,10 @@ export async function pullBigQueryResources({
       .catch(e => {console.log('syncerror', e, bqObj); throw e;})
     retFiles.push(['metadata.json'])
 
+    if(bqObj instanceof Table) {
+      retFiles.push(['schema.json'])
+    }
+
     if(bqObj.metadata.type  == 'VIEW') {
       let [metadata] =  await bqObj.getMetadata();
       if (metadata?.view) {
@@ -261,12 +265,13 @@ export async function pullBigQueryResources({
       return retFiles
     }
 
-    const ddlStatement = bqObj2DDL[bqObj.id]?.ddl;
+    const ddlStatement = bqObj2DDL[bqObj?.id ?? bqObj.metadata?.id]?.ddl;
     if(!ddlStatement) {
       return retFiles
     }
 
     const pathDDL = `${pathDir}/ddl.sql`;
+    const regexp = new RegExp(`\`${defaultProjectId}\`.`)
     const cleanedDDL = ddlStatement
       .replace(/\r\n/g, '\n')
       .replace('CREATE PROCEDURE', 'CREATE OR REPLACE PROCEDURE')
@@ -282,9 +287,11 @@ export async function pullBigQueryResources({
       .replace(
         /CREATE MATERIALIZED VIEW/,
         'CREATE MATERIALIZED VIEW IF NOT EXISTS ',
-      );
+      )
+      .replace(regexp, '');
 
     await fs.promises.writeFile(pathDDL, cleanedDDL)
+    retFiles.push(['ddl.sql'])
 
     return retFiles
   }
@@ -322,6 +329,7 @@ export async function pullBigQueryResources({
         .filter(d => d.location == 'US')
         .map(d => d?.id ?? d.metadata?.id)
     });
+
     bqObj2DDL = {...schemaDDL, ...resourceDDL}
   }
 
@@ -738,6 +746,10 @@ function createCLI() {
       default: false,
       type: [Boolean],
     })
+    // .option('--ddl-useful-rewrite', "Rewrite DDL in useful", {
+    //   default: true,
+    //   type: [Boolean],
+    // })
     .action(async (projects: string[], cmdOptions: any) => {
       const options = {
         rootDir: cmdOptions.rootPath,
