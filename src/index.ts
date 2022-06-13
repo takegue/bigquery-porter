@@ -15,8 +15,8 @@ import {
   Table,
 } from '@google-cloud/bigquery';
 import type { ServiceObject } from '@google-cloud/common';
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { cac } from 'cac';
 import pLimit from 'p-limit';
 import pThrottle from 'p-throttle';

@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@google-cloud/bigquery": "^5.12.0",
+    "@types/node": "^17.0.42",
     "cac": "^6.7.12",
     "log-update": "^5.0.1",
     "p-limit": "^4.0.0",
@@ -33,10 +34,9 @@
   },
   "devDependencies": {
     "@tsconfig/strictest": "^1.0.1",
-    "@types/node": "^12.20.50",
     "mock-fs": "^5.1.2",
-    "typescript": "^4.7.3",
     "ts-node": "^10.7.0",
+    "typescript": "^4.7.3",
     "vitest": "^0.10.1",
     "webpack": "^5.73.0",
     "webpack-cli": "^4.10.0"
