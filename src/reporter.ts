@@ -1,5 +1,5 @@
-import readline from 'readline';
-import process from 'process';
+import readline from 'node:readline';
+import process from 'node:process';
 import pc from 'picocolors';
 import { F_CHECK, F_CROSS } from '../src/figures.js';
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 // Imports the Google Cloud client library
-import readlinePromises from 'readline';
-import { isatty } from 'tty';
+import readlinePromises from 'node:readline';
+import { isatty } from 'node:tty';
 import {
   BigQuery,
   Dataset,
