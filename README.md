@@ -56,6 +56,7 @@ bigquery: Root Directory
             |-- metadata.json
             |-- schema.json
             `-- view.sql
+`-- <other_projects>
 ```
 
 #### Deploy Your BigQuery Resources
@@ -72,5 +73,5 @@ SQLファイルのリストからBigQueryのクエリ実行を行うことがで
 特定のSQLのみを実行させたいケースに役立ちます。例えばgitによる差分実行などです。
 
 ```
-find ./bigquery -name '*.sql' | npx <package_name> push
+find ./bigquery -name '*.sql' | npx bqport push
 ```
