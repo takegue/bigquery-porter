@@ -1,0 +1,25 @@
+{
+    "type": "DEFAULT",
+    "labels": {
+        "bqlunchpad-versionhash": "1654041191-undefined"
+    },
+    "access": [
+        {
+            "role": "WRITER",
+            "specialGroup": "projectWriters"
+        },
+        {
+            "role": "OWNER",
+            "specialGroup": "projectOwners"
+        },
+        {
+            "role": "OWNER",
+            "userByEmail": "takegue@gmail.com"
+        },
+        {
+            "role": "READER",
+            "specialGroup": "projectReaders"
+        }
+    ],
+    "location": "US"
+}

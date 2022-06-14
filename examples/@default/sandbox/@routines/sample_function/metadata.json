@@ -1,0 +1,16 @@
+{
+    "routineType": "SCALAR_FUNCTION",
+    "description": "test",
+    "language": "SQL",
+    "arguments": [
+        {
+            "name": "argument",
+            "dataType": {
+                "typeKind": "INT64"
+            }
+        }
+    ],
+    "returnType": {
+        "typeKind": "INT64"
+    }
+}
