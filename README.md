@@ -1,6 +1,6 @@
 # BigQuery Porter
 
-BigQuery Porter is a tool to manage BigQuery Metadata and Deployment. 
+BigQuery Porter is a tool to manage BigQuery Metadata and Deployment.
 
 ## Get Started
 
