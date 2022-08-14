@@ -36,14 +36,13 @@ import logUpdate from 'log-update';
 import { Reporter, Task } from '../src/reporter.js';
 import 'process';
 
-const cli = cac();
 const jsonSerializer = (obj: any) => JSON.stringify(obj, null, 4);
 
 const sqlDDLForSchemata = (projectId: string) => `
-select 
+select
   'SCHEMA' as type
   , schema_name as name
-  , ddl 
+  , ddl
 from \`${projectId}.INFORMATION_SCHEMA.SCHEMATA\`
 `;
 
@@ -64,7 +63,7 @@ execute immediate (
   select as value
     string_agg(template, "union distinct")
   from unnest(schemas) schema
-  left join unnest([format("%s.%s", catalog, schema)]) identifier 
+  left join unnest([format("%s.%s", catalog, schema)]) identifier
   left join unnest([format(
 """-- SQL TEMPLATE
 select
@@ -102,9 +101,8 @@ const syncMetadata = async (
   const metadataPath = path.join(dirPath, 'metadata.json');
   const fieldsPath = path.join(dirPath, 'schema.json');
   const syncLabels: systemDefinedLabels = {
-    'bqm-versionhash': `${Math.floor(Date.now() / 1000)}-${
-      options?.versionhash ?? 'HEAD'
-    }`,
+    'bqm-versionhash': `${Math.floor(Date.now() / 1000)}-${options?.versionhash ?? 'HEAD'
+      }`,
   };
   const jobs: Promise<any>[] = [];
 
@@ -252,8 +250,8 @@ export async function pullBigQueryResources({
     const pathDir = `${rootDir}/${path}`;
     const catalogId = (
       bqObj.metadata?.datasetReference?.projectId ??
-        (bqObj.parent as Dataset).metadata.datasetReference.projectId ??
-        defaultProjectId
+      (bqObj.parent as Dataset).metadata.datasetReference.projectId ??
+      defaultProjectId
     ) as string;
     bqObj['projectId'] = catalogId;
     const retFiles = [];
@@ -706,8 +704,8 @@ const buildDAG = async (
   for await (let report of reporter.show_until_finished()) {
     logUpdate(
       `Tasks: remaing ${limit.pendingCount + limit.activeCount}\n` +
-        '   ' +
-        report,
+      '   ' +
+      report,
     );
   }
 };
@@ -761,6 +759,7 @@ export async function pushBigQueryResources(
 }
 
 function createCLI() {
+  const cli = cac();
   cli
     // Global Options
     .option('-n, --threads <threads>', 'API Call Concurrency', {
@@ -781,8 +780,8 @@ function createCLI() {
     .option(
       '--parameter <key:value>',
       `Either a file containing a JSON list of query parameters, or a query parameter in the form "name:type:value".` +
-        `An empty name produces a positional parameter. The type may be omitted to assume STRING: name::value or ::value.` +
-        `The value "NULL" produces a null value. repeat this option to specify a list of values`,
+      `An empty name produces a positional parameter. The type may be omitted to assume STRING: name::value or ::value.` +
+      `The value "NULL" produces a null value. repeat this option to specify a list of values`,
       {
         type: [String],
       },
@@ -857,12 +856,18 @@ function createCLI() {
       }
     });
 
+  cli
+    .command('', '')
+    .action(async () => {
+      cli.outputHelp();
+    });
+
+
   cli.help();
   cli.parse();
 }
 
 const main = async () => {
-  // bqClient()
   createCLI();
 };
 
