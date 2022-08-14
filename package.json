@@ -3,6 +3,10 @@
   "description": "BigQuery Porter is a tool to manage BigQuery Metadata and Deployment. ",
   "type": "module",
   "exports": "./src/index.js",
+  "license": {
+    "type": "MIT",
+    "url": "https://www.opensource.org/licenses/mit-license.php"
+  },
   "bin": {
     "bqport": "dist/src/index.js"
   },
