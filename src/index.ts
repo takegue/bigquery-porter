@@ -324,6 +324,10 @@ export async function pullBigQueryResources({
     .getDatasets({ projectId } as GetDatasetsOptions);
 
   const projectDir = `${rootDir}/${bq2path(bqClient, projectId === undefined)}`;
+  if (!fs.existsSync(projectDir)) {
+    await fs.promises.mkdir(projectDir, { recursive: true });
+  }
+
   const fsDatasets = forceAll
     ? undefined
     : await fs.promises.readdir(projectDir);
@@ -704,7 +708,6 @@ const buildDAG = async (
   for await (let report of reporter.show_until_finished()) {
     logUpdate(
       `Tasks: remaing ${limit.pendingCount + limit.activeCount}\n` +
-      '   ' +
       report,
     );
   }
@@ -754,7 +757,6 @@ export async function pushBigQueryResources(
     jobOption.params = options.params;
   }
 
-  // console.log(jobOption)
   await buildDAG(rootDir, files, options.concurrency ?? 1, jobOption);
 }
 
