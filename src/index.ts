@@ -769,7 +769,7 @@ function createCLI() {
       default: ['./bigquery'],
       type: [String],
     })
-    .command('push [...projects]', '説明')
+    .command('push [...projects]', 'Deploy your local BigQuery Resources in topological-sorted order')
     .option(
       '--label <key:value>',
       'A label to set on a query job. The format is "key:value"; repeat this option to specify a list of values',
