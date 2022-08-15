@@ -175,7 +175,9 @@ const syncMetadata = async (
       featureColumns: metadata?.featureColumns,
       labelColumns: metadata?.labelColumns,
       trainingRuns: metadata?.trainingRuns,
-    }).filter(([_, v]) => !!v && Object.keys(v).length > 0),
+    })
+    // Remove invalid fields
+    .filter(([_, v]) => !!v && Object.keys(v).length > 0),
   );
 
   if (fs.existsSync(metadataPath)) {
@@ -184,9 +186,9 @@ const syncMetadata = async (
 
     if (options?.push) {
       Object.entries(newMetadata).forEach(([attr]) => {
-        metadata[attr] = local[attr];
+        newMetadata[attr] = local[attr];
       });
-      jobs.push((bqObject as any).setMetadata(metadata));
+      jobs.push((bqObject as any).setMetadata(newMetadata));
     } else {
       Object.entries(newMetadata).forEach(([attr]) => {
         newMetadata[attr] = local[attr] ?? metadata[attr];
