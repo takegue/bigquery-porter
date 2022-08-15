@@ -12,19 +12,20 @@ npm i bigquery-porter
 
 Set up your OAuth and GCP Default Project.
 
-### Usage
+### Clone BigQuery resources from your GCP Project
 
-1. Download BigQuery Metadata
-
-次のコマンドは、GCP Projectのメタ情報をローカルのファイルシステムと連携します。
+First step to start to use is cloning BigQuery resources as files in remote.
+Next comamnd, you'll get BigQuery metadata files and DDL codes in local filesystem.
 
 ```sh
 npx bqport pull --all --with-ddl @default
 ```
 
+Typical directory strucuture follows:
+
 ```
 bigquery: Root Directory
-`-- @default: Project Name. @default means current project
+`-- @default: Project Name
     `-- sandbox
         |-- @models
         |   `-- mymodel
@@ -61,16 +62,21 @@ bigquery: Root Directory
 
 #### Deploy Your BigQuery Resources
 
-次のコマンドを実行すると、GCPのデフォルトプロジェクトにデプロイされます。 この実行は並列化されており、またSQLからの依存関係を読み取り実行を行います。
+After you modifeid files in locals, you can deploy them by next command:
+The following command will deploy to the default project in GCP.
 
 ```
 npx bqport push
 ```
 
+`bqport` deploys codes in prallel and topological order by SQL's DAG dependencies.
+
+
 #### Partial Deployment from STDIN
 
-SQLファイルのリストからBigQueryのクエリ実行を行うことができます。
-特定のSQLのみを実行させたいケースに役立ちます。例えばgitによる差分実行などです。
+You can also deploy your BigQuery queries from a list of SQL files.
+This is useful for cases where you want to execute only specific SQL.
+For example, a diff execution by git.
 
 ```
 find ./bigquery -name '*.sql' | npx bqport push
