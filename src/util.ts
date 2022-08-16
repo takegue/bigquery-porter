@@ -68,7 +68,7 @@ function topologicalSort(relations: [string, string][]) {
 const parser = new Parser();
 parser.setLanguage(Language);
 
-const findBigQueryResourceIdentifier = function* (node: any): any {
+const findBigQueryResourceIdentifier = function*(node: any): any {
   const resource_name = _extractBigQueryResourceIdentifier(node);
   if (resource_name != null) {
     yield resource_name;
@@ -105,7 +105,10 @@ function extractDestinations(sql: string): string[] {
   let ret = [];
 
   for (let n of findBigQueryResourceIdentifier(tree.rootNode)) {
-    if (n.parent.type.match(/statement/)) {
+    if (
+      n.parent.type.match(/statement/)
+      && !n.parent.type.match(/call_statement/)
+    ) {
       ret.push(n.text);
     }
   }
@@ -125,6 +128,15 @@ function extractRefenrences(sql: string): string[] {
     if (n.parent.type.match(/from_item/)) {
       ret.push(n.text);
     }
+
+    if (n.parent.type.match(/function_call/)) {
+      ret.push(n.text);
+    }
+
+    if (n.parent.type.match(/call_statement/)) {
+      ret.push(n.text);
+    }
+    console.log(n.parent.type)
   }
   return ret.filter((n) => !CTEs.has(n));
 }

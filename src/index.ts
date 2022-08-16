@@ -176,8 +176,8 @@ const syncMetadata = async (
       labelColumns: metadata?.labelColumns,
       trainingRuns: metadata?.trainingRuns,
     })
-    // Remove invalid fields
-    .filter(([_, v]) => !!v && Object.keys(v).length > 0),
+      // Remove invalid fields
+      .filter(([_, v]) => !!v && Object.keys(v).length > 0),
   );
 
   if (fs.existsSync(metadataPath)) {
@@ -865,7 +865,6 @@ function createCLI() {
     .action(async () => {
       cli.outputHelp();
     });
-
 
   cli.help();
   cli.parse();
