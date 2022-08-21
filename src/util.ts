@@ -136,7 +136,6 @@ function extractRefenrences(sql: string): string[] {
     if (n.parent.type.match(/call_statement/)) {
       ret.push(n.text);
     }
-    console.log(n.parent.type)
   }
   return ret.filter((n) => !CTEs.has(n));
 }
