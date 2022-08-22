@@ -794,6 +794,10 @@ function createCLI() {
       '--maximum_bytes_billed <number of bytes>',
       'The upper limit of bytes billed for the query.',
     )
+    .option(
+      '--delete',
+      'Delete the resources that are not in local files',
+    )
     .option('--dry-run', 'Dry Run', {
       default: false,
     })
@@ -824,6 +828,7 @@ function createCLI() {
 
       await pushBigQueryResources(options);
     });
+
   cli
     .command(
       'pull [...projects]',
@@ -861,6 +866,31 @@ function createCLI() {
     });
 
   cli
+    .command(
+      'clean <project> <dataset>',
+      'Clean up remote BigQuery resources whose local files are not found',
+    )
+    .option('--dry-run', 'dry run', {
+      default: false,
+      type: [Boolean],
+    })
+    .option('--force', 'Force to remove BigQuery resources without confirmation', {
+      default: false,
+      type: [Boolean],
+    })
+    .action(async (project: string, dataset: string, cmdOptions: any) => {
+      const options = {
+        // rootDir: cmdOptions.rootPath,
+        // forceAll: cmdOptions.force,
+        dryRun: cmdOptions.dryRun,
+      };
+
+      console.log(project, dataset)
+      const bqClient = new BigQuery();
+      cleanupBigQueryDataset(bqClient, cmdOptions.rootDir, dataset, options);
+    });
+
+  cli
     .command('', '')
     .action(async () => {
       cli.outputHelp();
@@ -869,6 +899,52 @@ function createCLI() {
   cli.help();
   cli.parse();
 }
+
+const cleanupBigQueryDataset = async (
+  bqClient: BigQuery,
+  rootDir: string,
+  datasetId: string,
+  options?: { dryRun?: string },
+): Promise<void> => {
+
+  const path2bq = await pathToBigQueryIdentifier(bqClient, rootDir);
+  const routines = await bqClient.dataset(datasetId).getRoutines()
+    .then(([rr]) => new Map(rr.map(r => [(({ metadata: { routineReference: r } }) => `${r.projectId}.${r.datasetId}.${r.routineId}`)(r), r])));
+  const models = await bqClient.dataset(datasetId).getModels()
+    .then(([rr]) => new Map(rr.map(r => [(({ metadata: { modelReference: r } }) => `${r.projectId}.${r.datasetId}.${r.modelId}`)(r), r])));
+  const tables = await bqClient.dataset(datasetId).getTables()
+    .then(([rr]) => new Map(rr.map(r => [(({ metadata: { tableReference: r } }) => `${r.projectId}.${r.datasetId}.${r.tableId}`)(r), r])));
+
+  // Marks for deletion
+  (await walk(rootDir))
+    .filter((p: string) => p.endsWith('sql'))
+    .filter((p: string) => p.includes('@default'))
+    .forEach(f => {
+      const bqId = path2bq(f);
+      if (f.match(/@routine/) && bqId in routines) {
+        // Check Routine
+        routines.delete(bqId);
+      } else if (f.match(/@model/) && bqId in routines) {
+        // Check Model
+        models.delete(bqId);
+      } else {
+        if (bqId in tables) {
+          // Check Table or Dataset
+          tables.delete(bqId);
+        }
+      }
+    })
+
+  for (const kind of [tables, routines, models]) {
+    for (const [bqId, resource] of kind) {
+      console.log(`Deleting ${bqId}`);
+      if (!options?.dryRun ?? true) {
+        await resource.delete()
+      }
+    }
+  }
+}
+
 
 const main = async () => {
   createCLI();
