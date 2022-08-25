@@ -17,7 +17,6 @@ import {
 import type { ServiceObject } from '@google-cloud/common';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { cac } from 'cac';
 import pLimit from 'p-limit';
 import pThrottle from 'p-throttle';
 import {
@@ -35,6 +34,7 @@ import logUpdate from 'log-update';
 
 import { Reporter, Task } from '../src/reporter.js';
 import 'process';
+import { program } from 'commander';
 
 const jsonSerializer = (obj: any) => JSON.stringify(obj, null, 4);
 
@@ -763,32 +763,26 @@ export async function pushBigQueryResources(
 }
 
 function createCLI() {
-  const cli = cac();
-  cli
+
+  program
+    .name('bqport')
+    .description('Easy and Quick BigQuery Deployment Tool')
     // Global Options
-    .option('-n, --threads <threads>', 'API Call Concurrency', {
-      default: 8,
-    })
-    .option('-C, --root-path <rootPath>', 'Root Directory', {
-      default: ['./bigquery'],
-      type: [String],
-    })
+    .option('-n, --threads <threads>', 'API Call Concurrency', '8')
+    .option('-C, --root-path <rootPath>', 'Root Directory', ['./bigquery']);
+
+  // Push Command
+  program
     .command('push [...projects]', 'Deploy your local BigQuery Resources in topological-sorted order')
     .option(
       '--label <key:value>',
       'A label to set on a query job. The format is "key:value"; repeat this option to specify a list of values',
-      {
-        type: [String],
-      },
     )
     .option(
       '--parameter <key:value>',
       `Either a file containing a JSON list of query parameters, or a query parameter in the form "name:type:value".` +
       `An empty name produces a positional parameter. The type may be omitted to assume STRING: name::value or ::value.` +
       `The value "NULL" produces a null value. repeat this option to specify a list of values`,
-      {
-        type: [String],
-      },
     )
     .option(
       '--maximum_bytes_billed <number of bytes>',
@@ -798,9 +792,7 @@ function createCLI() {
       '--delete',
       'Delete the resources that are not in local files',
     )
-    .option('--dry-run', 'Dry Run', {
-      default: false,
-    })
+    .option('--dry-run', 'Dry Run', false)
     .action(async (projects: string[], cmdOptions: any) => {
       const rootDir = cmdOptions.rootPath[0];
       if (!rootDir) {
@@ -827,21 +819,14 @@ function createCLI() {
       }
 
       await pushBigQueryResources(options);
-    });
-
-  cli
+    })
+    // Pull Command
     .command(
       'pull [...projects]',
       'pull dataset and its tabald and routine information',
     )
-    .option('--all', 'Pulling All BugQuery Datasets', {
-      default: false,
-      type: [Boolean],
-    })
-    .option('--with-ddl', 'Pulling BigQuery Resources with DDL SQL', {
-      default: false,
-      type: [Boolean],
-    })
+    .option('--all', 'Pulling All BugQuery Datasets', false)
+    .option('--with-ddl', 'Pulling BigQuery Resources with DDL SQL', false)
     // .option('--ddl-useful-rewrite', "Rewrite DDL in useful", {
     //   default: true,
     //   type: [Boolean],
@@ -863,21 +848,14 @@ function createCLI() {
       } else {
         await pullBigQueryResources(options);
       }
-    });
-
-  cli
+    })
+    // Clean Command
     .command(
       'clean <project> <dataset>',
       'Clean up remote BigQuery resources whose local files are not found',
     )
-    .option('--dry-run', 'dry run', {
-      default: false,
-      type: [Boolean],
-    })
-    .option('--force', 'Force to remove BigQuery resources without confirmation', {
-      default: false,
-      type: [Boolean],
-    })
+    .option('--dry-run', 'dry run', false)
+    .option('--force', 'Force to remove BigQuery resources without confirmation', false)
     .action(async (project: string, dataset: string, cmdOptions: any) => {
       const options = {
         // rootDir: cmdOptions.rootPath,
@@ -889,15 +867,13 @@ function createCLI() {
       const bqClient = new BigQuery();
       cleanupBigQueryDataset(bqClient, cmdOptions.rootDir, dataset, options);
     });
+  // // Annonymous command
+  // .command('', '')
+  // .action(async () => {
+  //   console.log('invalid command')
+  // });
 
-  cli
-    .command('', '')
-    .action(async () => {
-      cli.outputHelp();
-    });
-
-  cli.help();
-  cli.parse();
+  program.parse();
 }
 
 const cleanupBigQueryDataset = async (
@@ -944,6 +920,7 @@ const cleanupBigQueryDataset = async (
     }
   }
 }
+
 
 
 const main = async () => {
