@@ -34,7 +34,7 @@ import logUpdate from 'log-update';
 
 import { Reporter, Task } from '../src/reporter.js';
 import 'process';
-import { program } from 'commander';
+import { Command } from 'commander';
 
 const jsonSerializer = (obj: any) => JSON.stringify(obj, null, 4);
 
@@ -763,17 +763,17 @@ export async function pushBigQueryResources(
 }
 
 function createCLI() {
+  const program = new Command();
 
   program
-    .name('bqport')
     .description('Easy and Quick BigQuery Deployment Tool')
     // Global Options
     .option('-n, --threads <threads>', 'API Call Concurrency', '8')
     .option('-C, --root-path <rootPath>', 'Root Directory', ['./bigquery']);
 
-  // Push Command
-  program
-    .command('push [...projects]', 'Deploy your local BigQuery Resources in topological-sorted order')
+  const pushCommand = new Command('push')
+    .description('Deploy your local BigQuery Resources in topological-sorted order')
+    .argument('[...projects]')
     .option(
       '--label <key:value>',
       'A label to set on a query job. The format is "key:value"; repeat this option to specify a list of values',
@@ -819,12 +819,11 @@ function createCLI() {
       }
 
       await pushBigQueryResources(options);
-    })
-    // Pull Command
-    .command(
-      'pull [...projects]',
-      'pull dataset and its tabald and routine information',
-    )
+    });
+
+  const pullCommand = new Command('pull')
+    .description('pull dataset and its tabald and routine information')
+    .argument('[...projects]')
     .option('--all', 'Pulling All BugQuery Datasets', false)
     .option('--with-ddl', 'Pulling BigQuery Resources with DDL SQL', false)
     // .option('--ddl-useful-rewrite', "Rewrite DDL in useful", {
@@ -849,11 +848,11 @@ function createCLI() {
         await pullBigQueryResources(options);
       }
     })
-    // Clean Command
-    .command(
-      'clean <project> <dataset>',
-      'Clean up remote BigQuery resources whose local files are not found',
-    )
+
+  const cleanCommand = new Command('clean')
+    .description('Clean up remote BigQuery resources whose local files are not found')
+    .argument('<project>')
+    .argument('<dataset>')
     .option('--dry-run', 'dry run', false)
     .option('--force', 'Force to remove BigQuery resources without confirmation', false)
     .action(async (project: string, dataset: string, cmdOptions: any) => {
@@ -867,11 +866,10 @@ function createCLI() {
       const bqClient = new BigQuery();
       cleanupBigQueryDataset(bqClient, cmdOptions.rootDir, dataset, options);
     });
-  // // Annonymous command
-  // .command('', '')
-  // .action(async () => {
-  //   console.log('invalid command')
-  // });
+
+  program.addCommand(pushCommand);
+  program.addCommand(pullCommand);
+  program.addCommand(cleanCommand);
 
   program.parse();
 }
