@@ -95,13 +95,13 @@ const syncMetadata = async (
   options?: { versionhash?: string; push?: boolean },
 ) => {
   type systemDefinedLabels = {
-    'bqm-versionhash': string;
+    'bqport-versionhash': string;
   };
 
   const metadataPath = path.join(dirPath, 'metadata.json');
   const fieldsPath = path.join(dirPath, 'schema.json');
   const syncLabels: systemDefinedLabels = {
-    'bqm-versionhash': `${Math.floor(Date.now() / 1000)}-${options?.versionhash ?? 'HEAD'
+    'bqport-versionhash': `${Math.floor(Date.now() / 1000)}-${options?.versionhash ?? 'HEAD'
       }`,
   };
   const jobs: Promise<any>[] = [];
@@ -546,10 +546,7 @@ const deployBigQueryResouce = async (
       ) {
         return humanFileSize(parseInt(ijob.statistics.totalBytesProcessed));
       }
-      await fetchBQJobResource(job)
-        .then((bqObj: any) =>
-          syncMetadata(bqObj, path.dirname(p), { push: true })
-        );
+      await fetchBQJobResource(job);
 
       if (job.metadata.statistics?.totalBytesProcessed !== undefined) {
         return humanFileSize(
@@ -769,7 +766,7 @@ function createCLI() {
     .description('Easy and Quick BigQuery Deployment Tool')
     // Global Options
     .option('-n, --threads <threads>', 'API Call Concurrency', '8')
-    .option('-C, --root-path <rootPath>', 'Root Directory', ['./bigquery']);
+    .option('-C, --root-path <rootPath>', 'Root Directory', './bigquery');
 
   const pushCommand = new Command('push')
     .description('Deploy your local BigQuery Resources in topological-sorted order')
@@ -788,13 +785,12 @@ function createCLI() {
       '--maximum_bytes_billed <number of bytes>',
       'The upper limit of bytes billed for the query.',
     )
-    .option(
-      '--delete',
-      'Delete the resources that are not in local files',
-    )
     .option('--dry-run', 'Dry Run', false)
-    .action(async (projects: string[], cmdOptions: any) => {
-      const rootDir = cmdOptions.rootPath[0];
+    .action(async (cmdProjects: string[] | undefined, _, cmd) => {
+      const cmdOptions = cmd.optsWithGlobals()
+      const projects = cmdProjects ?? [];
+
+      const rootDir = cmdOptions.rootPath;
       if (!rootDir) {
         console.error('CLI Error');
         return;
@@ -802,8 +798,8 @@ function createCLI() {
 
       const options = {
         rootDir: rootDir,
-        projectId: projects[0] as string,
-        concurrency: cmdOptions.threads,
+        projectId: projects.pop() ?? '@default',
+        concurrency: parseInt(cmdOptions.threads),
         dryRun: cmdOptions.dryRun,
       };
 
@@ -830,7 +826,10 @@ function createCLI() {
     //   default: true,
     //   type: [Boolean],
     // })
-    .action(async (projects: string[], cmdOptions: any) => {
+    .action(async (cmdProjects: string[] | undefined, _, cmd) => {
+      const cmdOptions = cmd.optsWithGlobals()
+      const projects = cmdProjects ?? [];
+
       const options = {
         rootDir: cmdOptions.rootPath,
         withDDL: cmdOptions.withDdl,
