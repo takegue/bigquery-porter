@@ -672,6 +672,7 @@ const buildDAG = async (
           target.bigquery,
           {
             task: new Task(target.bigquery, async () => {
+              console.log(target.file)
               await Promise.all(
                 target.dependencies
                   .map(
@@ -699,9 +700,11 @@ const buildDAG = async (
 
   const tasks = [...DAG.values()]
     .map(({ task }) => {
+      console.log(task.name)
       limit(async () => await task.run());
       return task;
     });
+  console.dir(tasks)
 
   const reporter = new Reporter(tasks);
   for await (let report of reporter.show_until_finished()) {
