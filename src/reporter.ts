@@ -43,6 +43,10 @@ class Task {
   }
 
   async run() {
+    if (this.status != 'pending') {
+      return
+    }
+
     this.status = 'running';
     // start job
     this.runningPromise = this.job();
