@@ -109,6 +109,7 @@ class Reporter {
   }
 
   async *show_until_finished() {
+    this.tasks.forEach((t) => t.run());
     while (this.tasks.some((t) => !t.done())) {
       await new Promise((resolve) => setTimeout(resolve, 100));
       yield this.tasks

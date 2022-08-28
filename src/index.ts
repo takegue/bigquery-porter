@@ -18,7 +18,6 @@ import type { ServiceObject } from '@google-cloud/common';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import pLimit from 'p-limit';
-import pThrottle from 'p-throttle';
 import {
   extractRefenrences,
   humanFileSize,
@@ -29,6 +28,7 @@ import {
   BigQueryResource,
   bq2path,
   normalizedBQPath,
+  buildThrottledBigQueryClient,
 } from '../src/bigquery.js';
 import logUpdate from 'log-update';
 
@@ -218,29 +218,7 @@ export async function pullBigQueryResources({
     ddl: string | undefined;
     resource_type: string;
   };
-  const throttle = pThrottle({
-    limit: 20,
-    interval: 500,
-  });
-  const bqClient = new Proxy<BigQuery>(
-    new BigQuery(),
-    {
-      get: (obj: BigQuery, sKey: string | symbol) => {
-        const member = (obj as any)[sKey];
-        // Request Throttling
-        if (member instanceof Function && sKey == 'request') {
-          return async (...args: any[]) => {
-            let result: any;
-            await throttle(async () => {
-              result = member.apply(obj, args);
-            })();
-            return result;
-          };
-        }
-        return member;
-      },
-    },
-  );
+  const bqClient = buildThrottledBigQueryClient(20, 500)
 
   const defaultProjectId = await bqClient.getProjectId();
 
@@ -836,7 +814,6 @@ function createCLI() {
         forceAll: cmdOptions.all,
         concurrency: cmdOptions.concurrency,
       };
-
       if (projects.length > 0) {
         await Promise.allSettled(
           projects.map(async (p) =>

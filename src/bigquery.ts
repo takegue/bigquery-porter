@@ -1,4 +1,6 @@
 import type { Metadata } from '@google-cloud/common';
+import { BigQuery } from '@google-cloud/bigquery';
+import pThrottle from 'p-throttle';
 
 interface BigQueryResource {
   id?: string;
@@ -6,6 +8,33 @@ interface BigQueryResource {
   metadata?: Metadata;
   projectId?: string;
   parent?: BigQueryResource;
+}
+
+const buildThrottledBigQueryClient = (concurrency: number, interval_limit: number) => {
+  const throttle = pThrottle({
+    limit: concurrency,
+    interval: interval_limit,
+  });
+
+  return new Proxy<BigQuery>(
+    new BigQuery(),
+    {
+      get: (obj: BigQuery, sKey: string | symbol) => {
+        const member = (obj as any)[sKey];
+        // Request Throttling
+        if (member instanceof Function && sKey == 'request') {
+          return async (...args: any[]) => {
+            let result: any;
+            await throttle(async () => {
+              result = member.apply(obj, args);
+            })();
+            return result;
+          };
+        }
+        return member;
+      },
+    },
+  );
 }
 
 const bq2path = (bqObj: BigQueryResource, asDefaultProject: boolean) => {
@@ -56,4 +85,4 @@ const normalizedBQPath = (bqPath: string, defaultProject?: string): string => {
   }
 };
 
-export { BigQueryResource, bq2path, normalizedBQPath };
+export { BigQueryResource, bq2path, normalizedBQPath, buildThrottledBigQueryClient };
