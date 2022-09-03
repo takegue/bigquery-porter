@@ -26,10 +26,10 @@ async function walk(dir: string): Promise<string[]> {
 }
 
 type Relation = [string, string];
-function topologicalSort(relations: [string, string][]) {
+function topologicalSort(relations: Relation[]) {
   const [E, G, N] = relations.reduce((
     [E, G, N]: [Map<string, number>, Map<string, Set<string>>, Set<string>],
-    [src, dst]: [string, string],
+    [src, dst]: Relation,
   ) => {
     E.set(src, 1 + (E.get(src) ?? 0));
     G.set(dst, new Set([src, ...G.get(dst) ?? []]));
@@ -60,6 +60,10 @@ function topologicalSort(relations: [string, string][]) {
         N.delete(n);
         return [n, ...ret];
       }, S);
+  }
+
+  if (N.size > 0) {
+    throw new Error(`Cycle detected: ${[...N].join(', ')}`);
   }
 
   return [...L];
