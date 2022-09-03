@@ -1,16 +1,6 @@
-import readline from 'node:readline';
 import process from 'node:process';
 import pc from 'picocolors';
 import { F_CHECK, F_CROSS } from '../src/figures.js';
-
-export const clearScreen = () => {
-  const repeatCount = (process.stdout?.rows ?? 0) - 2;
-  const blank = repeatCount > 0 ? '\n'.repeat(repeatCount) : '';
-  console.log(blank);
-
-  readline.cursorTo(process.stdout, 0, 0);
-  readline.clearScreenDown(process.stdout);
-};
 
 const spinnerFrames = process.platform === 'win32'
   ? ['-', '\\', '|', '/']
@@ -109,7 +99,6 @@ class Reporter {
   }
 
   async *show_until_finished() {
-    this.tasks.forEach((t) => t.run());
     while (this.tasks.some((t) => !t.done())) {
       await new Promise((resolve) => setTimeout(resolve, 100));
       yield this.tasks
