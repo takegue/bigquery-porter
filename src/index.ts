@@ -677,35 +677,37 @@ const buildDAG = async (
             // bigquery: ns,
             tasks: jobs.map(
               (job: BigQueryJobResource) =>
-                new Task(path.relative(rootPath, job.file), async () => {
-                  await Promise.all(
-                    job.dependencies
-                      .map(
-                        (d: string) => DAG.get(d)?.tasks.map(t => t.runningPromise),
-                      )
-                      .flat()
+                new Task(
+                  path.relative(rootPath, job.file).replace(/@default/, defaultProjectId),
+                  async () => {
+                    await Promise.all(
+                      job.dependencies
+                        .map(
+                          (d: string) => DAG.get(d)?.tasks.map(t => t.runningPromise),
+                        )
+                        .flat()
                     ,
-                  ).catch(() => {
-                    const msg = job.dependencies
-                      .map((t) => DAG.get(t)?.tasks)
-                      .flat()
-                      .filter((t) => t && t.status == 'failed')
-                      .map((t) => t?.name).join(', ');
-                    throw Error('Suspended: Parent job is faild: ' + msg);
-                  });
-                  return await deployBigQueryResouce(
-                    bqClient,
-                    rootPath,
-                    job.file,
-                    jobOption,
-                  )
-                }),
+                    ).catch(() => {
+                      const msg = job.dependencies
+                        .map((t) => DAG.get(t)?.tasks)
+                        .flat()
+                        .filter((t) => t && t.status == 'failed')
+                        .map((t) => t?.name).join(', ');
+                      throw Error('Suspended: Parent job is faild: ' + msg);
+                    });
+                    return await deployBigQueryResouce(
+                      bqClient,
+                      rootPath,
+                      job.file,
+                      jobOption,
+                    )
+                  }),
             )
           },
         ],
       ),
   );
-  console.log(rootPath)
+
   const tasks = [...DAG.values()]
     .map(({ tasks }) => {
       tasks.forEach(task => limit(async () => await task.run()));
