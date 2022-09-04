@@ -85,17 +85,28 @@ const path2bq = (
 };
 
 
-const normalizedBQPath = (bqPath: string, defaultProject?: string): string => {
-  const parts = bqPath.replace(/`/g, '').split('.');
+const normalizedBQPath = (
+  bqPath: string
+  , defaultProject?: string
+  , isDataset: boolean = false
+): string => {
+  const cleanedPath = bqPath.replace(/`/g, '');
+  const parts = cleanedPath.split('.');
 
   if (parts.length == 2) {
+    if (isDataset) {
+      return cleanedPath
+    }
     const [dst_schema, dst_name] = parts;
     const dst_project = defaultProject;
     return `${dst_project}.${dst_schema}.${dst_name}`;
   } else if (parts.length == 1) {
     // FIXME: Possible dataset, temporary table or CTE view name
-    const [dst_schema] = parts;
-    return `${defaultProject}.${dst_schema}`;
+    if (isDataset) {
+      const [dst_schema] = parts;
+      return `${defaultProject}.${dst_schema}`;
+    }
+    return cleanedPath
   } else {
     const [dst_project, dst_schema, dst_name] = parts;
     return `${dst_project}.${dst_schema}.${dst_name}`;

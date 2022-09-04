@@ -223,11 +223,15 @@ describe('biquery: bq2path', () => {
 
 describe('biquery: normalizedBQPath', () => {
   const cases: Array<{
-    input: [string, string | undefined, boolean?];
+    input: [string, string?, boolean?];
     expected: string;
   }> = [
       {
-        input: ['project_id.sbx.hoge', undefined],
+        input: ['`project_id.sbx.hoge`'],
+        expected: 'project_id.sbx.hoge',
+      },
+      {
+        input: ['project_id.sbx.hoge'],
         expected: 'project_id.sbx.hoge',
       },
       {
@@ -240,6 +244,10 @@ describe('biquery: normalizedBQPath', () => {
       },
       {
         input: ['sbx', '@default', true],
+        expected: '@default.sbx',
+      },
+      {
+        input: ['`sbx`', '@default', true],
         expected: '@default.sbx',
       },
     ];
