@@ -97,6 +97,10 @@ const _extractBigQueryResourceIdentifier = (node: any) => {
     return node.routineNameNode;
   }
 
+  if (fields.includes('schemaNameNode')) {
+    return node.schemaNameNode;
+  }
+
   if (fields.includes('aliasNameNode')) {
     return node.aliasNameNode;
   }
@@ -112,6 +116,7 @@ function extractDestinations(sql: string): string[] {
     if (
       n.parent.type.match(/statement/)
       && !n.parent.type.match(/call_statement/)
+      && !n.parent.type.match(/create_sechema_statement/)
     ) {
       ret.push(n.text);
     }

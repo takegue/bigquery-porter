@@ -89,6 +89,12 @@ describe('util test: sql extraction', () => {
         expectedDestinations: ['`sandbox.sample_proc`'],
         expectedReferences: ['`sandbox.reference_proc`'],
       },
+      {
+        input:
+          `create schema \`awesome_dataset\`;`,
+        expectedDestinations: ['`awesome_dataset`'],
+        expectedReferences: [],
+      },
     ];
   it.each(cases)('identifier extraction: destinations', async (args) => {
     const { input, expectedDestinations: expected } = args;
