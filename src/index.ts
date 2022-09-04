@@ -637,10 +637,10 @@ const buildDAG = async (
       .reduce((ret, { dependencies: deps, destinations: dsts }) => {
         dsts.forEach(
           (dst: string) => {
-            ret.add(JSON.stringify(['#sentinal', dst]));
+            ret.add(JSON.stringify([dst, '#sentinal']));
             deps.forEach(
               (src: string) => {
-                ret.add(JSON.stringify([src, dst]));
+                ret.add(JSON.stringify([dst, src]));
               },
             );
           }
@@ -677,7 +677,7 @@ const buildDAG = async (
             // bigquery: ns,
             tasks: jobs.map(
               (job: BigQueryJobResource) =>
-                new Task(job.file, async () => {
+                new Task(path.relative(rootPath, job.file), async () => {
                   await Promise.all(
                     job.dependencies
                       .map(
@@ -705,11 +705,12 @@ const buildDAG = async (
         ],
       ),
   );
+  console.log(rootPath)
   const tasks = [...DAG.values()]
     .map(({ tasks }) => {
       tasks.forEach(task => limit(async () => await task.run()));
       return tasks;
-    }).flat().reverse();
+    }).flat();
 
   const reporter = new Reporter(tasks);
   for await (let report of reporter.show_until_finished()) {
