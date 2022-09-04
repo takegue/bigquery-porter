@@ -93,6 +93,7 @@ const normalizedBQPath = (bqPath: string, defaultProject?: string): string => {
     const dst_project = defaultProject;
     return `${dst_project}.${dst_schema}.${dst_name}`;
   } else if (parts.length == 1) {
+    // FIXME: Possible dataset, temporary table or CTE view name
     const [dst_schema] = parts;
     return `${defaultProject}.${dst_schema}`;
   } else {
