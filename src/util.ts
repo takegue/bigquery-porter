@@ -159,6 +159,34 @@ function extractRefenrences(sql: string): string[] {
   return ret.filter((n) => !CTEs.has(n));
 }
 
+function fixDestinationSQL(namespace: string, sql: string): string {
+  let newSQL = sql;
+  const tree = parser.parse(sql);
+
+  const _visit = function*(node: any): any {
+    if (node.children.length === 0) {
+      yield node
+      return
+    }
+
+    for (let n of node.children) {
+      for (let c of _visit(n)) {
+        yield c
+      }
+    }
+  };
+
+  for (const n of _visit(tree.rootNode)) {
+    if (n.type == 'identifier' && n.parent.type.match('table_statement')) {
+      newSQL = newSQL.substring(0, n.startPosition.column) + `\`${namespace}\`` + newSQL.substring(n.endPosition.column);
+    }
+  }
+  console.dir(tree.rootNode.toString())
+  return newSQL
+}
+
+
+
 /**
  * Format bytes as human-readable text.
  *
@@ -199,4 +227,5 @@ export {
   Relation,
   topologicalSort,
   walk,
+  fixDestinationSQL
 };

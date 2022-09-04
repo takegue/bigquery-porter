@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   extractDestinations,
   extractRefenrences,
+  fixDestinationSQL,
   Relation,
   topologicalSort,
 } from '../src/util.js';
@@ -254,5 +255,25 @@ describe('biquery: normalizedBQPath', () => {
   it.each(cases)('normalized bigquery path', async (args) => {
     const { input, expected } = args;
     expect(normalizedBQPath(...input)).toMatchObject(expected);
+  });
+});
+
+describe('util test: fix SQL', () => {
+  const cases: Array<{
+    input: [string, string];
+    expected: string;
+  }> = [
+      {
+        input: [
+          'awesome-project.sandbox.hoge',
+          'create table `awesome-project.sandbox.wrong_name` as select 1',
+        ],
+        expected: 'create table `awesome-project.sandbox.hoge` as select 1',
+      },
+    ];
+  it.each(cases)('topological sort', async (args) => {
+    const { input, expected } = args;
+    expect(fixDestinationSQL(...input))
+      .toMatchObject(expected);
   });
 });
