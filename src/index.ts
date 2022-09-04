@@ -630,23 +630,31 @@ const buildDAG = async (
       .map(async (n: string) => ({
         file: n,
         namespace: path2bq(n, rootPath, defaultProjectId),
-        dependencies: await extractBigQueryDependencies(rootPath, n, bqClient),
+        dependencies: (await extractBigQueryDependencies(rootPath, n, bqClient))
+          .filter((n) => n !== path2bq(n, rootPath, defaultProjectId)),
         destinations: await extractBigQueryDestinations(rootPath, n, bqClient),
       } as BigQueryJobResource)),
   );
   const relations = [
     ...results
-      .reduce((ret, { dependencies: deps, destinations: dsts }) => {
-        dsts.forEach(
-          (dst: string) => {
-            ret.add(JSON.stringify([dst, '#sentinal']));
-            deps.forEach(
-              (src: string) => {
-                ret.add(JSON.stringify([dst, src]));
-              },
-            );
-          }
-        )
+      .reduce((ret, { dependencies: _deps, destinations: _dsts }) => {
+        const deps = new Set<string>(_deps);
+        const dsts = new Set<string>(_dsts);
+
+        _dsts
+          .filter((d) => !deps.has(d))
+          .forEach(
+            (dst: string) => {
+              ret.add(JSON.stringify([dst, '#sentinal']));
+              _deps
+                .filter((s) => !dsts.has(s))
+                .forEach(
+                  (src: string) => {
+                    ret.add(JSON.stringify([dst, src]));
+                  },
+                );
+            }
+          )
         return ret;
       }, new Set())
   ]
@@ -979,7 +987,3 @@ const main = async () => {
 };
 
 main();
-
-export {
-  deployBigQueryResouce
-};
