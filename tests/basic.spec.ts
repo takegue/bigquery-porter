@@ -50,13 +50,13 @@ describe('util test: toposort', () => {
 describe('util test: sql extraction', () => {
   const cases: Array<{
     input: string;
-    expectedDestinations: string[];
+    expectedDestinations: [string, string][];
     expectedReferences: string[];
   }> = [
       {
         input: `create table \`child_table\` as select *
           from \`dataset.parent1_table\`, \`dataset.parent2_table\``,
-        expectedDestinations: ['`child_table`'],
+        expectedDestinations: [['`child_table`', 'TABLE']],
         expectedReferences: [
           '`dataset.parent1_table`',
           '`dataset.parent2_table`',
@@ -77,7 +77,7 @@ describe('util test: sql extraction', () => {
           `create or replace procedure \`sandbox.sample_proc\`(in argument int64)
             options(description="test")
             begin select 1; end`,
-        expectedDestinations: ['`sandbox.sample_proc`'],
+        expectedDestinations: [['`sandbox.sample_proc`', 'ROUTINE']],
         expectedReferences: [],
       },
       {
@@ -86,13 +86,13 @@ describe('util test: sql extraction', () => {
            begin
             call \`sandbox.reference_proc\`();
           end`,
-        expectedDestinations: ['`sandbox.sample_proc`'],
+        expectedDestinations: [['`sandbox.sample_proc`', 'ROUTINE']],
         expectedReferences: ['`sandbox.reference_proc`'],
       },
       {
         input:
           `create schema \`awesome_dataset\`;`,
-        expectedDestinations: ['`awesome_dataset`'],
+        expectedDestinations: [['`awesome_dataset`', 'SCHEMA']],
         expectedReferences: [],
       },
     ];
@@ -223,7 +223,7 @@ describe('biquery: bq2path', () => {
 
 describe('biquery: normalizedBQPath', () => {
   const cases: Array<{
-    input: [string, string | undefined];
+    input: [string, string | undefined, boolean?];
     expected: string;
   }> = [
       {
@@ -239,11 +239,11 @@ describe('biquery: normalizedBQPath', () => {
         expected: '@default.sbx.hoge',
       },
       {
-        input: ['sbx', '@default'],
+        input: ['sbx', '@default', true],
         expected: '@default.sbx',
       },
     ];
-  it.each(cases)('topological sort', async (args) => {
+  it.each(cases)('normalized bigquery path', async (args) => {
     const { input, expected } = args;
     expect(normalizedBQPath(...input)).toMatchObject(expected);
   });

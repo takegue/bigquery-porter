@@ -108,17 +108,27 @@ const _extractBigQueryResourceIdentifier = (node: any) => {
   return null;
 };
 
-function extractDestinations(sql: string): string[] {
+
+function extractDestinations(sql: string): [string, string][] {
   const tree = parser.parse(sql);
-  let ret = [];
+  let ret: [string, string][] = [];
 
   for (let n of findBigQueryResourceIdentifier(tree.rootNode)) {
-    if (
+    if (n.parent.type.match(/create_schema_statement/)) {
+      ret.push([n.text, 'SCHEMA']);
+    }
+    else if (n.parent.type.match(/procedure_statement|function_statement/)) {
+      ret.push([n.text, 'ROUTINE']);
+    }
+    else if (n.parent.type.match(/table_statement/)) {
+      ret.push([n.text, 'TABLE']);
+    }
+    else if (
       n.parent.type.match(/statement/)
       && !n.parent.type.match(/call_statement/)
-      && !n.parent.type.match(/create_sechema_statement/)
     ) {
-      ret.push(n.text);
+      ret.push([n.text, 'TABLE']);
+      continue
     }
   }
   return ret;
