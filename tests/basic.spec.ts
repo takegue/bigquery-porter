@@ -291,7 +291,7 @@ describe('util test: fix SQL', () => {
             options(description="test")
             begin select 1; end`,
         ],
-        expected: `create or replace procedure awesome-project.sandbox.correct_name(in argument int64)
+        expected: `create or replace procedure \`awesome-project.sandbox.correct_name\`(in argument int64)
             options(description="test")
             begin select 1; end`,
       }
