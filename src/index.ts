@@ -588,7 +588,7 @@ const extractBigQueryDependencies = async (
   // Add schema as explict dependencies without self
   const additionals =
     ((schema !== undefined && resource !== undefined)
-      ? [normalizedBQPath(schema, projectID)]
+      ? [normalizedBQPath(schema, projectID, true)]
       : []);
   return [...new Set(refs_schemas.concat(refs).concat(additionals))];
 };
@@ -606,7 +606,7 @@ const extractBigQueryDestinations = async (
   const refs = [
     ...new Set(
       extractDestinations(sql)
-        .map((ref) => normalizedBQPath(ref, projectID)),
+        .map(([ref, type]) => normalizedBQPath(ref, projectID, type == 'SCHEMA')),
     ),
   ];
   return refs
