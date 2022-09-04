@@ -114,7 +114,7 @@ function extractDestinations(sql: string): [string, string][] {
   let ret: [string, string][] = [];
 
   for (let n of findBigQueryResourceIdentifier(tree.rootNode)) {
-    if (n.parent.type.match(/create_schema_statement/)) {
+    if (n.parent.type.match(/schema_statement/)) {
       ret.push([n.text, 'SCHEMA']);
     }
     else if (n.parent.type.match(/procedure_statement|function_statement/)) {
