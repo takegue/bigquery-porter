@@ -21,6 +21,7 @@ import pLimit from 'p-limit';
 import {
   extractRefenrences,
   extractDestinations,
+  fixDestinationSQL,
   humanFileSize,
   topologicalSort,
   walk,
@@ -874,14 +875,58 @@ function createCLI() {
 
       console.log(project, dataset)
       const bqClient = new BigQuery();
-      cleanupBigQueryDataset(bqClient, cmdOptions.rootDir, dataset, options);
+      await cleanupBigQueryDataset(bqClient, cmdOptions.rootDir, dataset, options);
     });
+
+  const formatCommmand = new Command('format')
+    .description('Fix reference in local DDL files')
+    .option('--dry-run', 'dry run', false)
+    .action(async (_, cmd) => {
+      const cmdOptions = cmd.optsWithGlobals()
+      const options = {
+        dryRun: cmdOptions.dryRun,
+      };
+      await formatLocalfiles(cmdOptions.rootPath ?? './bigquery/', options);
+    });
+
 
   program.addCommand(pushCommand);
   program.addCommand(pullCommand);
   program.addCommand(cleanCommand);
+  program.addCommand(formatCommmand);
 
   program.parse();
+}
+
+const formatLocalfiles = async (
+  rootPath: string,
+  options?: { dryRun?: string },
+) => {
+  const files = (await walk(rootPath))
+    .filter((p: string) => p.endsWith('ddl.sql'))
+    .filter((p: string) => p.includes('@default'))
+    .filter(async (p: string) => {
+      const sql: string = await fs.promises.readFile(p)
+        .then((s: any) => s.toString());
+      const destinations = extractDestinations(sql)
+      return destinations.length > 0
+    });
+
+  const bqClient = new BigQuery();
+  const defaultProjectId = await bqClient.getProjectId();
+  for (const file of files) {
+    const sql: string = await fs.promises.readFile(file)
+      .then((s: any) => s.toString());
+    const newSQL = fixDestinationSQL(path2bq(file, rootPath, defaultProjectId), sql)
+
+    if (newSQL !== sql) {
+      console.log(file)
+      if (options?.dryRun ?? false) {
+      } else {
+        await fs.promises.writeFile(file, newSQL)
+      }
+    }
+  }
 }
 
 const cleanupBigQueryDataset = async (
