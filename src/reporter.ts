@@ -6,40 +6,6 @@ const spinnerFrames = process.platform === 'win32'
   ? ['-', '\\', '|', '/']
   : ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 
-/* Examples
-@default
-    v0: 15 Tasks
-        ddl.sql  (0 B)
-        @routines
-            detect_staleness
-                ddl.sql  (0 B)
-                test.sql
-            get_bqlabel_from_option
-                ddl.sql  (0 B)
-                test.sql (0 B)
-            get_partition_column
-                ddl.sql  (0 B)
-            partition_table__check_and_update
-                ddl.sql  (0 B)
-                test.sql
-            scan_query_referenced_tables
-                ddl.sql  (0 B)
-            zgenerate_sql__snapshot_scd_type2
-                ddl.sql  (0 B)
-            profile_table__update_labels
-                ddl.sql  (0 B)
-                test.sql
-    v1: 4 Tasks
-        ddl.sql  (0 B)
-        @routines
-            detect_staleness
-                ddl.sql  (0 B)
-                test.sql
-            get_bqlabel_from_option
-                ddl.sql  (0 B)
-                test.sql (0 B)
-*/
-
 function elegantSpinner() {
   let index = 0;
 
@@ -93,6 +59,7 @@ class Task {
 
 class Reporter {
   tasks: Task[];
+  separator: string = '/'
   constructor(tasks: Task[]) {
     this.tasks = tasks;
   }
@@ -124,7 +91,7 @@ class Reporter {
         return '';
     }
 
-    const title = c(`${s} ${task.name.split('/').pop()}`);
+    const title = c(`${s} ${task.name.split(this.separator).pop()}`);
     if (task.error) {
       return `${title}\n    ${pc.bold(task.error)}`.trim();
     } else {
@@ -135,7 +102,7 @@ class Reporter {
 
   report_tree(tasks: Task[], level = 0, max_level = 4): string {
     const groups = tasks.reduce((acc, t) => {
-      const parts = t.name.split('/');
+      const parts = t.name.split(this.separator);
       const key = parts.length === level + 1 ? '#tail' : (parts[level] ?? '#none');
       if (acc.get(key) === undefined) {
         acc.set(key, []);
@@ -156,7 +123,7 @@ class Reporter {
         s += childStingifier(tasks, level)
       }
       else {
-        s += '  '.repeat(level) + group_key + '\n';
+        s += '  '.repeat(level) + pc.underline(group_key) + '\n';
         if (level < max_level) {
           s += this.report_tree(tasks, level + 1, max_level);
         } else {

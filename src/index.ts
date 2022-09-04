@@ -358,7 +358,7 @@ export async function pullBigQueryResources({
     const projectId = bqObj.projectId ?? parent.projectId;
     const bqId = bqObj.metadata.id ?? `${projectId}:${parent.id}.${bqObj.id}`;
     const task = new Task(
-      bqId,
+      bqId.replace(/:|\./g, '/') + '/fetch metadata',
       async () => {
         const updated = await fsWriter(bqObj);
         return `Updated: ${updated.join(', ')}`;
@@ -371,33 +371,34 @@ export async function pullBigQueryResources({
   const allowedDatasets = datasets
     .filter((d) => forceAll || (d.id && fsDatasets?.includes(d.id)));
 
-  reporter.push(
-    new Task('# Check All Dataset and Resources', async () => {
-      let cnt = 0;
-      await Promise.allSettled(allowedDatasets
-        .map(async (dataset: Dataset) => {
-          registerTask(dataset);
-          cnt++;
-          return await Promise.allSettled([
-            await dataset.getTables().then(([rets]) => {
-              cnt += rets.length;
-              rets.forEach(registerTask);
-            }),
-            await dataset.getRoutines().then(([rets]) => {
-              cnt += rets.length;
-              rets.forEach(registerTask);
-            }),
-            await dataset.getModels().then(([rets]) => {
-              cnt += rets.length;
-              rets.forEach(registerTask);
-            }),
-          ]);
-        }));
-      return `Total ${cnt}`;
-    }),
-  );
+  const task = new Task('# Check All Dataset and Resources', async () => {
+    let cnt = 0;
+    await Promise.allSettled(allowedDatasets
+      .map(async (dataset: Dataset) => {
+        registerTask(dataset);
+        cnt++;
+        return await Promise.allSettled([
+          await dataset.getTables().then(([rets]) => {
+            cnt += rets.length;
+            rets.forEach(registerTask);
+          }),
+          await dataset.getRoutines().then(([rets]) => {
+            cnt += rets.length;
+            rets.forEach(registerTask);
+          }),
+          await dataset.getModels().then(([rets]) => {
+            cnt += rets.length;
+            rets.forEach(registerTask);
+          }),
+        ]);
+      }));
+    return `Total ${cnt}`;
+  })
+
+  reporter.push(task);
+  task.run();
   for await (let report of reporter.show_until_finished()) {
-    logUpdate('  ' + report);
+    logUpdate(report);
   }
 }
 
