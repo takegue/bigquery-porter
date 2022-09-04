@@ -127,7 +127,7 @@ describe('biquery: path2bq', () => {
         expected: 'my-project.v0.some_table',
       },
     ];
-  it.each(cases)('topological sort', async (args) => {
+  it.each(cases)('path2bq test', async (args) => {
     const { input, expected } = args;
     expect(path2bq(...input)).toMatchObject(expected);
   });
@@ -215,7 +215,7 @@ describe('biquery: bq2path', () => {
         expected: '@default/sandbox/@routines/routine_id',
       },
     ];
-  it.each(cases)('topological sort', async (args) => {
+  it.each(cases)('bq2path', async (args) => {
     const { input, expected } = args;
     expect(bq2path(...input)).toMatchObject(expected);
   });
