@@ -1,6 +1,7 @@
 import type { Metadata } from '@google-cloud/common';
 import { BigQuery } from '@google-cloud/bigquery';
 import pThrottle from 'p-throttle';
+import * as path from 'node:path';
 
 interface BigQueryResource {
   id?: string;
@@ -69,6 +70,21 @@ const bq2path = (bqObj: BigQueryResource, asDefaultProject: boolean) => {
   return tree.reverse().join('/');
 };
 
+const path2bq = (
+  fpath: string,
+  rootPath: string,
+  defaultProjectId: string
+) => {
+  const rootDir = path.normalize(rootPath);
+  const [catalogId, schemaId, namespace_or_name, name_or_missing] = path
+    .dirname(
+      path.relative(rootDir, fpath.replace('@default', defaultProjectId)),
+    ).split('/');
+  const name = name_or_missing ?? namespace_or_name;
+  return [catalogId, schemaId, name].filter((n) => n).join('.');
+};
+
+
 const normalizedBQPath = (bqPath: string, defaultProject?: string): string => {
   const parts = bqPath.replace(/`/g, '').split('.');
 
@@ -85,4 +101,10 @@ const normalizedBQPath = (bqPath: string, defaultProject?: string): string => {
   }
 };
 
-export { BigQueryResource, bq2path, normalizedBQPath, buildThrottledBigQueryClient };
+export {
+  BigQueryResource,
+  bq2path,
+  path2bq,
+  normalizedBQPath,
+  buildThrottledBigQueryClient
+};

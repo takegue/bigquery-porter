@@ -20,6 +20,7 @@ import * as path from 'node:path';
 import pLimit from 'p-limit';
 import {
   extractRefenrences,
+  extractDestinations,
   humanFileSize,
   topologicalSort,
   walk,
@@ -27,6 +28,7 @@ import {
 import {
   BigQueryResource,
   bq2path,
+  path2bq,
   normalizedBQPath,
   buildThrottledBigQueryClient,
 } from '../src/bigquery.js';
@@ -405,12 +407,12 @@ const deployBigQueryResouce = async (
   BigQueryJobOptions?: Query,
 ) => {
   const msgWithPath = (msg: string) => `${path.dirname(p)}: ${msg}`;
-  const path2bq = await pathToBigQueryIdentifier(bqClient, rootPath);
+  const defaultProjectId = await bqClient.getProjectId();
   // const jsonSerializer = (obj) => JSON.stringify(obj, null, 4);
 
   if (p && !p.endsWith('sql')) return undefined;
 
-  const [_, schemaId, name] = path2bq(p).split('.');
+  const [_, schemaId, name] = path2bq(p, rootPath, defaultProjectId).split('.');
   const query = await fs.promises.readFile(p)
     .then((s: any) => s.toString())
     .catch((err: any) => {
@@ -565,30 +567,13 @@ const deployBigQueryResouce = async (
   return;
 };
 
-const pathToBigQueryIdentifier = async (
-  bqClient: BigQuery,
-  rootPath: string,
-) => {
-  const defautlProjectID = await bqClient.getProjectId();
-
-  return (fpath: string) => {
-    const rootDir = path.normalize(rootPath);
-    const [catalogId, schemaId, namespace_or_name, name_or_missing] = path
-      .dirname(
-        path.relative(rootDir, fpath.replace('@default', defautlProjectID)),
-      ).split('/');
-    const name = name_or_missing ?? namespace_or_name;
-    return [catalogId, schemaId, name].filter((n) => n).join('.');
-  };
-};
-
 const extractBigQueryDependencies = async (
   rootPath: string,
   fpath: string,
   bqClient: BigQuery,
 ) => {
-  const path2bq = await pathToBigQueryIdentifier(bqClient, rootPath);
-  const [projectID, schema, resource] = path2bq(fpath).split('.');
+  const defaultProjectId = await bqClient.getProjectId();
+  const [projectID, schema, resource] = path2bq(fpath, rootPath, defaultProjectId).split('.');
   const sql: string = await fs.promises.readFile(fpath)
     .then((s: any) => s.toString());
 
@@ -608,6 +593,25 @@ const extractBigQueryDependencies = async (
   return [...new Set(refs_schemas.concat(refs).concat(additionals))];
 };
 
+const extractBigQueryDestinations = async (
+  rootPath: string,
+  fpath: string,
+  bqClient: BigQuery,
+) => {
+  const defaultProjectId = await bqClient.getProjectId();
+  const [projectID] = path2bq(fpath, rootPath, defaultProjectId).split('.');
+  const sql: string = await fs.promises.readFile(fpath)
+    .then((s: any) => s.toString());
+
+  const refs = [
+    ...new Set(
+      extractDestinations(sql)
+        .map((ref) => normalizedBQPath(ref, projectID)),
+    ),
+  ];
+  return refs
+}
+
 const buildDAG = async (
   rootPath: string,
   files: string[],
@@ -616,33 +620,43 @@ const buildDAG = async (
 ) => {
   const limit = pLimit(concurrency);
   const bqClient = new BigQuery();
-  const path2bq = await pathToBigQueryIdentifier(bqClient, rootPath);
+  const defaultProjectId = await bqClient.getProjectId();
 
   const results = await Promise.all(
     files
       .map(async (n: string) => ({
         file: n,
-        bigquery: path2bq(n),
+        bigquery: path2bq(n, rootPath, defaultProjectId),
         dependencies: await extractBigQueryDependencies(rootPath, n, bqClient),
+        destinations: await extractBigQueryDestinations(rootPath, n, bqClient),
       } as BigQueryJobResource)),
   );
-  const relations = [...results
-    .reduce((ret, { bigquery: tgt, dependencies: deps }) => {
-      ret.add(JSON.stringify(['#sentinal', tgt]));
-      deps.forEach(
-        (d: string) => {
-          ret.add(JSON.stringify([tgt, d]));
-        },
-      );
-      return ret;
-    }, new Set())].map((n) => (typeof n === 'string') ? JSON.parse(n) : {});
+  const relations = [
+    ...results
+      .reduce((ret, { bigquery: tgt, dependencies: deps }) => {
+        ret.add(JSON.stringify(['#sentinal', tgt]));
+        deps.forEach(
+          (d: string) => {
+            ret.add(JSON.stringify([tgt, d]));
+          },
+        );
+        return ret;
+      }, new Set())
+  ]
+    .map((n) => (typeof n === 'string') ? JSON.parse(n) : {})
+    .filter(([src, dst]) => src !== dst);
+
 
   const bigquery2Obj = Object.fromEntries(results.map((n) => [n.bigquery, n]));
+
+  // file ->
+  console.log(bigquery2Obj)
+  console.log(topologicalSort(relations));
   const DAG: Map<string, {
     task: Task;
     bigquery: BigQueryJobResource;
   }> = new Map(
-    topologicalSort([...relations])
+    topologicalSort(relations)
       .map((bq) => bigquery2Obj[bq])
       .filter((n): n is BigQueryJobResource => !!n)
       .map(
@@ -662,6 +676,7 @@ const buildDAG = async (
                   .map((t) => t?.name).join(', ');
                 throw Error('Suspended: Parent job is faild: ' + msg);
               });
+
               return await deployBigQueryResouce(
                 bqClient,
                 rootPath,
@@ -856,8 +871,7 @@ const cleanupBigQueryDataset = async (
   datasetId: string,
   options?: { dryRun?: string },
 ): Promise<void> => {
-
-  const path2bq = await pathToBigQueryIdentifier(bqClient, rootDir);
+  const defaultProjectId = await bqClient.getProjectId();
   const routines = await bqClient.dataset(datasetId).getRoutines()
     .then(([rr]) => new Map(rr.map(r => [(({ metadata: { routineReference: r } }) => `${r.projectId}.${r.datasetId}.${r.routineId}`)(r), r])));
   const models = await bqClient.dataset(datasetId).getModels()
@@ -870,7 +884,7 @@ const cleanupBigQueryDataset = async (
     .filter((p: string) => p.endsWith('sql'))
     .filter((p: string) => p.includes('@default'))
     .forEach(f => {
-      const bqId = path2bq(f);
+      const bqId = path2bq(f, rootDir, defaultProjectId);
       if (f.match(/@routine/) && bqId in routines) {
         // Check Routine
         routines.delete(bqId);
@@ -894,8 +908,6 @@ const cleanupBigQueryDataset = async (
     }
   }
 }
-
-
 
 const main = async () => {
   createCLI();

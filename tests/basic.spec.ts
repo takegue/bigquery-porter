@@ -9,6 +9,7 @@ import {
 import {
   BigQueryResource,
   bq2path,
+  path2bq,
   normalizedBQPath,
 } from '../src/bigquery.js';
 
@@ -99,6 +100,30 @@ describe('util test: sql extraction', () => {
     const { input, expectedReferences: expected } = args;
     expect(extractRefenrences(input))
       .toMatchObject(expected);
+  });
+});
+
+describe('biquery: path2bq', () => {
+  const cases: Array<{
+    input: [string, string, string];
+    expected: string;
+  }> = [
+      {
+        input: ["bigquery-porter/bigquery/@default/v0/ddl.sql", "bigquery-porter/bigquery", "my-project"],
+        expected: 'my-project.v0',
+      },
+      {
+        input: ["bigquery-porter/bigquery/@default/v0/@routine/some_routine/ddl.sql", "bigquery-porter/bigquery", "my-project"],
+        expected: 'my-project.v0.some_routine',
+      },
+      {
+        input: ["bigquery-porter/bigquery/@default/v0/some_table/ddl.sql", "bigquery-porter/bigquery", "my-project"],
+        expected: 'my-project.v0.some_table',
+      },
+    ];
+  it.each(cases)('topological sort', async (args) => {
+    const { input, expected } = args;
+    expect(path2bq(...input)).toMatchObject(expected);
   });
 });
 
