@@ -195,10 +195,10 @@ function fixDestinationSQL(namespace: string, sql: string): string {
           n.parent.type.match('create_table_statement')
           || n.parent.type.match('create_schema_statement')
           || n.parent.type.match('create_function_statement')
+          || n.parent.type.match('create_table_function_statement')
           || n.parent.type.match('create_procedure_statement')
         ) && n.text !== desired
       ) {
-        console.log(n.parent.type, n.type, n.text, desired)
         const start = row2count[n.startPosition.row] + n.startPosition.column
         const end = row2count[n.endPosition.row] + n.endPosition.column
         newSQL = newSQL.substring(0, start) + desired + newSQL.substring(end);

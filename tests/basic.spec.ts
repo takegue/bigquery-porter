@@ -286,6 +286,13 @@ describe('util test: fix SQL', () => {
       },
       {
         input: [
+          'awesome-project.sandbox.hoge',
+          'create or replace table function awesomeproject.wrong_name() as (select 1)',
+        ],
+        expected: 'create or replace table function `awesome-project.sandbox.hoge`() as (select 1)',
+      },
+      {
+        input: [
           'awesome-project.sandbox.correct_name',
           `create or replace procedure sandbox.wrong_name(in argument int64)
             options(description="test")
