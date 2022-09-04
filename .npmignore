@@ -1,4 +1,4 @@
 bigquery
-.gitignore
 deno.jsonc
 src
+.*
