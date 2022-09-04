@@ -266,10 +266,24 @@ describe('util test: fix SQL', () => {
       {
         input: [
           'awesome-project.sandbox.hoge',
-          'create table `awesome-project.sandbox.wrong_name` as select 1',
+          'create table\n`awesome-project.sandbox.wrong_name` as select 1',
         ],
-        expected: 'create table `awesome-project.sandbox.hoge` as select 1',
+        expected: 'create table\n`awesome-project.sandbox.hoge` as select 1',
       },
+      {
+        input: [
+          'awesome-project.sandbox',
+          'create schema `awesome-project.wrong_name`',
+        ],
+        expected: 'create schema `awesome-project.sandbox`',
+      },
+      {
+        input: [
+          'awesome-project.sandbox.hoge',
+          'create or replace function `awesome-project.wrong_name`() as (1)',
+        ],
+        expected: 'create or replace function `awesome-project.sandbox.hoge`() as (1)',
+      }
     ];
   it.each(cases)('topological sort', async (args) => {
     const { input, expected } = args;

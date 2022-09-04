@@ -161,7 +161,7 @@ function extractRefenrences(sql: string): string[] {
 
 function fixDestinationSQL(namespace: string, sql: string): string {
   let newSQL = sql;
-  const tree = parser.parse(sql);
+  let tree = parser.parse(sql);
 
   const _visit = function*(node: any): any {
     if (node.children.length === 0) {
@@ -176,12 +176,52 @@ function fixDestinationSQL(namespace: string, sql: string): string {
     }
   };
 
-  for (const n of _visit(tree.rootNode)) {
-    if (n.type == 'identifier' && n.parent.type.match('table_statement')) {
-      newSQL = newSQL.substring(0, n.startPosition.column) + `\`${namespace}\`` + newSQL.substring(n.endPosition.column);
+  let _iteration = 0
+  let _stop = false
+  while (!_stop && _iteration < 100) {
+    const row2count = sql.split('\n').map((r) => r.length)
+      .reduce((ret, r) => {
+        // Sum of ret;
+        const sum = ret.reduce((s, r) => s + r, 0) + 1;
+        ret.push(sum + r)
+        return ret
+      }, [0] as number[])
+
+    /*
+     * Rule #1: If the node is a destination in DDL, then replace it with a qualified name from namespace.
+     */
+    for (const n of _visit(tree.rootNode)) {
+      const desired = `\`${namespace}\``
+      if (
+        n.type == 'identifier'
+        && (
+          n.parent.type.match('create_table_statement')
+          || n.parent.type.match('create_schema_statement')
+          || n.parent.type.match('create_function_statement')
+          || n.parent.type.match('create_procedure_statement')
+        ) && n.text != desired
+      ) {
+        const start = row2count[n.startPosition.row] + n.startPosition.column
+        const end = row2count[n.endPosition.row] + n.endPosition.column
+        newSQL = newSQL.substring(0, start) + desired + newSQL.substring(end);
+        tree.edit({
+          startIndex: start,
+          oldEndIndex: end,
+          newEndIndex: start + desired.length,
+          startPosition: n.startPosition,
+          oldEndPosition: n.endPosition,
+          newEndPosition: { row: n.endPosition.row, column: n.endPosition.column + desired.length },
+        })
+
+        _iteration += 1
+        break
+      }
+
+      _stop = true
     }
+
+    tree = parser.parse(newSQL, tree)
   }
-  console.dir(tree.rootNode.toString())
   return newSQL
 }
 
