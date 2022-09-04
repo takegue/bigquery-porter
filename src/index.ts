@@ -917,7 +917,8 @@ const formatLocalfiles = async (
   for (const file of files) {
     const sql: string = await fs.promises.readFile(file)
       .then((s: any) => s.toString());
-    const newSQL = fixDestinationSQL(path2bq(file, rootPath, defaultProjectId), sql)
+    const ns = path2bq(file, rootPath, defaultProjectId).split('.').slice(1, 3).join('.')
+    const newSQL = fixDestinationSQL(ns, sql)
 
     if (newSQL !== sql) {
       console.log(file)
