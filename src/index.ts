@@ -86,8 +86,9 @@ from \`%s.INFORMATION_SCHEMA.TABLES\`
 
 type BigQueryJobResource = {
   file: string;
-  bigquery: string;
+  namespace: string;
   dependencies: string[];
+  destinations: string[];
 };
 
 // type Labels = Map<string, string>;
@@ -626,75 +627,89 @@ const buildDAG = async (
     files
       .map(async (n: string) => ({
         file: n,
-        bigquery: path2bq(n, rootPath, defaultProjectId),
+        namespace: path2bq(n, rootPath, defaultProjectId),
         dependencies: await extractBigQueryDependencies(rootPath, n, bqClient),
         destinations: await extractBigQueryDestinations(rootPath, n, bqClient),
       } as BigQueryJobResource)),
   );
   const relations = [
     ...results
-      .reduce((ret, { bigquery: tgt, dependencies: deps }) => {
-        ret.add(JSON.stringify(['#sentinal', tgt]));
-        deps.forEach(
-          (d: string) => {
-            ret.add(JSON.stringify([tgt, d]));
-          },
-        );
+      .reduce((ret, { dependencies: deps, destinations: dsts }) => {
+        dsts.forEach(
+          (dst: string) => {
+            ret.add(JSON.stringify(['#sentinal', dst]));
+            deps.forEach(
+              (src: string) => {
+                ret.add(JSON.stringify([src, dst]));
+              },
+            );
+          }
+        )
         return ret;
       }, new Set())
   ]
     .map((n) => (typeof n === 'string') ? JSON.parse(n) : {})
     .filter(([src, dst]) => src !== dst);
 
+  const bigquery2Objs = results.reduce(
+    (ret, obj) => {
+      ret.set(
+        obj.namespace,
+        [...ret.get(obj.namespace) ?? [], obj]
+      )
+      return ret
+    }
+    , new Map<string, BigQueryJobResource[]>);
 
-  const bigquery2Obj = Object.fromEntries(results.map((n) => [n.bigquery, n]));
-
-  // file ->
-  console.log(bigquery2Obj)
-  console.log(topologicalSort(relations));
   const DAG: Map<string, {
-    task: Task;
-    bigquery: BigQueryJobResource;
+    tasks: Task[];
+    // bigquery: BigQueryJobResource;
   }> = new Map(
     topologicalSort(relations)
-      .map((bq) => bigquery2Obj[bq])
-      .filter((n): n is BigQueryJobResource => !!n)
+      .map((bq: string) =>
+        [bq, (bigquery2Objs.get(bq) ?? [])] as [string, BigQueryJobResource[]]
+      )
+      .filter(([_, tasks]) => (tasks.length ?? 0) > 0)
       .map(
-        (target: BigQueryJobResource) => [
-          target.bigquery,
+        ([ns, jobs]) => [
+          ns,
           {
-            task: new Task(target.bigquery, async () => {
-              await Promise.all(
-                target.dependencies
-                  .map(
-                    (d: string) => DAG.get(d)?.task.runningPromise,
-                  ),
-              ).catch(() => {
-                const msg = target.dependencies
-                  .map((t) => DAG.get(t)?.task)
-                  .filter((t) => t && t.status == 'failed')
-                  .map((t) => t?.name).join(', ');
-                throw Error('Suspended: Parent job is faild: ' + msg);
-              });
-
-              return await deployBigQueryResouce(
-                bqClient,
-                rootPath,
-                target.file,
-                jobOption,
-              );
-            }),
-            bigquery: target,
+            // bigquery: ns,
+            tasks: jobs.map(
+              (job: BigQueryJobResource) =>
+                new Task(job.file, async () => {
+                  await Promise.all(
+                    job.dependencies
+                      .map(
+                        (d: string) => DAG.get(d)?.tasks.map(t => t.runningPromise),
+                      )
+                      .flat()
+                    ,
+                  ).catch(() => {
+                    const msg = job.dependencies
+                      .map((t) => DAG.get(t)?.tasks)
+                      .flat()
+                      .filter((t) => t && t.status == 'failed')
+                      .map((t) => t?.name).join(', ');
+                    throw Error('Suspended: Parent job is faild: ' + msg);
+                  });
+                  return await deployBigQueryResouce(
+                    bqClient,
+                    rootPath,
+                    job.file,
+                    jobOption,
+                  )
+                }),
+            )
           },
         ],
       ),
   );
-
   const tasks = [...DAG.values()]
-    .map(({ task }) => {
-      limit(async () => await task.run());
-      return task;
-    });
+    .map(({ tasks }) => {
+      tasks.forEach(task => limit(async () => await task.run()));
+      return tasks;
+    }).flat().reverse();
 
   const reporter = new Reporter(tasks);
   for await (let report of reporter.show_until_finished()) {
@@ -914,3 +929,7 @@ const main = async () => {
 };
 
 main();
+
+export {
+  deployBigQueryResouce
+};
