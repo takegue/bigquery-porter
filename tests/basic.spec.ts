@@ -283,6 +283,17 @@ describe('util test: fix SQL', () => {
           'create or replace function `awesome-project.wrong_name`() as (1)',
         ],
         expected: 'create or replace function `awesome-project.sandbox.hoge`() as (1)',
+      },
+      {
+        input: [
+          'awesome-project.sandbox.correct_name',
+          `create or replace procedure sandbox.wrong_name(in argument int64)
+            options(description="test")
+            begin select 1; end`,
+        ],
+        expected: `create or replace procedure awesome-project.sandbox.correct_name(in argument int64)
+            options(description="test")
+            begin select 1; end`,
       }
     ];
   it.each(cases)('topological sort', async (args) => {

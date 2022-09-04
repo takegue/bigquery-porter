@@ -164,11 +164,7 @@ function fixDestinationSQL(namespace: string, sql: string): string {
   let tree = parser.parse(sql);
 
   const _visit = function*(node: any): any {
-    if (node.children.length === 0) {
-      yield node
-      return
-    }
-
+    yield node
     for (let n of node.children) {
       for (let c of _visit(n)) {
         yield c
@@ -192,15 +188,17 @@ function fixDestinationSQL(namespace: string, sql: string): string {
      */
     for (const n of _visit(tree.rootNode)) {
       const desired = `\`${namespace}\``
+
       if (
-        n.type == 'identifier'
+        n.type === 'identifier'
         && (
           n.parent.type.match('create_table_statement')
           || n.parent.type.match('create_schema_statement')
           || n.parent.type.match('create_function_statement')
           || n.parent.type.match('create_procedure_statement')
-        ) && n.text != desired
+        ) && n.text !== desired
       ) {
+        console.log(n.parent.type, n.type, n.text, desired)
         const start = row2count[n.startPosition.row] + n.startPosition.column
         const end = row2count[n.endPosition.row] + n.endPosition.column
         newSQL = newSQL.substring(0, start) + desired + newSQL.substring(end);
