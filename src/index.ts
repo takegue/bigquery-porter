@@ -638,15 +638,14 @@ const buildDAG = async (
   const relations = [
     ...results
       .reduce((ret, { dependencies: _deps, destinations: _dsts }) => {
-        const deps = new Set<string>(_deps);
         const dsts = new Set<string>(_dsts);
 
         _dsts
-          .filter((d) => !deps.has(d))
           .forEach(
             (dst: string) => {
               ret.add(JSON.stringify([dst, '#sentinal']));
               _deps
+                //  Intra-file dependencies will ignore
                 .filter((s) => !dsts.has(s))
                 .forEach(
                   (src: string) => {
