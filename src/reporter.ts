@@ -78,7 +78,7 @@ class Reporter {
         break;
 
       case 'failed':
-        s = ` ${F_CROSS}`;
+        s = `${F_CROSS}`;
         c = pc.red;
         break;
 
@@ -93,7 +93,7 @@ class Reporter {
 
     const title = c(`${s} ${task.name.split(this.separator).pop()}`);
     if (task.error) {
-      return `${title}\n    ${pc.bold(task.error)}`.trim();
+      return `${title}: ${pc.bold(task.error)}`.trim();
     } else {
       const msg = task.message ? ` (${task.message ?? ''})` : '';
       return `${title} ${msg}`.trim();

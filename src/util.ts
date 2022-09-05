@@ -224,6 +224,37 @@ function fixDestinationSQL(namespace: string, sql: string): string {
 }
 
 
+/**
+ * Format milliseconds as human-readable text.
+ *
+ * @param {number} milliseconds Number of milliseconds to be turned into a
+ *    human-readable string.
+ */
+function msToTime(ms: number): string {
+  // Pad to 2 or 3 digits, default is 2
+  function pad(n: number, z?: number): string {
+    z = z || 2;
+    return ('  ' + n).slice(-z);
+  }
+
+  const seconds = ms / 1000;
+  const minutes = seconds / 60;
+  const hours = minutes / 60;
+
+  if (hours >= 1) {
+    return `${pad(Math.floor(hours))}h${pad(Math.floor(minutes % 60))}m${pad(Math.floor(seconds % 60))}s`;
+  }
+
+  if (minutes >= 1) {
+    return `${pad(Math.floor(minutes % 60))}h${pad(Math.floor(seconds % 60))}s`;
+  }
+
+  if (seconds >= 1) {
+    return `${pad(Math.floor(seconds % 60))}s`;
+  }
+
+  return `${pad(Math.floor(ms), 3)}ms`;
+}
 
 /**
  * Format bytes as human-readable text.
@@ -262,6 +293,7 @@ export {
   extractDestinations,
   extractRefenrences,
   humanFileSize,
+  msToTime,
   Relation,
   topologicalSort,
   walk,

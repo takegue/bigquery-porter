@@ -24,6 +24,7 @@ import {
   extractDestinations,
   fixDestinationSQL,
   humanFileSize,
+  msToTime,
   topologicalSort,
   walk,
 } from '../src/util.js';
@@ -534,6 +535,7 @@ const deployBigQueryResouce = async (
         query,
         priority: 'BATCH',
       });
+
       if (
         ijob.configuration?.dryRun &&
         ijob.statistics?.totalBytesProcessed !== undefined
@@ -543,9 +545,14 @@ const deployBigQueryResouce = async (
       await fetchBQJobResource(job);
 
       if (job.metadata.statistics?.totalBytesProcessed !== undefined) {
-        return humanFileSize(
-          parseInt(job.metadata.statistics?.totalBytesProcessed),
-        );
+        const stats = job.metadata?.statistics;
+        const elpasedTime = stats.endTime !== undefined && stats.startTime !== undefined
+          ? msToTime(parseInt(stats.endTime) - parseInt(stats.startTime))
+          : undefined;
+
+        const totalBytes = humanFileSize(parseInt(job.metadata.statistics?.totalBytesProcessed))
+
+        return [totalBytes, elpasedTime].filter(s => s !== undefined).join(', ')
       }
       break;
     case 'view.sql':
@@ -696,7 +703,7 @@ const buildDAG = async (
           {
             // bigquery: ns,
             tasks: jobs.map(
-              (job: BigQueryJobResource) =>
+              (job: BigQueryJobResource, ix) =>
                 new Task(
                   path.relative(rootPath, job.file).replace(/@default/, defaultProjectId),
                   async () => {
@@ -706,6 +713,10 @@ const buildDAG = async (
                           (d: string) => DAG.get(d)?.tasks.map(t => t.runningPromise),
                         )
                         .flat()
+                        .concat(
+                          // Intra-directory tasks
+                          DAG.get(ns)?.tasks.slice(0, ix).map(t => t.runningPromise) ?? [],
+                        )
                     ,
                     ).catch(() => {
                       const msg = job.dependencies
