@@ -15,6 +15,7 @@ import {
   Table,
 } from '@google-cloud/bigquery';
 import type { ServiceObject } from '@google-cloud/common';
+import { ApiError } from '@google-cloud/common';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import pLimit from 'p-limit';
@@ -448,17 +449,27 @@ const deployBigQueryResouce = async (
         );
         for (const ix in childJobs) {
           const stat = childJobs[ix]?.metadata.statistics;
-          if (stat.query?.ddlTargetRoutine) {
-            const [routine] = await schema.routine(
-              stat.query.ddlTargetRoutine.routineId,
-            ).get();
-            return routine;
-          }
-          if (stat.query?.ddlTargetTable) {
-            const [table] = await schema.table(
-              stat.query.ddlTargetTable.tableId,
-            ).get();
-            return table;
+          try {
+            if (stat.query?.ddlTargetRoutine) {
+              const [routine] = await schema.routine(
+                stat.query.ddlTargetRoutine.routineId,
+              ).get();
+              return routine;
+            }
+            if (stat.query?.ddlTargetTable) {
+              const [table] = await schema.table(
+                stat.query.ddlTargetTable.tableId,
+              ).get();
+              return table;
+            }
+          } catch (e: unknown) {
+            // ignore error: Not Found Table or Routine
+            if (e instanceof ApiError) {
+              if (e.code === 404) {
+                continue;
+              }
+              throw new Error(e.message)
+            }
           }
         }
         throw new Error(`Not Supported: ${childJobs}`);
