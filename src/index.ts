@@ -682,6 +682,7 @@ const buildDAG = async (
     (ret, obj) => {
       ret.set(
         obj.namespace,
+        //FIXME: Sort by sql kind (DDL > DML > QUERY)
         [...ret.get(obj.namespace) ?? [], obj]
       )
       return ret
