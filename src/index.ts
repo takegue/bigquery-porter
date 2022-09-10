@@ -528,33 +528,6 @@ const deployBigQueryResouce = async (
   };
 
   switch (path.basename(p)) {
-    case 'ddl.sql':
-      // https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#jobconfiguration
-      const [job, ijob] = await bqClient.createQueryJob({
-        ...BigQueryJobOptions,
-        query,
-        priority: 'BATCH',
-      });
-
-      if (
-        ijob.configuration?.dryRun &&
-        ijob.statistics?.totalBytesProcessed !== undefined
-      ) {
-        return humanFileSize(parseInt(ijob.statistics.totalBytesProcessed));
-      }
-      await fetchBQJobResource(job);
-
-      if (job.metadata.statistics?.totalBytesProcessed !== undefined) {
-        const stats = job.metadata?.statistics;
-        const elpasedTime = stats.endTime !== undefined && stats.startTime !== undefined
-          ? msToTime(parseInt(stats.endTime) - parseInt(stats.startTime))
-          : undefined;
-
-        const totalBytes = humanFileSize(parseInt(job.metadata.statistics?.totalBytesProcessed))
-
-        return [totalBytes, elpasedTime].filter(s => s !== undefined).join(', ')
-      }
-      break;
     case 'view.sql':
       const schema = bqClient.dataset(schemaId);
       const tableId = name;
@@ -583,6 +556,33 @@ const deployBigQueryResouce = async (
         })
       );
       await syncMetadata(view, path.dirname(p), { push: true });
+      break;
+    default:
+      // https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#jobconfiguration
+      const [job, ijob] = await bqClient.createQueryJob({
+        ...BigQueryJobOptions,
+        query,
+        priority: 'BATCH',
+      });
+
+      if (
+        ijob.configuration?.dryRun &&
+        ijob.statistics?.totalBytesProcessed !== undefined
+      ) {
+        return humanFileSize(parseInt(ijob.statistics.totalBytesProcessed));
+      }
+      await fetchBQJobResource(job);
+
+      if (job.metadata.statistics?.totalBytesProcessed !== undefined) {
+        const stats = job.metadata?.statistics;
+        const elpasedTime = stats.endTime !== undefined && stats.startTime !== undefined
+          ? msToTime(parseInt(stats.endTime) - parseInt(stats.startTime))
+          : undefined;
+
+        const totalBytes = humanFileSize(parseInt(job.metadata.statistics?.totalBytesProcessed))
+
+        return [totalBytes, elpasedTime].filter(s => s !== undefined).join(', ')
+      }
       break;
   }
   return;
