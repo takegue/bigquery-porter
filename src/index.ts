@@ -473,8 +473,7 @@ const deployBigQueryResouce = async (
             }
           }
         }
-        throw new Error(`Not Supported: ${childJobs}`);
-
+        return undefined;
       case 'CREATE_SCHEMA':
       case 'DROP_SCHEMA':
       case 'ALTER_SCHEMA':
@@ -520,9 +519,8 @@ const deployBigQueryResouce = async (
         return table;
 
       default:
-        throw new Error(
-          `Not Supported: ${job} ${job.metadata.statistics.query.statementType}`,
-        );
+        console.info(`Not Supported: ${job} ${job.metadata.statistics.query.statementType}`)
+        break;
     }
     return undefined;
   };
