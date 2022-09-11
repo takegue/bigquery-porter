@@ -900,7 +900,6 @@ function createCLI() {
         // forceAll: cmdOptions.force,
         dryRun: cmdOptions.dryRun,
       };
-
       console.log(project, dataset)
       const bqClient = new BigQuery();
       await cleanupBigQueryDataset(bqClient, cmdOptions.rootDir, dataset, options);

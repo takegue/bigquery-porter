@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   extractDestinations,
   extractRefenrences,
-  fixDestinationSQL,
   Relation,
   topologicalSort,
 } from '../src/util.js';
@@ -255,57 +254,5 @@ describe('biquery: normalizedBQPath', () => {
   it.each(cases)('normalized bigquery path', async (args) => {
     const { input, expected } = args;
     expect(normalizedBQPath(...input)).toMatchObject(expected);
-  });
-});
-
-describe('util test: fix SQL', () => {
-  const cases: Array<{
-    input: [string, string];
-    expected: string;
-  }> = [
-      {
-        input: [
-          'awesome-project.sandbox.hoge',
-          'create table\n`awesome-project.sandbox.wrong_name` as select 1',
-        ],
-        expected: 'create table\n`awesome-project.sandbox.hoge` as select 1',
-      },
-      {
-        input: [
-          'awesome-project.sandbox',
-          'create schema `awesome-project.wrong_name`',
-        ],
-        expected: 'create schema `awesome-project.sandbox`',
-      },
-      {
-        input: [
-          'awesome-project.sandbox.hoge',
-          'create or replace function `awesome-project.wrong_name`() as (1)',
-        ],
-        expected: 'create or replace function `awesome-project.sandbox.hoge`() as (1)',
-      },
-      {
-        input: [
-          'awesome-project.sandbox.hoge',
-          'create or replace table function awesomeproject.wrong_name() as (select 1)',
-        ],
-        expected: 'create or replace table function `awesome-project.sandbox.hoge`() as (select 1)',
-      },
-      {
-        input: [
-          'awesome-project.sandbox.correct_name',
-          `create or replace procedure sandbox.wrong_name(in argument int64)
-            options(description="test")
-            begin select 1; end`,
-        ],
-        expected: `create or replace procedure \`awesome-project.sandbox.correct_name\`(in argument int64)
-            options(description="test")
-            begin select 1; end`,
-      }
-    ];
-  it.each(cases)('topological sort', async (args) => {
-    const { input, expected } = args;
-    expect(fixDestinationSQL(...input))
-      .toMatchObject(expected);
   });
 });
