@@ -213,28 +213,63 @@ function fixDestinationSQL(
     return [false, undefined]
   }
 
+  const _cleanIdentifier = (n: string) => n.trim().replace(/`/g, '');
+
   let _iteration = 0
   let _stop = false
+  let replacedIdentifier: Set<string> = new Set();
+
   while (!_stop && _iteration < 100) {
-    const row2count = sql.split('\n').map((r) => r.length)
+    _stop = true
+    const row2count = newSQL.split('\n').map((r) => r.length)
       .reduce((ret, r) => {
         // Sum of ret;
         ret.push((ret[ret.length - 1] ?? 0) + r + 1);
         return ret
       }, [0] as number[])
 
-    /*
-     * Rule #1: If the node is a destination in DDL, then replace it with a qualified name from namespace.
-     */
     for (const n of _visit(tree.rootNode)) {
       const desired = `\`${namespace}\``
       const [isDDL] = _detectDDLKind(n);
 
+      /*
+      * Rule #1: If the node is a destination in DDL, then replace it with a qualified name from namespace.
+      */
       if (
         n.type === 'identifier'
+        && replacedIdentifier.size == 0
         && isDDL
         && _isRootDDL(n)
         && n.text !== desired
+        // Matching BigQuery Level
+        && (desired.split('.').length - n.text.split('.').length) ** 2 <= 1
+      ) {
+        const start = row2count[n.startPosition.row] + n.startPosition.column
+        const end = row2count[n.endPosition.row] + n.endPosition.column
+
+        // Memorize propagate modification
+        replacedIdentifier.add(_cleanIdentifier(n.text))
+
+        newSQL = newSQL.substring(0, start) + desired + newSQL.substring(end);
+        tree.edit({
+          startIndex: start,
+          oldEndIndex: end,
+          newEndIndex: start + desired.length,
+          startPosition: n.startPosition,
+          oldEndPosition: n.endPosition,
+          newEndPosition: { row: n.endPosition.row, column: n.endPosition.column + desired.length },
+        })
+
+        _stop = false
+        break;
+      }
+
+      /*
+      * Rule #2: Replaced Identifer
+      */
+      if (
+        n.type === 'identifier'
+        && replacedIdentifier.has(_cleanIdentifier(n.text))
       ) {
         const start = row2count[n.startPosition.row] + n.startPosition.column
         const end = row2count[n.endPosition.row] + n.endPosition.column
@@ -246,15 +281,14 @@ function fixDestinationSQL(
           startPosition: n.startPosition,
           oldEndPosition: n.endPosition,
           newEndPosition: { row: n.endPosition.row, column: n.endPosition.column + desired.length },
-        })
+        });
 
-        _iteration += 1
+        _stop = false
         break
       }
-
-      _stop = true
     }
 
+    _iteration += 1
     tree = parser.parse(newSQL, tree)
   }
   return newSQL

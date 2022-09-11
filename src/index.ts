@@ -950,6 +950,7 @@ const formatLocalfiles = async (
     if (newSQL !== sql) {
       console.log(file)
       if (options?.dryRun ?? false) {
+        console.log(file, newSQL)
       } else {
         await fs.promises.writeFile(file, newSQL)
       }
