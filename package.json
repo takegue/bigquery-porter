@@ -20,7 +20,7 @@
     "node": ">=14.16"
   },
   "scripts": {
-    "test": "vitest",
+    "test": "vitest --no-threads",
     "coverage": "vitest run --coverage",
     "format": "deno fmt",
     "build": "tsc"
