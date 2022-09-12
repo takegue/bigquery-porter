@@ -240,25 +240,26 @@ function fixDestinationSQL(
         && replacedIdentifier.size == 0
         && isDDL
         && _isRootDDL(n)
-        && n.text !== desired
         // Matching BigQuery Level
         && (desired.split('.').length - n.text.split('.').length) ** 2 <= 1
       ) {
-        const start = row2count[n.startPosition.row] + n.startPosition.column
-        const end = row2count[n.endPosition.row] + n.endPosition.column
-
         // Memorize propagate modification
         replacedIdentifier.add(_cleanIdentifier(n.text))
 
-        newSQL = newSQL.substring(0, start) + desired + newSQL.substring(end);
-        tree.edit({
-          startIndex: start,
-          oldEndIndex: end,
-          newEndIndex: start + desired.length,
-          startPosition: n.startPosition,
-          oldEndPosition: n.endPosition,
-          newEndPosition: { row: n.endPosition.row, column: n.endPosition.column + desired.length },
-        })
+        if (n.text !== desired) {
+          const start = row2count[n.startPosition.row] + n.startPosition.column
+          const end = row2count[n.endPosition.row] + n.endPosition.column
+
+          newSQL = newSQL.substring(0, start) + desired + newSQL.substring(end);
+          tree.edit({
+            startIndex: start,
+            oldEndIndex: end,
+            newEndIndex: start + desired.length,
+            startPosition: n.startPosition,
+            oldEndPosition: n.endPosition,
+            newEndPosition: { row: n.endPosition.row, column: n.endPosition.column + desired.length },
+          })
+        }
 
         _stop = false
         break;

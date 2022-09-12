@@ -55,6 +55,13 @@ describe('Command test: format command', () => {
           fs.readFileSync('tests/__sql__/example1/input.sql', 'utf8'),
         ],
         expected: fs.readFileSync('tests/__sql__/example1/expected.sql', 'utf8'),
+      },
+      {
+        input: [
+          'sandbox.correct_name',
+          fs.readFileSync('tests/__sql__/example1/expected.sql', 'utf8'),
+        ],
+        expected: fs.readFileSync('tests/__sql__/example1/expected.sql', 'utf8'),
       }
     ];
   it.each(cases)('Example SQL %#', async (args) => {
