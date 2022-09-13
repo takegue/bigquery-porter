@@ -651,11 +651,13 @@ const buildDAG = async (
         destinations: await extractBigQueryDestinations(rootPath, n, bqClient),
       } as BigQueryJobResource)),
   );
+
   const relations = [
     ...results
-      .reduce((ret, { dependencies: _deps, destinations: _dsts }) => {
-        const dsts = new Set<string>(_dsts);
+      .reduce((ret, { namespace: ns, dependencies: _deps, destinations: _dsts }) => {
+        ret.add(JSON.stringify([ns, '#sentinal']));
 
+        const dsts = new Set<string>(_dsts);
         _dsts
           .forEach(
             (dst: string) => {
@@ -737,6 +739,14 @@ const buildDAG = async (
         ],
       ),
   );
+
+  // Validation: All files should included
+  const namespaces = new Set(DAG.keys())
+  for (const key of bigquery2Objs.keys()) {
+    if (!namespaces.has(key)) {
+      console.warn(`Warning: No deployment files: ${key}`)
+    }
+  }
 
   const tasks = [...DAG.values()]
     .map(({ tasks }) => {
