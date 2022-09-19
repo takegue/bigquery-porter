@@ -24,11 +24,14 @@ npx bqport pull --all --with-ddl @default
 Typical directory strucuture follows:
 
 ```
-bigquery: Root Directory
-`-- @default: Project Name
+(Root Directory)
+`-- @default: Your Default GCP Project
     `-- sandbox
+        |-- ddl.sql
+        |-- metadata.json
         |-- @models
         |   `-- mymodel
+        |       |-- ddl.sql
         |       `-- metadata.json
         |-- @routines
         |   |-- sample_function
@@ -37,15 +40,22 @@ bigquery: Root Directory
         |   |-- sample_procedure
         |   |   |-- ddl.sql
         |   |   `-- metadata.json
-        |   |-- sample_table
-        |   |   |-- ddl.sql
-        |   |   `-- metadata.json
         |   `-- sample_tvf
         |       |-- ddl.sql
         |       `-- metadata.json
-        |-- ddl.sql
-        |-- metadata.json
+        |-- sample_clone_table
+        |   |-- ddl.sql
+        |   |-- metadata.json
+        |   `-- schema.json
         |-- sample_materialized_view
+        |   |-- ddl.sql
+        |   |-- metadata.json
+        |   `-- schema.json
+        |-- sample_partition_table
+        |   |-- ddl.sql
+        |   |-- metadata.json
+        |   `-- schema.json
+        |-- sample_snapshot_table
         |   |-- ddl.sql
         |   |-- metadata.json
         |   `-- schema.json
@@ -57,6 +67,7 @@ bigquery: Root Directory
             |-- metadata.json
             |-- schema.json
             `-- view.sql
+
 `-- <other_projects>
 ```
 
