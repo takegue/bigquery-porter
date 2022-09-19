@@ -101,6 +101,10 @@ const _extractBigQueryResourceIdentifier = (node: any) => {
     return node.schemaNameNode;
   }
 
+  if (fields.includes('modelNameNode')) {
+    return node.modelNameNode;
+  }
+
   if (fields.includes('aliasNameNode')) {
     return node.aliasNameNode;
   }
@@ -122,6 +126,9 @@ function extractDestinations(sql: string): [string, string][] {
     }
     else if (n.parent.type.match(/table_statement/)) {
       ret.push([n.text, 'TABLE']);
+    }
+    else if (n.parent.type.match(/create_model_statement/)) {
+      ret.push([n.text, 'MODEL']);
     }
     else if (
       n.parent.type.match(/statement/)

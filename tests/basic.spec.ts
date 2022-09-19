@@ -92,13 +92,13 @@ describe('util test: sql extraction ', () => {
       },
       {
         input:
-          `create schema \`awesome_dataset\`;`,
+          'create schema `awesome_dataset`;',
         expectedDestinations: [['`awesome_dataset`', 'SCHEMA']],
         expectedReferences: [],
       },
       {
-        input: fs.readFileSync('tests/__sql__/example2/input.sql', 'utf8'),
-        expectedDestinations: [],
+        input: 'CREATE MODEL `awesome_dataset.mymodel`',
+        expectedDestinations: [['`awesome_dataset.mymodel`', 'MODEL']],
         expectedReferences: [],
       }
     ];
