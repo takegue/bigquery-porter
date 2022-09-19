@@ -1,22 +1,22 @@
 {
-    "routineType": "TABLE_VALUED_FUNCTION",
-    "language": "SQL",
-    "arguments": [
-        {
-            "name": "argument",
-            "dataType": {
-                "typeKind": "INT64"
-            }
-        }
-    ],
-    "returnTableType": {
-        "columns": [
-            {
-                "name": "a",
-                "type": {
-                    "typeKind": "INT64"
-                }
-            }
-        ]
+  "routineType": "TABLE_VALUED_FUNCTION",
+  "language": "SQL",
+  "arguments": [
+    {
+      "name": "argument",
+      "dataType": {
+        "typeKind": "INT64"
+      }
     }
+  ],
+  "returnTableType": {
+    "columns": [
+      {
+        "name": "a",
+        "type": {
+          "typeKind": "INT64"
+        }
+      }
+    ]
+  }
 }

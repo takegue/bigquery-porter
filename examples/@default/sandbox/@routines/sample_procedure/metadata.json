@@ -1,13 +1,13 @@
 {
-    "routineType": "PROCEDURE",
-    "language": "SQL",
-    "arguments": [
-        {
-            "name": "sample_argument",
-            "mode": "IN",
-            "dataType": {
-                "typeKind": "INT64"
-            }
-        }
-    ]
+  "routineType": "PROCEDURE",
+  "language": "SQL",
+  "arguments": [
+    {
+      "name": "sample_argument",
+      "mode": "IN",
+      "dataType": {
+        "typeKind": "INT64"
+      }
+    }
+  ]
 }

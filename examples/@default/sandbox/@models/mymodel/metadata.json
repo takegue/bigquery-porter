@@ -1,94 +1,94 @@
 {
-    "modelType": "LINEAR_REGRESSION",
-    "labels": {
-        "hoge": "hoge"
+  "modelType": "LINEAR_REGRESSION",
+  "labels": {
+    "hoge": "hoge"
+  },
+  "featureColumns": [
+    {
+      "name": "column1",
+      "type": {
+        "typeKind": "INT64"
+      }
     },
-    "featureColumns": [
+    {
+      "name": "column2",
+      "type": {
+        "typeKind": "INT64"
+      }
+    },
+    {
+      "name": "column3",
+      "type": {
+        "typeKind": "INT64"
+      }
+    }
+  ],
+  "labelColumns": [
+    {
+      "name": "predicted_label",
+      "type": {
+        "typeKind": "INT64"
+      }
+    }
+  ],
+  "trainingRuns": [
+    {
+      "trainingOptions": {
+        "maxIterations": "5",
+        "lossType": "MEAN_SQUARED_LOSS",
+        "l1Regularization": 1,
+        "l2Regularization": 0,
+        "minRelativeProgress": 0.01,
+        "warmStart": false,
+        "earlyStop": true,
+        "learnRateStrategy": "LINE_SEARCH",
+        "initialLearnRate": 0.15,
+        "optimizationStrategy": "BATCH_GRADIENT_DESCENT",
+        "calculatePValues": false,
+        "preserveInputStructs": false
+      },
+      "results": [
         {
-            "name": "column1",
-            "type": {
-                "typeKind": "INT64"
-            }
+          "index": 0,
+          "durationMs": "2313",
+          "trainingLoss": 1491.0539770637374,
+          "learnRate": 0.3
         },
         {
-            "name": "column2",
-            "type": {
-                "typeKind": "INT64"
-            }
+          "index": 1,
+          "durationMs": "2199",
+          "trainingLoss": 241.9297820188121,
+          "learnRate": 0.6
         },
         {
-            "name": "column3",
-            "type": {
-                "typeKind": "INT64"
-            }
-        }
-    ],
-    "labelColumns": [
+          "index": 2,
+          "durationMs": "2336",
+          "trainingLoss": 41.69727113362378,
+          "learnRate": 0.6
+        },
         {
-            "name": "predicted_label",
-            "type": {
-                "typeKind": "INT64"
-            }
-        }
-    ],
-    "trainingRuns": [
+          "index": 3,
+          "durationMs": "2226",
+          "trainingLoss": 7.92035701225193,
+          "learnRate": 0.6
+        },
         {
-            "trainingOptions": {
-                "maxIterations": "5",
-                "lossType": "MEAN_SQUARED_LOSS",
-                "l1Regularization": 1,
-                "l2Regularization": 0,
-                "minRelativeProgress": 0.01,
-                "warmStart": false,
-                "earlyStop": true,
-                "learnRateStrategy": "LINE_SEARCH",
-                "initialLearnRate": 0.15,
-                "optimizationStrategy": "BATCH_GRADIENT_DESCENT",
-                "calculatePValues": false,
-                "preserveInputStructs": false
-            },
-            "results": [
-                {
-                    "index": 0,
-                    "durationMs": "2313",
-                    "trainingLoss": 1491.0539770637374,
-                    "learnRate": 0.3
-                },
-                {
-                    "index": 1,
-                    "durationMs": "2199",
-                    "trainingLoss": 241.9297820188121,
-                    "learnRate": 0.6
-                },
-                {
-                    "index": 2,
-                    "durationMs": "2336",
-                    "trainingLoss": 41.69727113362378,
-                    "learnRate": 0.6
-                },
-                {
-                    "index": 3,
-                    "durationMs": "2226",
-                    "trainingLoss": 7.92035701225193,
-                    "learnRate": 0.6
-                },
-                {
-                    "index": 4,
-                    "durationMs": "2555",
-                    "trainingLoss": 2.603613218455023,
-                    "learnRate": 0.6
-                }
-            ],
-            "evaluationMetrics": {
-                "regressionMetrics": {
-                    "meanAbsoluteError": 1.3283107802514733,
-                    "meanSquaredError": 2.6036132184550227,
-                    "meanSquaredLogError": 0.0012176719511574083,
-                    "medianAbsoluteError": 1.0159802433960223,
-                    "rSquared": 0.9968441051897515
-                }
-            },
-            "startTime": "2022-06-05T23:43:28.676Z"
+          "index": 4,
+          "durationMs": "2555",
+          "trainingLoss": 2.603613218455023,
+          "learnRate": 0.6
         }
-    ]
+      ],
+      "evaluationMetrics": {
+        "regressionMetrics": {
+          "meanAbsoluteError": 1.3283107802514733,
+          "meanSquaredError": 2.6036132184550227,
+          "meanSquaredLogError": 0.0012176719511574083,
+          "medianAbsoluteError": 1.0159802433960223,
+          "rSquared": 0.9968441051897515
+        }
+      },
+      "startTime": "2022-06-05T23:43:28.676Z"
+    }
+  ]
 }

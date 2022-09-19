@@ -1,7 +1,8 @@
 {
-    "type": "TABLE",
-    "labels": {
-        "bqlunchpad-versionhash": "1654041193-undefined",
-        "label1": "value"
-    }
+  "type": "TABLE",
+  "labels": {
+    "partition-skip": "0",
+    "bqlunchpad-versionhash": "1654041193-undefined",
+    "label1": "value"
+  }
 }
