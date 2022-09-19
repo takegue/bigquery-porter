@@ -12,6 +12,7 @@ import {
   path2bq,
   normalizedBQPath,
 } from '../src/bigquery.js';
+import * as fs from 'node:fs';
 
 describe('util test: toposort', () => {
   const cases: Array<{
@@ -47,7 +48,7 @@ describe('util test: toposort', () => {
   });
 });
 
-describe('util test: sql extraction', () => {
+describe('util test: sql extraction ', () => {
   const cases: Array<{
     input: string;
     expectedDestinations: [string, string][];
@@ -95,14 +96,19 @@ describe('util test: sql extraction', () => {
         expectedDestinations: [['`awesome_dataset`', 'SCHEMA']],
         expectedReferences: [],
       },
+      {
+        input: fs.readFileSync('tests/__sql__/example2/input.sql', 'utf8'),
+        expectedDestinations: [],
+        expectedReferences: [],
+      }
     ];
-  it.each(cases)('identifier extraction: destinations', async (args) => {
+  it.each(cases)('identifier extraction: destinations (%#)', async (args) => {
     const { input, expectedDestinations: expected } = args;
     expect(extractDestinations(input))
       .toMatchObject(expected);
   });
 
-  it.each(cases)('identifier extraction: references', async (args) => {
+  it.each(cases)('identifier extraction: references (%#)', async (args) => {
     const { input, expectedReferences: expected } = args;
     expect(extractRefenrences(input))
       .toMatchObject(expected);
