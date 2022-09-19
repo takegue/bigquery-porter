@@ -163,6 +163,16 @@ const syncMetadata = async (
         Object.entries(metadata?.labels ?? [])
           .filter(([k]) => !(k in syncLabels)),
       ),
+      // Table attribute
+      timePartitioning: metadata?.timePartitioning,
+      clustering: metadata?.clustering,
+
+      // Snapshot attribute
+      snapshotDefinition: metadata?.snapshotDefinition,
+
+      // cloneDefinition attribute
+      cloneDefinition: metadata?.snapshotDefinition,
+
       // Dataset attribute
       access: metadata?.access,
       location: bqObject instanceof Dataset ? metadata?.location : undefined,
@@ -191,6 +201,7 @@ const syncMetadata = async (
       .then((s) => JSON.parse(s.toString()));
 
     if (options?.push) {
+      // TODO: Add allowlist check to write
       Object.entries(newMetadata).forEach(([attr]) => {
         newMetadata[attr] = local[attr];
       });
@@ -762,6 +773,7 @@ const buildDAG = async (
       console.warn(`Warning: No DDL file exist but target directory found: ${key}`)
     }
   }
+  console.dir(bigquery2Objs, { depth: null })
 
   const tasks = [...DAG.values()]
     .map(({ tasks }) => {

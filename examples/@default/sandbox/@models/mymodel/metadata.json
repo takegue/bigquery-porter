@@ -1,8 +1,5 @@
 {
   "modelType": "LINEAR_REGRESSION",
-  "labels": {
-    "hoge": "hoge"
-  },
   "featureColumns": [
     {
       "name": "column1",
