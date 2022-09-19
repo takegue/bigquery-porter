@@ -400,6 +400,8 @@ export async function pullBigQueryResources({
 
   reporter.push(task);
   task.run();
+
+  logUpdate.done();
   for await (let report of reporter.show_until_finished()) {
     logUpdate(report);
   }
@@ -755,6 +757,7 @@ const buildDAG = async (
     }).flat();
 
   const reporter = new Reporter(tasks);
+  logUpdate.done();
   for await (let report of reporter.show_until_finished()) {
     logUpdate(
       `Tasks: remaing ${limit.pendingCount + limit.activeCount}\n` +
