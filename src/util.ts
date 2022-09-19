@@ -318,7 +318,7 @@ function msToTime(ms: number): string {
   }
 
   if (minutes >= 1) {
-    return `${pad(Math.floor(minutes % 60))}h${pad(Math.floor(seconds % 60))}s`;
+    return `${pad(Math.floor(minutes % 60))}m${pad(Math.floor(seconds % 60))}s`;
   }
 
   if (seconds >= 1) {
