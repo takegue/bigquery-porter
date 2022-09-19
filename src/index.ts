@@ -744,9 +744,13 @@ const buildDAG = async (
 
   // Validation: All files should included
   const namespaces = new Set(DAG.keys())
-  for (const key of bigquery2Objs.keys()) {
+  for (const [key, item] of bigquery2Objs.entries()) {
     if (!namespaces.has(key)) {
-      console.warn(`Warning: No deployment files: ${key}`)
+      console.warn(`Warning: No deployment files for ${key}`)
+    }
+    const allDestinations = new Set(item.map((f) => f.destinations).flat())
+    if (!allDestinations.has(key) && namespaces.has(key)) {
+      console.warn(`Warning: No DDL file exist but target directory found: ${key}`)
     }
   }
 
