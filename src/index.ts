@@ -622,16 +622,23 @@ const extractBigQueryDestinations = async (
   bqClient: BigQuery,
 ) => {
   const defaultProjectId = await bqClient.getProjectId();
-  const [projectID] = path2bq(fpath, rootPath, defaultProjectId).split('.');
+  const bqID = path2bq(fpath, rootPath, defaultProjectId);
+  const [projectID] = bqID.split('.');
+
+  if (fpath.endsWith('view.sql')) {
+    return [bqID];
+  }
+
   const sql: string = await fs.promises.readFile(fpath)
     .then((s: any) => s.toString());
-
   const refs = [
     ...new Set(
       extractDestinations(sql)
         .map(([ref, type]) => normalizedBQPath(ref, projectID, type == 'SCHEMA')),
     ),
   ];
+
+
   return refs
 }
 
