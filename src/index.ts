@@ -570,7 +570,10 @@ const deployBigQueryResouce = async (
       ) {
         return humanFileSize(parseInt(ijob.statistics.totalBytesProcessed));
       }
-      await fetchBQJobResource(job);
+      const resource = await fetchBQJobResource(job);
+      if (resource !== undefined) {
+        await syncMetadata(resource, path.dirname(p), { push: false });
+      }
 
       if (job.metadata.statistics?.totalBytesProcessed !== undefined) {
         const stats = job.metadata?.statistics;
