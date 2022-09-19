@@ -41,7 +41,7 @@ import { Reporter, Task } from '../src/reporter.js';
 import 'process';
 import { Command } from 'commander';
 
-const jsonSerializer = (obj: any) => JSON.stringify(obj, null, 4);
+const jsonSerializer = (obj: any) => JSON.stringify(obj, null, 2);
 
 const sqlDDLForSchemata = (projectId: string) => `
 select
@@ -415,7 +415,6 @@ const deployBigQueryResouce = async (
 ) => {
   const msgWithPath = (msg: string) => `${path.dirname(p)}: ${msg}`;
   const defaultProjectId = await bqClient.getProjectId();
-  // const jsonSerializer = (obj) => JSON.stringify(obj, null, 4);
 
   if (p && !p.endsWith('sql')) return undefined;
 
