@@ -1,5 +1,3 @@
-CREATE OR REPLACE TABLE FUNCTION sandbox.sample_table(argument INT64) RETURNS TABLE<a INT64>
+CREATE TABLE IF NOT EXISTS `sandbox.sample_table`
 AS
-(
-select argument as a
-);
+select 1 as a
