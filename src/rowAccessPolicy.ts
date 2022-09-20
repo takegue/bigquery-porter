@@ -1,8 +1,5 @@
 
-import {
-  BigQuery,
-} from '@google-cloud/bigquery';
-
+import type { BigQuery } from '@google-cloud/bigquery';
 
 type RowAccessPolicy = {
   rowAccessPolicyReference: {
@@ -16,7 +13,7 @@ type RowAccessPolicy = {
   lastModifiedTime: string,
 }
 
-async function fetchRowAccessPolicy(client: BigQuery, datasetId: string, tableId: string) {
+async function fetchRowAccessPolicy(client: BigQuery, datasetId: string, tableId: string): Promise<RowAccessPolicy[]> {
   let ret: RowAccessPolicy[][] = [];
   await new Promise((resolve, reject) => {
     client.request({
@@ -28,18 +25,19 @@ async function fetchRowAccessPolicy(client: BigQuery, datasetId: string, tableId
           reject(err)
           return
         }
-        let nextQuery = null;
+
         if (resp.nextPageToken) {
-          nextQuery = Object.assign({}, {
-            pageToken: resp.nextPageToken,
-          });
+          throw Error('Not implemented')
         }
 
-        ret.push(resp.rowAccessPolicies)
+        if (resp.rowAccessPolicies) {
+          ret.push(resp.rowAccessPolicies)
+        }
         resolve(ret)
       }
     )
   })
+
   return ret.flat()
 }
 

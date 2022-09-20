@@ -28,6 +28,7 @@ import {
   topologicalSort,
   walk,
 } from '../src/util.js';
+import { fetchRowAccessPolicy } from '../src/rowAccessPolicy.js';
 import {
   BigQueryResource,
   bq2path,
@@ -121,7 +122,6 @@ const syncMetadata = async (
   }
   // const location =  ?  : (bqObject.parent as Dataset).location;
   const [metadata] = await bqObject.getMetadata(apiQuery);
-
   // schema.json: local file <---> BigQuery Table
   if (metadata?.schema?.fields) {
     // Merge upstream and downstream schema description
@@ -212,7 +212,28 @@ const syncMetadata = async (
       });
     }
   }
-  jobs.push(fs.promises.writeFile(metadataPath, jsonSerializer(newMetadata)));
+
+  const rowAccessPolicies = bqObject instanceof Table ? (await fetchRowAccessPolicy(
+    bqObject.bigQuery,
+    metadata?.tableReference.datasetId,
+    metadata?.tableReference.tableId
+  )) : [];
+
+  if (rowAccessPolicies.length > 0) {
+    const entryRowAccessPolicies = rowAccessPolicies.map((p) => ({
+      policyId: p.rowAccessPolicyReference.policyId,
+      filterPredicate: p.filterPredicate,
+    }));
+    jobs.push(
+      fs.promises.writeFile(
+        metadataPath, jsonSerializer({ ...newMetadata, rowAccessPolicies: entryRowAccessPolicies }))
+    )
+  } else {
+    jobs.push(
+      fs.promises.writeFile(
+        metadataPath, jsonSerializer(newMetadata))
+    )
+  }
 
   await Promise.all(jobs);
 };

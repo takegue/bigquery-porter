@@ -4,5 +4,11 @@
     "fields": [
       "a"
     ]
-  }
+  },
+  "rowAccessPolicies": [
+    {
+      "policyId": "sales_us_filter",
+      "filterPredicate": "a = 2"
+    }
+  ]
 }
