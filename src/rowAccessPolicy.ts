@@ -16,7 +16,6 @@ type RowAccessPolicy = {
   lastModifiedTime: string,
 }
 
-
 async function fetchRowAccessPolicy(client: BigQuery, datasetId: string, tableId: string) {
   let ret: RowAccessPolicy[][] = [];
   await new Promise((resolve, reject) => {
@@ -25,9 +24,7 @@ async function fetchRowAccessPolicy(client: BigQuery, datasetId: string, tableId
       uri: `/datasets/${datasetId}/tables/${tableId}/rowAccessPolicies`
     },
       (err, resp) => {
-        console.log('called2')
         if (err) {
-          console.error(err);
           reject(err)
           return
         }
@@ -36,7 +33,6 @@ async function fetchRowAccessPolicy(client: BigQuery, datasetId: string, tableId
           nextQuery = Object.assign({}, {
             pageToken: resp.nextPageToken,
           });
-          console.dir(nextQuery)
         }
 
         ret.push(resp.rowAccessPolicies)
