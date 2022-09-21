@@ -1,6 +1,5 @@
 {
   "routineType": "SCALAR_FUNCTION",
-  "description": "test",
   "language": "SQL",
   "arguments": [
     {
@@ -12,5 +11,6 @@
   ],
   "returnType": {
     "typeKind": "INT64"
-  }
+  },
+  "description": "test"
 }

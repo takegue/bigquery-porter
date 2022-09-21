@@ -100,12 +100,13 @@ const syncMetadata = async (
   bqObject: Dataset | Table | Routine | Model,
   dirPath: string,
   options?: { versionhash?: string; push?: boolean },
-) => {
+): Promise<string[]> => {
   type systemDefinedLabels = {
     'bqport-versionhash': string;
   };
 
   const metadataPath = path.join(dirPath, 'metadata.json');
+  const readmePath = path.join(dirPath, 'README.md');
   const fieldsPath = path.join(dirPath, 'schema.json');
   const syncLabels: systemDefinedLabels = {
     'bqport-versionhash': `${Math.floor(Date.now() / 1000)}-${options?.versionhash ?? 'HEAD'
@@ -157,7 +158,6 @@ const syncMetadata = async (
       routineType: metadata.routineType,
       modelType: metadata.modelType,
 
-      description: metadata.description,
       // Filter predefined labels
       labels: Object.fromEntries(
         Object.entries(metadata?.labels ?? [])
@@ -196,6 +196,10 @@ const syncMetadata = async (
       .filter(([_, v]) => !!v && Object.keys(v).length > 0),
   );
 
+
+  /* -----------------------------
+  / Merge local and remote metadata
+  */
   if (fs.existsSync(metadataPath)) {
     const local = await fs.promises.readFile(metadataPath)
       .then((s) => JSON.parse(s.toString()));
@@ -205,7 +209,6 @@ const syncMetadata = async (
       Object.entries(newMetadata).forEach(([attr]) => {
         newMetadata[attr] = local[attr];
       });
-      jobs.push((bqObject as any).setMetadata(newMetadata));
     } else {
       Object.entries(newMetadata).forEach(([attr]) => {
         newMetadata[attr] = local[attr] ?? metadata[attr];
@@ -213,6 +216,29 @@ const syncMetadata = async (
     }
   }
 
+  // README.md
+  if (metadata.description !== undefined) {
+    const upstream = metadata.description
+    newMetadata["description"] = upstream
+    if (fs.existsSync(readmePath)) {
+      const local = await fs.promises.readFile(readmePath)
+        .then((s) => s.toString());
+      newMetadata["description"] = local;
+      if (upstream !== undefined && local != upstream) {
+        console.warn('Warning: Local README.md file cannot be updated due to already exists. Please remove README.md file to update it.');
+      }
+    }
+
+    if (newMetadata["description"] !== undefined) {
+      jobs.push(fs.promises.writeFile(readmePath, newMetadata["description"]))
+    }
+  }
+
+  if (options?.push) {
+    jobs.push((bqObject as any).setMetadata(newMetadata));
+  }
+
+  // metadata.json
   const rowAccessPolicies = bqObject instanceof Table ? (await fetchRowAccessPolicy(
     bqObject.bigQuery,
     metadata?.tableReference.datasetId,
@@ -236,6 +262,7 @@ const syncMetadata = async (
   }
 
   await Promise.all(jobs);
+  return []
 };
 
 export async function pullBigQueryResources({
@@ -850,7 +877,10 @@ export async function pushBigQueryResources(
     jobOption.maximumBytesBilled = options.maximumBytesBilled;
   }
   if (options.labels) {
-    jobOption.labels = options.labels;
+    jobOption.labels = {
+      ...options.labels,
+      'bqporter-enable': 'true',
+    };
   }
   if (options.params) {
     jobOption.params = options.params;
