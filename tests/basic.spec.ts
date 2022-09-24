@@ -12,7 +12,6 @@ import {
   path2bq,
   normalizedBQPath,
 } from '../src/bigquery.js';
-import * as fs from 'node:fs';
 
 describe('util test: toposort', () => {
   const cases: Array<{
