@@ -72,7 +72,7 @@ function topologicalSort(relations: Relation[]) {
 const parser = new Parser();
 parser.setLanguage(Language);
 
-const findBigQueryResourceIdentifier = function*(node: any): any {
+const findBigQueryResourceIdentifier = function* (node: any): any {
   const resource_name = _extractBigQueryResourceIdentifier(node);
   if (resource_name != null) {
     yield resource_name;
@@ -112,7 +112,6 @@ const _extractBigQueryResourceIdentifier = (node: any) => {
   return null;
 };
 
-
 function extractDestinations(sql: string): [string, string][] {
   const tree = parser.parse(sql);
   let ret: [string, string][] = [];
@@ -120,22 +119,18 @@ function extractDestinations(sql: string): [string, string][] {
   for (let n of findBigQueryResourceIdentifier(tree.rootNode)) {
     if (n.parent.type.match(/schema_statement/)) {
       ret.push([n.text, 'SCHEMA']);
-    }
-    else if (n.parent.type.match(/procedure_statement|function_statement/)) {
+    } else if (n.parent.type.match(/procedure_statement|function_statement/)) {
       ret.push([n.text, 'ROUTINE']);
-    }
-    else if (n.parent.type.match(/table_statement/)) {
+    } else if (n.parent.type.match(/table_statement/)) {
       ret.push([n.text, 'TABLE']);
-    }
-    else if (n.parent.type.match(/create_model_statement/)) {
+    } else if (n.parent.type.match(/create_model_statement/)) {
       ret.push([n.text, 'MODEL']);
-    }
-    else if (
-      n.parent.type.match(/statement/)
-      && !n.parent.type.match(/call_statement/)
+    } else if (
+      n.parent.type.match(/statement/) &&
+      !n.parent.type.match(/call_statement/)
     ) {
       ret.push([n.text, 'TABLE']);
-      continue
+      continue;
     }
   }
   return ret;
@@ -168,94 +163,94 @@ function extractRefenrences(sql: string): string[] {
 
 function fixDestinationSQL(
   namespace: string,
-  sql: string
+  sql: string,
 ): string {
   let newSQL = sql;
   let tree = parser.parse(sql);
 
-  const _visit = function*(node: any): any {
-    yield node
+  const _visit = function* (node: any): any {
+    yield node;
     for (let n of node.children) {
       for (let c of _visit(n)) {
-        yield c
+        yield c;
       }
     }
   };
-  const _isRootDDL = function(node: any): any {
+  const _isRootDDL = function (node: any): any {
     let _n = node;
     let _cnt = 0;
     while (_n !== null) {
       if (_n.type.match(/create/)) {
         _cnt++;
       }
-      _n = _n.parent
+      _n = _n.parent;
     }
     return _cnt <= 1;
-  }
-  const _detectDDLKind = function(node: any): any {
+  };
+  const _detectDDLKind = function (node: any): any {
     if (node.parent == null) {
-      return [false, undefined]
+      return [false, undefined];
     }
 
     if (node.parent.type.match('create_table_statement')) {
-      return [true, 'TABLE']
+      return [true, 'TABLE'];
     }
 
     if (node.parent.type.match('create_schema_statement')) {
-      return [true, 'SCHEMA']
+      return [true, 'SCHEMA'];
     }
 
     if (node.parent.type.match('create_function_statement')) {
-      return [true, 'ROTUINE']
+      return [true, 'ROTUINE'];
     }
 
     if (node.parent.type.match('create_table_function_statement')) {
-      return [true, 'ROTUINE']
+      return [true, 'ROTUINE'];
     }
 
     if (node.parent.type.match('create_procedure_statement')) {
-      return [true, 'ROTUINE']
+      return [true, 'ROTUINE'];
     }
 
-    return [false, undefined]
-  }
+    return [false, undefined];
+  };
 
   const _cleanIdentifier = (n: string) => n.trim().replace(/`/g, '');
 
-  let _iteration = 0
-  let _stop = false
+  let _iteration = 0;
+  let _stop = false;
   let replacedIdentifier: Set<string> = new Set();
 
   while (!_stop && _iteration < 100) {
-    _stop = true
+    _stop = true;
     const row2count = newSQL.split('\n').map((r) => r.length)
       .reduce((ret, r) => {
         // Sum of ret;
         ret.push((ret[ret.length - 1] ?? 0) + r + 1);
-        return ret
-      }, [0] as number[])
+        return ret;
+      }, [0] as number[]);
 
     for (const n of _visit(tree.rootNode)) {
-      const desired = `\`${namespace}\``
+      const desired = `\`${namespace}\``;
       const [isDDL] = _detectDDLKind(n);
 
       /*
       * Rule #1: If the node is a destination in DDL, then replace it with a qualified name from namespace.
       */
       if (
-        n.type === 'identifier'
-        && replacedIdentifier.size == 0
-        && isDDL
-        && _isRootDDL(n)
+        n.type === 'identifier' &&
+        replacedIdentifier.size == 0 &&
+        isDDL &&
+        _isRootDDL(n) &&
         // Matching BigQuery Level
-        && (desired.split('.').length - n.text.split('.').length) ** 2 <= 1
+        (desired.split('.').length - n.text.split('.').length) ** 2 <= 1
       ) {
         // Memorize propagate modification
-        replacedIdentifier.add(_cleanIdentifier(n.text))
+        replacedIdentifier.add(_cleanIdentifier(n.text));
 
         if (n.text !== desired) {
-          const start = row2count[n.startPosition.row] + n.startPosition.column
-          const end = row2count[n.endPosition.row] + n.endPosition.column
+          const start = row2count[n.startPosition.row] + n.startPosition.column;
+          const end = row2count[n.endPosition.row] + n.endPosition.column;
 
           newSQL = newSQL.substring(0, start) + desired + newSQL.substring(end);
           tree.edit({
@@ -264,11 +259,14 @@ function fixDestinationSQL(
             newEndIndex: start + desired.length,
             startPosition: n.startPosition,
             oldEndPosition: n.endPosition,
-            newEndPosition: { row: n.endPosition.row, column: n.endPosition.column + desired.length },
-          })
+            newEndPosition: {
+              row: n.endPosition.row,
+              column: n.endPosition.column + desired.length,
+            },
+          });
         }
 
-        _stop = false
+        _stop = false;
         break;
       }
 
@@ -276,11 +274,11 @@ function fixDestinationSQL(
       * Rule #2: Replaced Identifer
       */
       if (
-        n.type === 'identifier'
-        && replacedIdentifier.has(_cleanIdentifier(n.text))
+        n.type === 'identifier' &&
+        replacedIdentifier.has(_cleanIdentifier(n.text))
       ) {
-        const start = row2count[n.startPosition.row] + n.startPosition.column
-        const end = row2count[n.endPosition.row] + n.endPosition.column
+        const start = row2count[n.startPosition.row] + n.startPosition.column;
+        const end = row2count[n.endPosition.row] + n.endPosition.column;
         newSQL = newSQL.substring(0, start) + desired + newSQL.substring(end);
         tree.edit({
           startIndex: start,
@@ -288,20 +286,22 @@ function fixDestinationSQL(
           newEndIndex: start + desired.length,
           startPosition: n.startPosition,
           oldEndPosition: n.endPosition,
-          newEndPosition: { row: n.endPosition.row, column: n.endPosition.column + desired.length },
+          newEndPosition: {
+            row: n.endPosition.row,
+            column: n.endPosition.column + desired.length,
+          },
         });
 
-        _stop = false
-        break
+        _stop = false;
+        break;
       }
     }
 
-    _iteration += 1
-    tree = parser.parse(newSQL, tree)
+    _iteration += 1;
+    tree = parser.parse(newSQL, tree);
   }
-  return newSQL
+  return newSQL;
 }
-
 
 /**
  * Format milliseconds as human-readable text.
@@ -321,7 +321,9 @@ function msToTime(ms: number): string {
   const hours = minutes / 60;
 
   if (hours >= 1) {
-    return `${pad(Math.floor(hours))}h${pad(Math.floor(minutes % 60))}m${pad(Math.floor(seconds % 60))}s`;
+    return `${pad(Math.floor(hours))}h${pad(Math.floor(minutes % 60))}m${
+      pad(Math.floor(seconds % 60))
+    }s`;
   }
 
   if (minutes >= 1) {
@@ -371,10 +373,10 @@ function humanFileSize(bytes: number, si = false, dp = 1) {
 export {
   extractDestinations,
   extractRefenrences,
+  fixDestinationSQL,
   humanFileSize,
   msToTime,
   Relation,
   topologicalSort,
   walk,
-  fixDestinationSQL
 };

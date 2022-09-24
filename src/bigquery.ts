@@ -11,7 +11,10 @@ interface BigQueryResource {
   parent?: BigQueryResource;
 }
 
-const buildThrottledBigQueryClient = (concurrency: number, interval_limit: number) => {
+const buildThrottledBigQueryClient = (
+  concurrency: number,
+  interval_limit: number,
+) => {
   const throttle = pThrottle({
     limit: concurrency,
     interval: interval_limit,
@@ -36,7 +39,7 @@ const buildThrottledBigQueryClient = (concurrency: number, interval_limit: numbe
       },
     },
   );
-}
+};
 
 const bq2path = (bqObj: BigQueryResource, asDefaultProject: boolean) => {
   let tree: string[] = [];
@@ -73,7 +76,7 @@ const bq2path = (bqObj: BigQueryResource, asDefaultProject: boolean) => {
 const path2bq = (
   fpath: string,
   rootPath: string,
-  defaultProjectId: string
+  defaultProjectId: string,
 ) => {
   const rootDir = path.normalize(rootPath);
   const [catalogId, schemaId, namespace_or_name, name_or_missing] = path
@@ -84,18 +87,17 @@ const path2bq = (
   return [catalogId, schemaId, name].filter((n) => n).join('.');
 };
 
-
 const normalizedBQPath = (
-  bqPath: string
-  , defaultProject?: string
-  , isDataset: boolean = false
+  bqPath: string,
+  defaultProject?: string,
+  isDataset: boolean = false,
 ): string => {
   const cleanedPath = bqPath.replace(/`/g, '');
   const parts = cleanedPath.split('.');
 
   if (parts.length == 2) {
     if (isDataset) {
-      return cleanedPath
+      return cleanedPath;
     }
     const [dst_schema, dst_name] = parts;
     const dst_project = defaultProject;
@@ -106,7 +108,7 @@ const normalizedBQPath = (
       const [dst_schema] = parts;
       return `${defaultProject}.${dst_schema}`;
     }
-    return cleanedPath
+    return cleanedPath;
   } else {
     const [dst_project, dst_schema, dst_name] = parts;
     return `${dst_project}.${dst_schema}.${dst_name}`;
@@ -116,7 +118,7 @@ const normalizedBQPath = (
 export {
   BigQueryResource,
   bq2path,
-  path2bq,
+  buildThrottledBigQueryClient,
   normalizedBQPath,
-  buildThrottledBigQueryClient
+  path2bq,
 };

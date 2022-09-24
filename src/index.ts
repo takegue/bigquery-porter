@@ -20,8 +20,8 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import pLimit from 'p-limit';
 import {
-  extractRefenrences,
   extractDestinations,
+  extractRefenrences,
   fixDestinationSQL,
   humanFileSize,
   msToTime,
@@ -32,9 +32,9 @@ import { fetchRowAccessPolicy } from '../src/rowAccessPolicy.js';
 import {
   BigQueryResource,
   bq2path,
-  path2bq,
-  normalizedBQPath,
   buildThrottledBigQueryClient,
+  normalizedBQPath,
+  path2bq,
 } from '../src/bigquery.js';
 import logUpdate from 'log-update';
 
@@ -109,8 +109,9 @@ const syncMetadata = async (
   const readmePath = path.join(dirPath, 'README.md');
   const fieldsPath = path.join(dirPath, 'schema.json');
   const syncLabels: systemDefinedLabels = {
-    'bqport-versionhash': `${Math.floor(Date.now() / 1000)}-${options?.versionhash ?? 'HEAD'
-      }`,
+    'bqport-versionhash': `${Math.floor(Date.now() / 1000)}-${
+      options?.versionhash ?? 'HEAD'
+    }`,
   };
   const jobs: Promise<any>[] = [];
 
@@ -196,7 +197,6 @@ const syncMetadata = async (
       .filter(([_, v]) => !!v && Object.keys(v).length > 0),
   );
 
-
   /* -----------------------------
   / Merge local and remote metadata
   */
@@ -218,19 +218,21 @@ const syncMetadata = async (
 
   // README.md
   if (metadata.description !== undefined) {
-    const upstream = metadata.description
-    newMetadata["description"] = upstream
+    const upstream = metadata.description;
+    newMetadata['description'] = upstream;
     if (fs.existsSync(readmePath)) {
       const local = await fs.promises.readFile(readmePath)
         .then((s) => s.toString());
-      newMetadata["description"] = local;
+      newMetadata['description'] = local;
       if (upstream !== undefined && local != upstream) {
-        console.warn('Warning: Local README.md file cannot be updated due to already exists. Please remove README.md file to update it.');
+        console.warn(
+          'Warning: Local README.md file cannot be updated due to already exists. Please remove README.md file to update it.',
+        );
       }
     }
 
-    if (newMetadata["description"] !== undefined) {
-      jobs.push(fs.promises.writeFile(readmePath, newMetadata["description"]))
+    if (newMetadata['description'] !== undefined) {
+      jobs.push(fs.promises.writeFile(readmePath, newMetadata['description']));
     }
   }
 
@@ -239,11 +241,13 @@ const syncMetadata = async (
   }
 
   // metadata.json
-  const rowAccessPolicies = bqObject instanceof Table ? (await fetchRowAccessPolicy(
-    bqObject.bigQuery,
-    metadata?.tableReference.datasetId,
-    metadata?.tableReference.tableId
-  )) : [];
+  const rowAccessPolicies = bqObject instanceof Table
+    ? (await fetchRowAccessPolicy(
+      bqObject.bigQuery,
+      metadata?.tableReference.datasetId,
+      metadata?.tableReference.tableId,
+    ))
+    : [];
 
   if (rowAccessPolicies.length > 0) {
     const entryRowAccessPolicies = rowAccessPolicies.map((p) => ({
@@ -252,17 +256,24 @@ const syncMetadata = async (
     }));
     jobs.push(
       fs.promises.writeFile(
-        metadataPath, jsonSerializer({ ...newMetadata, rowAccessPolicies: entryRowAccessPolicies }))
-    )
+        metadataPath,
+        jsonSerializer({
+          ...newMetadata,
+          rowAccessPolicies: entryRowAccessPolicies,
+        }),
+      ),
+    );
   } else {
     jobs.push(
       fs.promises.writeFile(
-        metadataPath, jsonSerializer(newMetadata))
-    )
+        metadataPath,
+        jsonSerializer(newMetadata),
+      ),
+    );
   }
 
   await Promise.all(jobs);
-  return []
+  return [];
 };
 
 export async function pullBigQueryResources({
@@ -283,7 +294,7 @@ export async function pullBigQueryResources({
     ddl: string | undefined;
     resource_type: string;
   };
-  const bqClient = buildThrottledBigQueryClient(20, 500)
+  const bqClient = buildThrottledBigQueryClient(20, 500);
 
   const defaultProjectId = await bqClient.getProjectId();
 
@@ -295,8 +306,8 @@ export async function pullBigQueryResources({
     const pathDir = `${rootDir}/${path}`;
     const catalogId = (
       bqObj.metadata?.datasetReference?.projectId ??
-      (bqObj.parent as Dataset).metadata.datasetReference.projectId ??
-      defaultProjectId
+        (bqObj.parent as Dataset).metadata.datasetReference.projectId ??
+        defaultProjectId
     ) as string;
     bqObj['projectId'] = catalogId;
     const retFiles = [];
@@ -455,7 +466,7 @@ export async function pullBigQueryResources({
         ]);
       }));
     return `Total ${cnt}`;
-  })
+  });
 
   reporter.push(task);
   task.run();
@@ -529,7 +540,7 @@ const deployBigQueryResouce = async (
               if (e.code === 404) {
                 continue;
               }
-              throw new Error(e.message)
+              throw new Error(e.message);
             }
           }
         }
@@ -579,7 +590,9 @@ const deployBigQueryResouce = async (
         return table;
 
       default:
-        console.info(`Not Supported: ${job} ${job.metadata.statistics.query.statementType}`)
+        console.info(
+          `Not Supported: ${job} ${job.metadata.statistics.query.statementType}`,
+        );
         break;
     }
     return undefined;
@@ -636,13 +649,18 @@ const deployBigQueryResouce = async (
 
       if (job.metadata.statistics?.totalBytesProcessed !== undefined) {
         const stats = job.metadata?.statistics;
-        const elpasedTime = stats.endTime !== undefined && stats.startTime !== undefined
-          ? msToTime(parseInt(stats.endTime) - parseInt(stats.startTime))
-          : undefined;
+        const elpasedTime =
+          stats.endTime !== undefined && stats.startTime !== undefined
+            ? msToTime(parseInt(stats.endTime) - parseInt(stats.startTime))
+            : undefined;
 
-        const totalBytes = humanFileSize(parseInt(job.metadata.statistics?.totalBytesProcessed))
+        const totalBytes = humanFileSize(
+          parseInt(job.metadata.statistics?.totalBytesProcessed),
+        );
 
-        return [totalBytes, elpasedTime].filter(s => s !== undefined).join(', ')
+        return [totalBytes, elpasedTime].filter((s) => s !== undefined).join(
+          ', ',
+        );
       }
       break;
   }
@@ -655,7 +673,11 @@ const extractBigQueryDependencies = async (
   bqClient: BigQuery,
 ) => {
   const defaultProjectId = await bqClient.getProjectId();
-  const [projectID, schema, resource] = path2bq(fpath, rootPath, defaultProjectId).split('.');
+  const [projectID, schema, resource] = path2bq(
+    fpath,
+    rootPath,
+    defaultProjectId,
+  ).split('.');
   const sql: string = await fs.promises.readFile(fpath)
     .then((s: any) => s.toString());
 
@@ -693,13 +715,14 @@ const extractBigQueryDestinations = async (
   const refs = [
     ...new Set(
       extractDestinations(sql)
-        .map(([ref, type]) => normalizedBQPath(ref, projectID, type == 'SCHEMA')),
+        .map(([ref, type]) =>
+          normalizedBQPath(ref, projectID, type == 'SCHEMA')
+        ),
     ),
   ];
 
-
-  return refs
-}
+  return refs;
+};
 
 const buildDAG = async (
   rootPath: string,
@@ -724,26 +747,29 @@ const buildDAG = async (
 
   const relations = [
     ...results
-      .reduce((ret, { namespace: ns, dependencies: _deps, destinations: _dsts }) => {
-        ret.add(JSON.stringify([ns, '#sentinal']));
+      .reduce(
+        (ret, { namespace: ns, dependencies: _deps, destinations: _dsts }) => {
+          ret.add(JSON.stringify([ns, '#sentinal']));
 
-        const dsts = new Set<string>(_dsts);
-        _dsts
-          .forEach(
-            (dst: string) => {
-              ret.add(JSON.stringify([dst, '#sentinal']));
-              _deps
-                //  Intra-file dependencies will ignore
-                .filter((s) => !dsts.has(s))
-                .forEach(
-                  (src: string) => {
-                    ret.add(JSON.stringify([dst, src]));
-                  },
-                );
-            }
-          )
-        return ret;
-      }, new Set())
+          const dsts = new Set<string>(_dsts);
+          _dsts
+            .forEach(
+              (dst: string) => {
+                ret.add(JSON.stringify([dst, '#sentinal']));
+                _deps
+                  //  Intra-file dependencies will ignore
+                  .filter((s) => !dsts.has(s))
+                  .forEach(
+                    (src: string) => {
+                      ret.add(JSON.stringify([dst, src]));
+                    },
+                  );
+              },
+            );
+          return ret;
+        },
+        new Set(),
+      ),
   ]
     .map((n) => (typeof n === 'string') ? JSON.parse(n) : {})
     .filter(([src, dst]) => src !== dst);
@@ -753,11 +779,12 @@ const buildDAG = async (
       ret.set(
         obj.namespace,
         //FIXME: Sort by sql kind (DDL > DML > QUERY)
-        [...ret.get(obj.namespace) ?? [], obj]
-      )
-      return ret
-    }
-    , new Map<string, BigQueryJobResource[]>);
+        [...ret.get(obj.namespace) ?? [], obj],
+      );
+      return ret;
+    },
+    new Map<string, BigQueryJobResource[]>(),
+  );
 
   const DAG: Map<string, {
     tasks: Task[];
@@ -765,7 +792,7 @@ const buildDAG = async (
   }> = new Map(
     topologicalSort(relations)
       .map((bq: string) =>
-        [bq, (bigquery2Objs.get(bq) ?? [])] as [string, BigQueryJobResource[]]
+        [bq, bigquery2Objs.get(bq) ?? []] as [string, BigQueryJobResource[]]
       )
       .filter(([_, tasks]) => (tasks.length ?? 0) > 0)
       .map(
@@ -776,19 +803,24 @@ const buildDAG = async (
             tasks: jobs.map(
               (job: BigQueryJobResource, ix) =>
                 new Task(
-                  path.relative(rootPath, job.file).replace(/@default/, defaultProjectId),
+                  path.relative(rootPath, job.file).replace(
+                    /@default/,
+                    defaultProjectId,
+                  ),
                   async () => {
                     await Promise.all(
                       job.dependencies
                         .map(
-                          (d: string) => DAG.get(d)?.tasks.map(t => t.runningPromise),
+                          (d: string) =>
+                            DAG.get(d)?.tasks.map((t) => t.runningPromise),
                         )
                         .flat()
                         .concat(
                           // Intra-directory tasks
-                          DAG.get(ns)?.tasks.slice(0, ix).map(t => t.runningPromise) ?? [],
-                        )
-                    ,
+                          DAG.get(ns)?.tasks.slice(0, ix).map((t) =>
+                            t.runningPromise
+                          ) ?? [],
+                        ),
                     ).catch(() => {
                       const msg = job.dependencies
                         .map((t) => DAG.get(t)?.tasks)
@@ -802,30 +834,33 @@ const buildDAG = async (
                       rootPath,
                       job.file,
                       jobOption,
-                    )
-                  }),
-            )
+                    );
+                  },
+                ),
+            ),
           },
         ],
       ),
   );
 
   // Validation: All files should included
-  const namespaces = new Set(DAG.keys())
+  const namespaces = new Set(DAG.keys());
   for (const [key, item] of bigquery2Objs.entries()) {
     if (!namespaces.has(key)) {
-      console.warn(`Warning: No deployment files for ${key}`)
+      console.warn(`Warning: No deployment files for ${key}`);
     }
-    const allDestinations = new Set(item.map((f) => f.destinations).flat())
+    const allDestinations = new Set(item.map((f) => f.destinations).flat());
     if (!allDestinations.has(key) && namespaces.has(key)) {
-      console.warn(`Warning: No DDL file exist but target directory found: ${key}`)
+      console.warn(
+        `Warning: No DDL file exist but target directory found: ${key}`,
+      );
     }
   }
-  console.dir(bigquery2Objs, { depth: null })
+  console.dir(bigquery2Objs, { depth: null });
 
   const tasks = [...DAG.values()]
     .map(({ tasks }) => {
-      tasks.forEach(task => limit(async () => await task.run()));
+      tasks.forEach((task) => limit(async () => await task.run()));
       return tasks;
     }).flat();
 
@@ -834,7 +869,7 @@ const buildDAG = async (
   for await (let report of reporter.show_until_finished()) {
     logUpdate(
       `Tasks: remaing ${limit.pendingCount + limit.activeCount}\n` +
-      report,
+        report,
     );
   }
 };
@@ -899,7 +934,9 @@ function createCLI() {
     .option('-C, --root-path <rootPath>', 'Root Directory', './bigquery');
 
   const pushCommand = new Command('push')
-    .description('Deploy your local BigQuery Resources in topological-sorted order')
+    .description(
+      'Deploy your local BigQuery Resources in topological-sorted order',
+    )
     .argument('[...projects]')
     .option(
       '--label <key:value>',
@@ -908,8 +945,8 @@ function createCLI() {
     .option(
       '--parameter <key:value>',
       `Either a file containing a JSON list of query parameters, or a query parameter in the form "name:type:value".` +
-      `An empty name produces a positional parameter. The type may be omitted to assume STRING: name::value or ::value.` +
-      `The value "NULL" produces a null value. repeat this option to specify a list of values`,
+        `An empty name produces a positional parameter. The type may be omitted to assume STRING: name::value or ::value.` +
+        `The value "NULL" produces a null value. repeat this option to specify a list of values`,
     )
     .option(
       '--maximum_bytes_billed <number of bytes>',
@@ -917,7 +954,7 @@ function createCLI() {
     )
     .option('--dry-run', 'Dry Run', false)
     .action(async (cmdProjects: string[] | undefined, _, cmd) => {
-      const cmdOptions = cmd.optsWithGlobals()
+      const cmdOptions = cmd.optsWithGlobals();
       const projects = cmdProjects ?? [];
 
       const rootDir = cmdOptions.rootPath;
@@ -957,7 +994,7 @@ function createCLI() {
     //   type: [Boolean],
     // })
     .action(async (cmdProjects: string[] | undefined, _, cmd) => {
-      const cmdOptions = cmd.optsWithGlobals()
+      const cmdOptions = cmd.optsWithGlobals();
       const projects = cmdProjects ?? [];
 
       const options = {
@@ -975,36 +1012,46 @@ function createCLI() {
       } else {
         await pullBigQueryResources(options);
       }
-    })
+    });
 
   const cleanCommand = new Command('clean')
-    .description('Clean up remote BigQuery resources whose local files are not found')
+    .description(
+      'Clean up remote BigQuery resources whose local files are not found',
+    )
     .argument('<project>')
     .argument('<dataset>')
     .option('--dry-run', 'dry run', false)
-    .option('--force', 'Force to remove BigQuery resources without confirmation', false)
+    .option(
+      '--force',
+      'Force to remove BigQuery resources without confirmation',
+      false,
+    )
     .action(async (project: string, dataset: string, cmdOptions: any) => {
       const options = {
         // rootDir: cmdOptions.rootPath,
         // forceAll: cmdOptions.force,
         dryRun: cmdOptions.dryRun,
       };
-      console.log(project, dataset)
+      console.log(project, dataset);
       const bqClient = new BigQuery();
-      await cleanupBigQueryDataset(bqClient, cmdOptions.rootDir, dataset, options);
+      await cleanupBigQueryDataset(
+        bqClient,
+        cmdOptions.rootDir,
+        dataset,
+        options,
+      );
     });
 
   const formatCommmand = new Command('format')
     .description('Fix reference in local DDL files')
     .option('--dry-run', 'dry run', false)
     .action(async (_, cmd) => {
-      const cmdOptions = cmd.optsWithGlobals()
+      const cmdOptions = cmd.optsWithGlobals();
       const options = {
         dryRun: cmdOptions.dryRun,
       };
       await formatLocalfiles(cmdOptions.rootPath ?? './bigquery/', options);
     });
-
 
   program.addCommand(pushCommand);
   program.addCommand(pullCommand);
@@ -1024,8 +1071,8 @@ const formatLocalfiles = async (
     .filter(async (p: string) => {
       const sql: string = await fs.promises.readFile(p)
         .then((s: any) => s.toString());
-      const destinations = extractDestinations(sql)
-      return destinations.length > 0
+      const destinations = extractDestinations(sql);
+      return destinations.length > 0;
     });
 
   const bqClient = new BigQuery();
@@ -1033,18 +1080,19 @@ const formatLocalfiles = async (
   for (const file of files) {
     const sql: string = await fs.promises.readFile(file)
       .then((s: any) => s.toString());
-    const ns = path2bq(file, rootPath, defaultProjectId).split('.').slice(1).join('.')
-    const newSQL = fixDestinationSQL(ns, sql)
+    const ns = path2bq(file, rootPath, defaultProjectId).split('.').slice(1)
+      .join('.');
+    const newSQL = fixDestinationSQL(ns, sql);
 
     if (newSQL !== sql) {
-      console.log(file)
+      console.log(file);
       if (options?.dryRun ?? false) {
       } else {
-        await fs.promises.writeFile(file, newSQL)
+        await fs.promises.writeFile(file, newSQL);
       }
     }
   }
-}
+};
 
 const cleanupBigQueryDataset = async (
   bqClient: BigQuery,
@@ -1054,17 +1102,41 @@ const cleanupBigQueryDataset = async (
 ): Promise<void> => {
   const defaultProjectId = await bqClient.getProjectId();
   const routines = await bqClient.dataset(datasetId).getRoutines()
-    .then(([rr]) => new Map(rr.map(r => [(({ metadata: { routineReference: r } }) => `${r.projectId}.${r.datasetId}.${r.routineId}`)(r), r])));
+    .then(([rr]) =>
+      new Map(
+        rr.map((r) => [
+          (({ metadata: { routineReference: r } }) =>
+            `${r.projectId}.${r.datasetId}.${r.routineId}`)(r),
+          r,
+        ]),
+      )
+    );
   const models = await bqClient.dataset(datasetId).getModels()
-    .then(([rr]) => new Map(rr.map(r => [(({ metadata: { modelReference: r } }) => `${r.projectId}.${r.datasetId}.${r.modelId}`)(r), r])));
+    .then(([rr]) =>
+      new Map(
+        rr.map((r) => [
+          (({ metadata: { modelReference: r } }) =>
+            `${r.projectId}.${r.datasetId}.${r.modelId}`)(r),
+          r,
+        ]),
+      )
+    );
   const tables = await bqClient.dataset(datasetId).getTables()
-    .then(([rr]) => new Map(rr.map(r => [(({ metadata: { tableReference: r } }) => `${r.projectId}.${r.datasetId}.${r.tableId}`)(r), r])));
+    .then(([rr]) =>
+      new Map(
+        rr.map((r) => [
+          (({ metadata: { tableReference: r } }) =>
+            `${r.projectId}.${r.datasetId}.${r.tableId}`)(r),
+          r,
+        ]),
+      )
+    );
 
   // Marks for deletion
   (await walk(rootDir))
     .filter((p: string) => p.endsWith('sql'))
     .filter((p: string) => p.includes('@default'))
-    .forEach(f => {
+    .forEach((f) => {
       const bqId = path2bq(f, rootDir, defaultProjectId);
       if (f.match(/@routine/) && bqId in routines) {
         // Check Routine
@@ -1078,17 +1150,17 @@ const cleanupBigQueryDataset = async (
           tables.delete(bqId);
         }
       }
-    })
+    });
 
   for (const kind of [tables, routines, models]) {
     for (const [bqId, resource] of kind) {
       console.log(`Deleting ${bqId}`);
       if (!options?.dryRun ?? true) {
-        await resource.delete()
+        await resource.delete();
       }
     }
   }
-}
+};
 
 const main = async () => {
   createCLI();

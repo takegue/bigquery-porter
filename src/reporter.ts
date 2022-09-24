@@ -34,7 +34,7 @@ class Task {
 
   async run() {
     if (this.status != 'pending') {
-      return
+      return;
     }
 
     this.status = 'running';
@@ -54,12 +54,11 @@ class Task {
   done() {
     return ['success', 'failed'].includes(this.status);
   }
-
 }
 
 class Reporter {
   tasks: Task[];
-  separator: string = '/'
+  separator: string = '/';
   constructor(tasks: Task[]) {
     this.tasks = tasks;
   }
@@ -103,31 +102,34 @@ class Reporter {
   report_tree(tasks: Task[], level = 0, max_level = 4): string {
     const groups = tasks.reduce((acc, t) => {
       const parts = t.name.split(this.separator);
-      const key = parts.length === level + 1 ? '#tail' : (parts[level] ?? '#none');
+      const key = parts.length === level + 1
+        ? '#tail'
+        : (parts[level] ?? '#none');
       if (acc.get(key) === undefined) {
         acc.set(key, []);
       }
       acc.get(key)?.push(t);
-      return acc
+      return acc;
     }, new Map<string, Task[]>());
 
     let s = '';
     const childStingifier = (tasks: Task[], level: number) => {
       const spaces = '  '.repeat(level);
-      const body = tasks.map((t) => this.report_task(t)).filter((s) => s).join('\n' + spaces)
+      const body = tasks.map((t) => this.report_task(t)).filter((s) => s).join(
+        '\n' + spaces,
+      );
 
-      return `${spaces}${body}\n`
-    }
+      return `${spaces}${body}\n`;
+    };
     for (const [group_key, tasks] of groups) {
       if (group_key == '#tail') {
-        s += childStingifier(tasks, level)
-      }
-      else {
+        s += childStingifier(tasks, level);
+      } else {
         s += '  '.repeat(level) + pc.underline(group_key) + '\n';
         if (level < max_level) {
           s += this.report_tree(tasks, level + 1, max_level);
         } else {
-          s += childStingifier(tasks, level + 1)
+          s += childStingifier(tasks, level + 1);
         }
       }
     }
