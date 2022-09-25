@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import {
-  fixDestinationSQL,
-} from '../src/util.js';
+import Parser from 'tree-sitter';
+import Language from 'tree-sitter-sql-bigquery';
+import { fixDestinationSQL } from '../src/commands/fix.js';
 import * as fs from 'fs';
 
 
@@ -59,7 +59,10 @@ describe('Command test: format command', () => {
     ];
   it.each(cases)('Example SQL %#', async (args) => {
     const { input, expected } = args;
-    expect(fixDestinationSQL(...input))
+    const parser = new Parser();
+    parser.setLanguage(Language);
+
+    expect(fixDestinationSQL(parser, ...input))
       .toMatchObject(expected);
   });
 });

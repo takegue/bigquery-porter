@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-// Imports the Google Cloud client library
 import readlinePromises from 'node:readline';
 import { isatty } from 'node:tty';
 import {
@@ -22,13 +21,13 @@ import pLimit from 'p-limit';
 import {
   extractDestinations,
   extractRefenrences,
-  fixDestinationSQL,
   humanFileSize,
   msToTime,
   topologicalSort,
   walk,
 } from '../src/util.js';
 import { fetchRowAccessPolicy } from '../src/rowAccessPolicy.js';
+import { formatLocalfiles } from '../src/commands/fix.js';
 import {
   BigQueryResource,
   bq2path,
@@ -1060,39 +1059,6 @@ function createCLI() {
 
   program.parse();
 }
-
-const formatLocalfiles = async (
-  rootPath: string,
-  options?: { dryRun?: string },
-) => {
-  const files = (await walk(rootPath))
-    .filter((p: string) => p.endsWith('ddl.sql'))
-    .filter((p: string) => p.includes('@default'))
-    .filter(async (p: string) => {
-      const sql: string = await fs.promises.readFile(p)
-        .then((s: any) => s.toString());
-      const destinations = extractDestinations(sql);
-      return destinations.length > 0;
-    });
-
-  const bqClient = new BigQuery();
-  const defaultProjectId = await bqClient.getProjectId();
-  for (const file of files) {
-    const sql: string = await fs.promises.readFile(file)
-      .then((s: any) => s.toString());
-    const ns = path2bq(file, rootPath, defaultProjectId).split('.').slice(1)
-      .join('.');
-    const newSQL = fixDestinationSQL(ns, sql);
-
-    if (newSQL !== sql) {
-      console.log(file);
-      if (options?.dryRun ?? false) {
-      } else {
-        await fs.promises.writeFile(file, newSQL);
-      }
-    }
-  }
-};
 
 const cleanupBigQueryDataset = async (
   bqClient: BigQuery,

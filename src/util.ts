@@ -161,153 +161,11 @@ function extractRefenrences(sql: string): string[] {
   return ret.filter((n) => !CTEs.has(n));
 }
 
-function fixDestinationSQL(
-  namespace: string,
-  sql: string,
-): string {
-  let newSQL = sql;
-  let tree = parser.parse(sql);
-
-  const _visit = function* (node: any): any {
-    yield node;
-    for (let n of node.children) {
-      for (let c of _visit(n)) {
-        yield c;
-      }
-    }
-  };
-  const _isRootDDL = function (node: any): any {
-    let _n = node;
-    let _cnt = 0;
-    while (_n !== null) {
-      if (_n.type.match(/create/)) {
-        _cnt++;
-      }
-      _n = _n.parent;
-    }
-    return _cnt <= 1;
-  };
-  const _detectDDLKind = function (node: any): any {
-    if (node.parent == null) {
-      return [false, undefined];
-    }
-
-    if (node.parent.type.match('create_table_statement')) {
-      return [true, 'TABLE'];
-    }
-
-    if (node.parent.type.match('create_schema_statement')) {
-      return [true, 'SCHEMA'];
-    }
-
-    if (node.parent.type.match('create_function_statement')) {
-      return [true, 'ROTUINE'];
-    }
-
-    if (node.parent.type.match('create_table_function_statement')) {
-      return [true, 'ROTUINE'];
-    }
-
-    if (node.parent.type.match('create_procedure_statement')) {
-      return [true, 'ROTUINE'];
-    }
-
-    return [false, undefined];
-  };
-
-  const _cleanIdentifier = (n: string) => n.trim().replace(/`/g, '');
-
-  let _iteration = 0;
-  let _stop = false;
-  let replacedIdentifier: Set<string> = new Set();
-
-  while (!_stop && _iteration < 100) {
-    _stop = true;
-    const row2count = newSQL.split('\n').map((r) => r.length)
-      .reduce((ret, r) => {
-        // Sum of ret;
-        ret.push((ret[ret.length - 1] ?? 0) + r + 1);
-        return ret;
-      }, [0] as number[]);
-
-    for (const n of _visit(tree.rootNode)) {
-      const desired = `\`${namespace}\``;
-      const [isDDL] = _detectDDLKind(n);
-
-      /*
-      * Rule #1: If the node is a destination in DDL, then replace it with a qualified name from namespace.
-      */
-      if (
-        n.type === 'identifier' &&
-        replacedIdentifier.size == 0 &&
-        isDDL &&
-        _isRootDDL(n) &&
-        // Matching BigQuery Level
-        (desired.split('.').length - n.text.split('.').length) ** 2 <= 1
-      ) {
-        // Memorize propagate modification
-        replacedIdentifier.add(_cleanIdentifier(n.text));
-
-        if (n.text !== desired) {
-          const start = row2count[n.startPosition.row] + n.startPosition.column;
-          const end = row2count[n.endPosition.row] + n.endPosition.column;
-
-          newSQL = newSQL.substring(0, start) + desired + newSQL.substring(end);
-          tree.edit({
-            startIndex: start,
-            oldEndIndex: end,
-            newEndIndex: start + desired.length,
-            startPosition: n.startPosition,
-            oldEndPosition: n.endPosition,
-            newEndPosition: {
-              row: n.endPosition.row,
-              column: n.endPosition.column + desired.length,
-            },
-          });
-        }
-
-        _stop = false;
-        break;
-      }
-
-      /*
-      * Rule #2: Replaced Identifer
-      */
-      if (
-        n.type === 'identifier' &&
-        replacedIdentifier.has(_cleanIdentifier(n.text))
-      ) {
-        const start = row2count[n.startPosition.row] + n.startPosition.column;
-        const end = row2count[n.endPosition.row] + n.endPosition.column;
-        newSQL = newSQL.substring(0, start) + desired + newSQL.substring(end);
-        tree.edit({
-          startIndex: start,
-          oldEndIndex: end,
-          newEndIndex: start + desired.length,
-          startPosition: n.startPosition,
-          oldEndPosition: n.endPosition,
-          newEndPosition: {
-            row: n.endPosition.row,
-            column: n.endPosition.column + desired.length,
-          },
-        });
-
-        _stop = false;
-        break;
-      }
-    }
-
-    _iteration += 1;
-    tree = parser.parse(newSQL, tree);
-  }
-  return newSQL;
-}
 
 /**
  * Format milliseconds as human-readable text.
  *
- * @param {number} milliseconds Number of milliseconds to be turned into a
- *    human-readable string.
+ * @param {number} ms Number of milliseconds to be turned into a human-readable string.
  */
 function msToTime(ms: number): string {
   // Pad to 2 or 3 digits, default is 2
@@ -373,7 +231,6 @@ function humanFileSize(bytes: number, si = false, dp = 1) {
 export {
   extractDestinations,
   extractRefenrences,
-  fixDestinationSQL,
   humanFileSize,
   msToTime,
   Relation,
