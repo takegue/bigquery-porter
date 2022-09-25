@@ -855,7 +855,6 @@ const buildDAG = async (
       );
     }
   }
-  console.dir(bigquery2Objs, { depth: null });
 
   const tasks = [...DAG.values()]
     .map(({ tasks }) => {
@@ -1031,7 +1030,6 @@ function createCLI() {
         // forceAll: cmdOptions.force,
         dryRun: cmdOptions.dryRun,
       };
-      console.log(project, dataset);
       const bqClient = new BigQuery();
       await cleanupBigQueryDataset(
         bqClient,
