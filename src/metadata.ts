@@ -160,6 +160,7 @@ const syncMetadata = async (
       bqObject.bigQuery,
       metadata?.tableReference.datasetId,
       metadata?.tableReference.tableId,
+      metadata?.tableReference.projectId,
     ).catch((err: Error) => {
       console.warn(err.message);
       return [];
