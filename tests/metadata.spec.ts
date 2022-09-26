@@ -66,4 +66,20 @@ describe('syncMetadata: Pull', () => {
     expect(_load('README.md'))
       .toMatchSnapshot();
   });
+
+  it('for Routine: bqutil.fn.int', async () => {
+    const table = bqClient.dataset('fn', { projectId: 'bqutil' }).routine(
+      'int',
+    );
+
+    // test
+    const dPath = path.join(_dataset, _resource);
+    console.log(dPath);
+    await syncMetadata(table, dPath);
+
+    const _load = (f: string) => fs.readFileSync(path.join(dPath, f), 'utf-8');
+    expect(fs.existsSync(path.join(dPath, 'metadata.json'))).toBe(true);
+    expect(JSON.parse(_load('metadata.json')))
+      .toMatchSnapshot();
+  });
 });

@@ -1,5 +1,18 @@
 // Vitest Snapshot v1
 
+exports[`syncMetadata: Pull > for Routine: bqutil.fn.int 1`] = `
+{
+  "arguments": [
+    {
+      "argumentKind": "ANY_TYPE",
+      "name": "v",
+    },
+  ],
+  "language": "SQL",
+  "routineType": "SCALAR_FUNCTION",
+}
+`;
+
 exports[`syncMetadata: Pull > for Table: Sample 1`] = `
 {
   "description": "Austin Bikeshare Stations table",
