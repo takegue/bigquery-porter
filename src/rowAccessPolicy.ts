@@ -37,7 +37,7 @@ async function fetchRowAccessPolicy(
       }
       resolve(ret);
     });
-  }).catch((err) => console.warn(err.message));
+  });
 
   return ret.flat();
 }
