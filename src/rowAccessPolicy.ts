@@ -16,12 +16,14 @@ async function fetchRowAccessPolicy(
   client: BigQuery,
   datasetId: string,
   tableId: string,
+  _projectId?: string,
 ): Promise<RowAccessPolicy[]> {
   let ret: RowAccessPolicy[][] = [];
+  const projectId = _projectId ?? (await client.getProjectId());
   await new Promise((resolve, reject) => {
-    client.request({
+    client.dataset(datasetId, { projectId }).request({
       method: 'GET',
-      uri: `/datasets/${datasetId}/tables/${tableId}/rowAccessPolicies`,
+      uri: `/tables/${tableId}/rowAccessPolicies`,
     }, (err, resp) => {
       if (err) {
         reject(err);
