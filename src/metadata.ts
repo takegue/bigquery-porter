@@ -86,6 +86,8 @@ const syncMetadata = async (
   /* -----------------------------
   / Merge local and remote metadata
   */
+
+  // metadata.json
   if (fs.existsSync(metadataPath)) {
     const local = await fs.promises.readFile(metadataPath)
       .then((s) => JSON.parse(s.toString()));
@@ -104,29 +106,41 @@ const syncMetadata = async (
 
   // schema.json: local file <---> BigQuery Table
   if (metadata?.schema?.fields) {
-    // Merge upstream and downstream schema description
-    // due to some bigquery operations like view or materialized view purge description
-    if (fs.existsSync(fieldsPath)) {
-      const oldFields = await fs.promises.readFile(fieldsPath)
-        .then((s) => JSON.parse(s.toString()))
-        .catch((err: Error) => console.error(err));
-      // Update
-      Object.entries(metadata.schema.fields).map(
-        ([k, v]: [string, any]) => {
-          if (
-            k in oldFields &&
-            metadata.schema.fields[k].description &&
-            metadata.schema.fields[k].description != v.description
-          ) {
-            metadata.schema.fields[k].description = v.description;
-          }
-        },
-      );
-    }
+    newMetadata['schema'] = metadata['schema'];
 
+    if (fs.existsSync(fieldsPath)) {
+      type Field = {
+        [k: string]: string | unknown;
+      };
+      const localFields = await fs.promises.readFile(
+        fieldsPath,
+      )
+        .then((s) => JSON.parse(s.toString()))
+        .then((M) => Object.fromEntries(M.map((e: Field) => [e['name'], e])))
+        .catch((err: Error) => console.error(err));
+
+      if (localFields !== undefined) {
+        // Update
+        Object.entries(metadata.schema.fields).map(
+          ([ix, remote]: [string, any]) => {
+            const merged = newMetadata['schema'].fields[ix];
+            if (merged.name in localFields) {
+              if (options?.push) {
+                merged.description = localFields[merged.name].description;
+              } else {
+                // Merge upstream and downstream schema description
+                // due to some bigquery operations like view or materialized view purge description
+                merged.description = remote.description ??
+                  localFields[merged.name].description;
+              }
+            }
+          },
+        );
+      }
+    }
     jobs.push(fs.promises.writeFile(
       fieldsPath,
-      jsonSerializer(metadata.schema.fields),
+      jsonSerializer(newMetadata['schema'].fields),
     ));
   }
 
