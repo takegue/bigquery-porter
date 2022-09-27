@@ -13,26 +13,6 @@ exports[`syncMetadata: Pull > for Routine: bqutil.fn.int 1`] = `
 }
 `;
 
-exports[`syncMetadata: Pull > for Table: Sample 1`] = `
-{
-  "description": "Austin Bikeshare Stations table",
-  "type": "TABLE",
-}
-`;
-
-exports[`syncMetadata: Pull > for Table: Sample 2`] = `
-[
-  {
-    "name": "id",
-    "type": "INTEGER",
-  },
-  {
-    "name": "name",
-    "type": "STRING",
-  },
-]
-`;
-
 exports[`syncMetadata: Pull > for Table: bigquery-public-data:austin_bikeshare.bikeshare_stations 1`] = `
 {
   "description": "Austin Bikeshare Stations table",
@@ -116,3 +96,16 @@ exports[`syncMetadata: Pull > for Table: bigquery-public-data:austin_bikeshare.b
 `;
 
 exports[`syncMetadata: Pull > for Table: bigquery-public-data:austin_bikeshare.bikeshare_stations 3`] = `"Austin Bikeshare Stations table"`;
+
+exports[`syncMetadata: Push > for Table: sample_table 1`] = `
+[
+  {
+    "name": "id",
+    "type": "INTEGER",
+  },
+  {
+    "name": "name",
+    "type": "STRING",
+  },
+]
+`;
