@@ -3,6 +3,7 @@ import * as fs from 'node:fs';
 
 import type { ServiceObject } from '@google-cloud/common';
 import { Dataset, Model, Routine, Table } from '@google-cloud/bigquery';
+import type { TableField } from '@google-cloud/bigquery';
 
 import { fetchRowAccessPolicy } from '../src/rowAccessPolicy.js';
 
@@ -108,20 +109,19 @@ const syncMetadata = async (
     newMetadata['schema'] = metadata['schema'];
 
     if (fs.existsSync(fieldsPath)) {
-      type Field = {
-        [k: string]: string | unknown;
-      };
       const localFields = await fs.promises.readFile(
         fieldsPath,
       )
         .then((s) => JSON.parse(s.toString()))
-        .then((M) => Object.fromEntries(M.map((e: Field) => [e['name'], e])))
+        .then((M) =>
+          Object.fromEntries(M.map((e: TableField) => [e['name'], e]))
+        )
         .catch((err: Error) => console.error(err));
 
       if (localFields !== undefined) {
         // Update
         Object.entries(metadata.schema.fields).map(
-          ([ix, remote]: [string, any]) => {
+          ([ix, remote]: [string, unknown]) => {
             const merged = newMetadata['schema'].fields[ix];
             if (merged.name in localFields) {
               if (options?.push) {
@@ -129,7 +129,7 @@ const syncMetadata = async (
               } else {
                 // Merge upstream and downstream schema description
                 // due to some bigquery operations like view or materialized view purge description
-                merged.description = remote.description ??
+                merged.description = (remote as TableField).description ??
                   localFields[merged.name].description;
               }
             }
@@ -170,7 +170,7 @@ const syncMetadata = async (
 
   if (options?.push) {
     jobs.push(
-      (bqObject as any)
+      (bqObject as BigQuery)
         .setMetadata(newMetadata)
         .then(() => undefined)
         .catch((e: Error) => {
