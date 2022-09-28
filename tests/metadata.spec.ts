@@ -139,7 +139,10 @@ describe('syncMetadata: Push', () => {
       _write('schema.json', JSON.stringify(afterSchema)),
     ]);
 
-    await syncMetadata(table, _fsResource, { push: true });
+    const modified = (await syncMetadata(table, _fsResource, { push: true }))
+      .map((n) => path.basename(n));
+
+    expect(modified.length).toBe(3);
     const [metadata] = await table.getMetadata();
 
     expect(fs.existsSync(toPath('README.md'))).toBe(true);

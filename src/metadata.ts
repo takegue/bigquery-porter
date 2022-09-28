@@ -169,7 +169,14 @@ const syncMetadata = async (
   }
 
   if (options?.push) {
-    jobs.push((bqObject as any).setMetadata(newMetadata));
+    jobs.push(
+      (bqObject as any)
+        .setMetadata(newMetadata)
+        .then(() => undefined)
+        .catch((e: Error) => {
+          console.warn('Warning: Failed to update metadata.' + e.message);
+        }),
+    );
   }
 
   // metadata.json
@@ -208,7 +215,7 @@ const syncMetadata = async (
     );
   }
 
-  return await Promise.all(jobs);
+  return (await Promise.all(jobs)).filter((n) => n);
 };
 
 export { syncMetadata };
