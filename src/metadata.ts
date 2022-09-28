@@ -8,7 +8,6 @@ import { fetchRowAccessPolicy } from '../src/rowAccessPolicy.js';
 
 const jsonSerializer = (obj: any) => JSON.stringify(obj, null, 2);
 
-// type Labels = Map<string, string>;
 const syncMetadata = async (
   bqObject: Dataset | Table | Routine | Model,
   dirPath: string,
@@ -138,13 +137,15 @@ const syncMetadata = async (
         );
       }
     }
-    jobs.push(fs.promises.writeFile(
-      fieldsPath,
-      jsonSerializer(newMetadata['schema'].fields),
-    ));
+    jobs.push(
+      fs.promises.writeFile(
+        fieldsPath,
+        jsonSerializer(newMetadata['schema'].fields),
+      ).then(() => fieldsPath),
+    );
   }
 
-  // README.md
+  // README.md(push only)
   if (metadata.description !== undefined) {
     const upstream = metadata.description;
     newMetadata['description'] = upstream;
@@ -160,7 +161,10 @@ const syncMetadata = async (
     }
 
     if (newMetadata['description'] !== undefined) {
-      jobs.push(fs.promises.writeFile(readmePath, newMetadata['description']));
+      jobs.push(
+        fs.promises.writeFile(readmePath, newMetadata['description'])
+          .then(() => readmePath),
+      );
     }
   }
 
@@ -193,19 +197,18 @@ const syncMetadata = async (
           ...newMetadata,
           rowAccessPolicies: entryRowAccessPolicies,
         }),
-      ),
+      ).then(() => metadataPath),
     );
   } else {
     jobs.push(
       fs.promises.writeFile(
         metadataPath,
         jsonSerializer(newMetadata),
-      ),
+      ).then(() => metadataPath),
     );
   }
 
-  await Promise.all(jobs);
-  return [];
+  return await Promise.all(jobs);
 };
 
 export { syncMetadata };
