@@ -1,6 +1,7 @@
 [
   {
     "name": "a",
-    "type": "INTEGER"
+    "type": "INTEGER",
+    "description": "ふがふが\nふが"
   }
 ]

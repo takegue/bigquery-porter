@@ -1,4 +1,4 @@
-CREATE MODEL `sandbox.mymodel`
+CREATE MODEL IF NOT EXISTS `sandbox.mymodel`
 OPTIONS
   ( MODEL_TYPE='LINEAR_REG',
     LS_INIT_LEARN_RATE=0.15,

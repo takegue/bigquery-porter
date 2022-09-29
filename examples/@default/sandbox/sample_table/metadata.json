@@ -5,10 +5,13 @@
       "a"
     ]
   },
-  "rowAccessPolicies": [
-    {
-      "policyId": "sales_us_filter",
-      "filterPredicate": "a = 2"
-    }
-  ]
+  "schema": {
+    "fields": [
+      {
+        "name": "a",
+        "type": "INTEGER",
+        "description": "ふがふが\nふが"
+      }
+    ]
+  }
 }

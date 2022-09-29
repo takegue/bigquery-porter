@@ -1,3 +1,11 @@
 {
-  "type": "SNAPSHOT"
+  "type": "SNAPSHOT",
+  "schema": {
+    "fields": [
+      {
+        "name": "a",
+        "type": "INTEGER"
+      }
+    ]
+  }
 }

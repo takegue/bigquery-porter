@@ -22,9 +22,8 @@ const syncMetadata = async (
   const readmePath = path.join(dirPath, 'README.md');
   const fieldsPath = path.join(dirPath, 'schema.json');
   const syncLabels: systemDefinedLabels = {
-    'bqport-versionhash': `${Math.floor(Date.now() / 1000)}-${
-      options?.versionhash ?? 'HEAD'
-    }`,
+    'bqport-versionhash': `${Math.floor(Date.now() / 1000)}-${options?.versionhash ?? 'HEAD'
+      }`,
   };
   const jobs: Promise<any>[] = [];
 
@@ -170,7 +169,7 @@ const syncMetadata = async (
 
   if (options?.push) {
     jobs.push(
-      (bqObject as BigQuery)
+      (bqObject as any)
         .setMetadata(newMetadata)
         .then(() => undefined)
         .catch((e: Error) => {

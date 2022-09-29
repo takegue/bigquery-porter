@@ -3,5 +3,13 @@
   "timePartitioning": {
     "type": "DAY",
     "field": "date_jst"
+  },
+  "schema": {
+    "fields": [
+      {
+        "name": "date_jst",
+        "type": "DATE"
+      }
+    ]
   }
 }

@@ -1,8 +1,5 @@
 {
   "type": "DEFAULT",
-  "labels": {
-    "bqlunchpad-versionhash": "1654041191-undefined"
-  },
   "access": [
     {
       "role": "WRITER",

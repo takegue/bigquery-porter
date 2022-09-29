@@ -1,3 +1,11 @@
 {
-  "type": "MATERIALIZED_VIEW"
+  "type": "MATERIALIZED_VIEW",
+  "schema": {
+    "fields": [
+      {
+        "name": "a",
+        "type": "INTEGER"
+      }
+    ]
+  }
 }
