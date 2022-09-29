@@ -22,8 +22,7 @@ const syncMetadata = async (
   const readmePath = path.join(dirPath, 'README.md');
   const fieldsPath = path.join(dirPath, 'schema.json');
   const syncLabels: systemDefinedLabels = {
-    'bqport-versionhash': `${Math.floor(Date.now() / 1000)}-${options?.versionhash ?? 'HEAD'
-      }`,
+    'bqport-versionhash': `${options?.versionhash ?? 'HEAD'}`,
   };
   const jobs: Promise<any>[] = [];
 
