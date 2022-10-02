@@ -914,8 +914,14 @@ const cleanupBigQueryDataset = async (
       )
     );
 
+  const datasetPath = path.join(rootDir, datasetId);
+  if (!fs.existsSync(datasetPath)) {
+    console.error(`Dataset ${datasetId} is not found in ${rootDir}`);
+    return;
+  }
+
   // Marks for deletion
-  (await walk(rootDir))
+  (await walk(datasetPath))
     .filter((p: string) => p.endsWith('sql'))
     .filter((p: string) => p.includes('@default'))
     .forEach((f) => {
