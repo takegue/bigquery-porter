@@ -841,16 +841,17 @@ function createCLI() {
       'Force to remove BigQuery resources without confirmation',
       false,
     )
-    .action(async (_: string, dataset: string, cmdOptions: any) => {
+    .action(async (_: string, dataset: string, localCmdOptions: any, cmd) => {
+      const cmdOptions = cmd.optsWithGlobals();
       const options = {
         // rootDir: cmdOptions.rootPath,
         // forceAll: cmdOptions.force,
-        dryRun: cmdOptions.dryRun,
+        dryRun: localCmdOptions.dryRun,
       };
       const bqClient = new BigQuery();
       await cleanupBigQueryDataset(
         bqClient,
-        cmdOptions.rootDir,
+        cmdOptions.rootPath ?? './bigquery/',
         dataset,
         options,
       );
@@ -919,14 +920,14 @@ const cleanupBigQueryDataset = async (
     .filter((p: string) => p.includes('@default'))
     .forEach((f) => {
       const bqId = path2bq(f, rootDir, defaultProjectId);
-      if (f.match(/@routine/) && bqId in routines) {
+      if (f.match(/@routine/) && routines.has(bqId)) {
         // Check Routine
         routines.delete(bqId);
-      } else if (f.match(/@model/) && bqId in routines) {
+      } else if (f.match(/@model/) && models.has(bqId)) {
         // Check Model
         models.delete(bqId);
       } else {
-        if (bqId in tables) {
+        if (tables.has(bqId)) {
           // Check Table or Dataset
           tables.delete(bqId);
         }
