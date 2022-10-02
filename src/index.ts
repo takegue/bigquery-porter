@@ -118,28 +118,29 @@ export async function pullBigQueryResources({
   const fsWriter = async (
     bqObj: Dataset | Model | Table | Routine,
   ) => {
-    const path = bq2path(bqObj as BigQueryResource, projectId === undefined);
-    const pathDir = `${rootDir}/${path}`;
+    const fsPath = bq2path(bqObj as BigQueryResource, projectId === undefined);
+    const pathDir = `${rootDir}/${fsPath}`;
     const catalogId = (
       bqObj.metadata?.datasetReference?.projectId ??
-        (bqObj.parent as Dataset).metadata.datasetReference.projectId ??
-        defaultProjectId
+      (bqObj.parent as Dataset).metadata.datasetReference.projectId ??
+      defaultProjectId
     ) as string;
     bqObj['projectId'] = catalogId;
-    const retFiles = [];
+    const retFiles: string[] = [];
 
     if (!fs.existsSync(pathDir)) {
       await fs.promises.mkdir(pathDir, { recursive: true });
     }
-    await syncMetadata(bqObj, pathDir, { push: false })
+    const modified = await syncMetadata(bqObj, pathDir, { push: false })
       .catch((e) => {
         console.log('syncerror', e, bqObj);
         throw e;
       });
-    retFiles.push(['metadata.json']);
+
+    retFiles.push(...modified.map((m) => path.basename(m)));
 
     if (bqObj instanceof Table) {
-      retFiles.push(['schema.json']);
+      retFiles.push('schema.json');
     }
 
     if (bqObj.metadata.type == 'VIEW') {
@@ -152,7 +153,7 @@ export async function pullBigQueryResources({
             .replace(/\r\n/g, '\n'),
         );
       }
-      retFiles.push(['view.sql']);
+      retFiles.push('view.sql');
       // View don't capture ddl
       return retFiles;
     }
@@ -187,7 +188,7 @@ export async function pullBigQueryResources({
       .replace(regexp, '');
 
     await fs.promises.writeFile(pathDDL, cleanedDDL);
-    retFiles.push(['ddl.sql']);
+    retFiles.push('ddl.sql');
 
     return retFiles;
   };
@@ -684,7 +685,7 @@ const buildDAG = async (
   for await (let report of reporter.show_until_finished()) {
     logUpdate(
       `Tasks: remaing ${limit.pendingCount + limit.activeCount}\n` +
-        report,
+      report,
     );
   }
 };
@@ -760,8 +761,8 @@ function createCLI() {
     .option(
       '--parameter <key:value>',
       `Either a file containing a JSON list of query parameters, or a query parameter in the form "name:type:value".` +
-        `An empty name produces a positional parameter. The type may be omitted to assume STRING: name::value or ::value.` +
-        `The value "NULL" produces a null value. repeat this option to specify a list of values`,
+      `An empty name produces a positional parameter. The type may be omitted to assume STRING: name::value or ::value.` +
+      `The value "NULL" produces a null value. repeat this option to specify a list of values`,
     )
     .option(
       '--maximum_bytes_billed <number of bytes>',
