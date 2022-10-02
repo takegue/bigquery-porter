@@ -3,11 +3,78 @@ import * as fs from 'node:fs';
 
 import type { ServiceObject } from '@google-cloud/common';
 import { Dataset, Model, Routine, Table } from '@google-cloud/bigquery';
-import type { TableField } from '@google-cloud/bigquery';
+import type { TableField, TableSchema } from '@google-cloud/bigquery';
 
 import { fetchRowAccessPolicy } from '../src/rowAccessPolicy.js';
 
 const jsonSerializer = (obj: any) => JSON.stringify(obj, null, 2);
+const cleanupObject = (obj: Object) => JSON.parse(JSON.stringify(obj));
+
+const mergeSchema = async (
+  localFieldPath: string,
+  upstream: TableSchema | undefined,
+  overwrite: boolean,
+): Promise<TableSchema> => {
+  if (!upstream) {
+    throw new Error('No upstream schema found');
+  }
+
+  if (!fs.existsSync(localFieldPath)) {
+    return upstream;
+  }
+
+  const localFields = await fs.promises.readFile(localFieldPath, 'utf-8')
+    .then((s) => JSON.parse(s.toString()))
+    .then((M) => Object.fromEntries(M.map((e: TableField) => [e['name'], e])));
+
+  if (localFields === undefined) {
+    return upstream;
+  }
+
+  if (!upstream.fields) {
+    throw new Error('upstream fields is not found');
+  }
+
+  return ({
+    fields: upstream.fields.map(
+      (entry: TableField) => {
+        const merged = entry;
+        if (!merged.name) {
+          return merged;
+        }
+
+        if (merged.name in localFields) {
+          if (overwrite) {
+            merged.description = localFields[merged.name].description;
+          } else {
+            // Merge upstream and downstream schema description
+            // due to some bigquery operations like view or materialized view purge description
+            merged.description = (entry as TableField).description ??
+              localFields[merged.name].description;
+          }
+        }
+        return merged;
+      },
+    ),
+  }) as TableSchema;
+};
+
+const mergeDescription = async (
+  localREADMEPath: string,
+  upstream: String | undefined,
+  overwrite: boolean,
+): Promise<String | undefined> => {
+  if (!fs.existsSync(localREADMEPath)) {
+    return upstream;
+  }
+
+  if (!overwrite) {
+    return upstream;
+  }
+
+  const local = await fs.promises.readFile(localREADMEPath, 'utf-8');
+  return local;
+};
 
 const syncMetadata = async (
   bqObject: Dataset | Table | Routine | Model,
@@ -85,7 +152,7 @@ const syncMetadata = async (
   / Merge local and remote metadata
   */
 
-  // metadata.json
+  // metadata.json: local file <---> BigQuery Table
   if (fs.existsSync(metadataPath)) {
     const local = await fs.promises.readFile(metadataPath)
       .then((s) => JSON.parse(s.toString()));
@@ -103,73 +170,44 @@ const syncMetadata = async (
   }
 
   // schema.json: local file <---> BigQuery Table
-  if (metadata?.schema?.fields) {
-    newMetadata['schema'] = metadata['schema'];
-
-    if (fs.existsSync(fieldsPath)) {
-      const localFields = await fs.promises.readFile(
-        fieldsPath,
-      )
-        .then((s) => JSON.parse(s.toString()))
-        .then((M) =>
-          Object.fromEntries(M.map((e: TableField) => [e['name'], e]))
-        )
-        .catch((err: Error) => console.error(err));
-
-      if (localFields !== undefined) {
-        // Update
-        Object.entries(metadata.schema.fields).map(
-          ([ix, remote]: [string, unknown]) => {
-            const merged = newMetadata['schema'].fields[ix];
-            if (merged.name in localFields) {
-              if (options?.push) {
-                merged.description = localFields[merged.name].description;
-              } else {
-                // Merge upstream and downstream schema description
-                // due to some bigquery operations like view or materialized view purge description
-                merged.description = (remote as TableField).description ??
-                  localFields[merged.name].description;
-              }
-            }
-          },
-        );
-      }
-    }
+  let newSchema = await mergeSchema(
+    fieldsPath,
+    metadata.schema,
+    options?.push ?? false,
+  ).catch((e) => {
+    console.warn(`Warning: ${e.message}`);
+  });
+  if (newSchema) {
     jobs.push(
       fs.promises.writeFile(
         fieldsPath,
-        jsonSerializer(newMetadata['schema'].fields),
+        jsonSerializer(newSchema.fields),
       ).then(() => fieldsPath),
     );
   }
 
-  // README.md(push only)
-  if (metadata.description !== undefined) {
-    const upstream = metadata.description;
-    newMetadata['description'] = upstream;
-    if (fs.existsSync(readmePath)) {
-      const local = await fs.promises.readFile(readmePath)
-        .then((s) => s.toString());
-      newMetadata['description'] = local;
-      if (upstream !== undefined && local != upstream) {
-        console.warn(
-          'Warning: Local README.md file cannot be updated due to already exists. Please remove README.md file to update it.',
-        );
-      }
-    }
-
-    if (newMetadata['description'] !== undefined) {
-      jobs.push(
-        fs.promises.writeFile(readmePath, newMetadata['description'])
-          .then(() => readmePath),
-      );
-    }
+  let newDescription = await mergeDescription(
+    readmePath,
+    metadata.description,
+    options?.push ?? false,
+  );
+  if (newDescription) {
+    jobs.push(
+      fs.promises.writeFile(readmePath, newDescription)
+        .then(() => readmePath),
+    );
   }
 
   if (options?.push) {
     jobs.push(
       (bqObject as any)
-        .setMetadata(newMetadata)
+        .setMetadata(
+          cleanupObject({
+            ...newMetadata,
+            ...{ description: newDescription },
+            ...{ schema: newSchema },
+          }),
+        )
         .then(() => undefined)
         .catch((e: Error) => {
           console.warn('Warning: Failed to update metadata.' + e.message);

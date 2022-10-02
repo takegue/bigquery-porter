@@ -11,6 +11,5 @@
   ],
   "returnType": {
     "typeKind": "INT64"
-  },
-  "description": "test"
+  }
 }
