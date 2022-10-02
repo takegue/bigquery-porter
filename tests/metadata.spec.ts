@@ -153,5 +153,9 @@ describe('syncMetadata: Push', () => {
     expect(JSON.parse(_load('schema.json')))
       .toMatchSnapshot();
     expect(metadata.schema.fields).toMatchObject(afterSchema);
+
+    expect(fs.existsSync(path.join(toPath('metadata.json')))).toBe(true);
+    expect(JSON.parse(_load('metadata.json')))
+      .toMatchSnapshot();
   });
 });

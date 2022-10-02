@@ -109,3 +109,9 @@ exports[`syncMetadata: Push > for Table: sample_table 1`] = `
   },
 ]
 `;
+
+exports[`syncMetadata: Push > for Table: sample_table 2`] = `
+{
+  "type": "TABLE",
+}
+`;
