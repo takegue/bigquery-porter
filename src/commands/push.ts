@@ -15,6 +15,7 @@ import {
   Table,
 } from '@google-cloud/bigquery';
 
+import { spyConsole } from '../../src/runtime/console.js';
 import { Reporter, Task } from '../../src/reporter.js';
 import { syncMetadata } from '../../src/metadata.js';
 import {
@@ -116,12 +117,15 @@ const deployBigQueryResouce = async (
       case 'CREATE_ROW_ACCESS_POLICY':
       case 'DROP_ROW_ACCESS_POLICY':
         //TODO: row access policy
-        // console.log(job.metadata.statistics);
-        break;
+        throw new Error(
+          `Not Supported: ROW_ACCES_POLICY ${job.metadata.statistics}`,
+        );
       case 'CREATE_MODEL':
       case 'EXPORT_MODEL':
         //TODO: models
-        break;
+        throw new Error(
+          `Not Supported: MODEL ${job.metadata.statistics}`,
+        );
       case 'CREATE_FUNCTION':
       case 'CREATE_TABLE_FUNCTION':
       case 'DROP_FUNCTION':
@@ -153,12 +157,10 @@ const deployBigQueryResouce = async (
         return table;
 
       default:
-        console.info(
-          `Not Supported: ${job} ${job.metadata.statistics.query.statementType}`,
+        throw new Error(
+          `Not Supported: ${job.metadata.statistics.query.statementType} (${job.id} )`,
         );
-        break;
     }
-    return undefined;
   };
 
   switch (path.basename(p)) {
@@ -420,6 +422,7 @@ export async function pushBigQueryResourecs(
     }
   }
 
+  const { buffer, teardown } = spyConsole(() => 'unknown');
   const tasks = [...DAG.values()]
     .map(({ tasks }) => {
       tasks.forEach((task) => limit(async () => await task.run()));
@@ -433,5 +436,24 @@ export async function pushBigQueryResourecs(
       `Tasks: remaing ${limit.pendingCount + limit.activeCount}\n` +
         report,
     );
+  }
+  teardown();
+
+  {
+    const stdout = buffer.stdout.get('unknown');
+    const stderr = buffer.stderr.get('unknown');
+    if (stdout && stdout.length > 0) {
+      console.log('STDOUT: ');
+      for (const data of stdout) {
+        console.log(data.toString());
+      }
+    }
+
+    if (stderr && stderr.length > 0) {
+      console.log('STDERR: ');
+      for (const data of stderr) {
+        console.log(data.toString());
+      }
+    }
   }
 }
