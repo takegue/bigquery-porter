@@ -158,7 +158,9 @@ const deployBigQueryResouce = async (
 
       default:
         throw new Error(
-          `Not Supported: ${job.metadata.statistics.query.statementType} (${job.id} )`,
+          `Not Supported: ${
+            JSON.stringify(job.metadata.statistics)
+          } (${job.id} )`,
         );
     }
   };
@@ -207,9 +209,14 @@ const deployBigQueryResouce = async (
       ) {
         return humanFileSize(parseInt(ijob.statistics.totalBytesProcessed));
       }
-      const resource = await fetchBQJobResource(job);
-      if (resource !== undefined) {
-        await syncMetadata(resource, path.dirname(p), { push: true });
+
+      try {
+        const resource = await fetchBQJobResource(job);
+        if (resource !== undefined && resource.id == path.dirname(p)) {
+          await syncMetadata(resource, path.dirname(p), { push: true });
+        }
+      } catch (e: unknown) {
+        console.warn((e as Error).message);
       }
 
       if (job.metadata.statistics?.totalBytesProcessed !== undefined) {
