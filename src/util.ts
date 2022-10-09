@@ -161,7 +161,6 @@ function extractRefenrences(sql: string): string[] {
   return ret.filter((n) => !CTEs.has(n));
 }
 
-
 /**
  * Format milliseconds as human-readable text.
  *
