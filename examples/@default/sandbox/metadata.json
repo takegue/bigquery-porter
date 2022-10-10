@@ -10,10 +10,6 @@
       "specialGroup": "projectOwners"
     },
     {
-      "role": "OWNER",
-      "userByEmail": "takegue@gmail.com"
-    },
-    {
       "role": "READER",
       "specialGroup": "projectReaders"
     }
