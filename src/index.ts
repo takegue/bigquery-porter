@@ -388,6 +388,23 @@ function createCLI() {
         );
       }
 
+      const bqClient = new BigQuery();
+      for (
+        const dataset of await fs.promises.readdir(
+          path.join(rootDir, options.projectId),
+        )
+      ) {
+        await cleanupBigQueryDataset(
+          bqClient,
+          options.rootDir,
+          options.projectId ?? '@default',
+          path.basename(dataset),
+          {
+            dryRun: true,
+          },
+        );
+      }
+
       await pushLocalFilesToBigQuery(options);
     });
 
@@ -444,6 +461,7 @@ function createCLI() {
       await cleanupBigQueryDataset(
         bqClient,
         cmdOptions.rootPath ?? './bigquery/',
+        localCmdOptions.project,
         dataset,
         options,
       );
@@ -471,10 +489,17 @@ function createCLI() {
 const cleanupBigQueryDataset = async (
   bqClient: BigQuery,
   rootDir: string,
+  projectId: string,
   datasetId: string,
-  options?: { dryRun?: string },
+  options?: { dryRun?: boolean },
 ): Promise<void> => {
   const defaultProjectId = await bqClient.getProjectId();
+
+  const datasetPath = path.join(rootDir, projectId, datasetId);
+  if (!fs.existsSync(datasetPath)) {
+    return;
+  }
+
   const routines = await bqClient.dataset(datasetId).getRoutines()
     .then(([rr]) =>
       new Map(
@@ -506,12 +531,6 @@ const cleanupBigQueryDataset = async (
       )
     );
 
-  const datasetPath = path.join(rootDir, datasetId);
-  if (!fs.existsSync(datasetPath)) {
-    console.error(`Dataset ${datasetId} is not found in ${rootDir}`);
-    return;
-  }
-
   // Marks for deletion
   (await walk(datasetPath))
     .filter((p: string) => p.endsWith('sql'))
@@ -532,7 +551,30 @@ const cleanupBigQueryDataset = async (
       }
     });
 
+  // Use current tty for pipe input
+  const rl = readlinePromises.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+  const prompt = (query: string) =>
+    new Promise((resolve) => rl.question(query, resolve));
+
   for (const kind of [tables, routines, models]) {
+    if (kind.size == 0) {
+      continue;
+    }
+
+    const ans = await prompt(
+      [
+        `Found BigQuery reousrces with no local files. Do you delete these resources? (y/n)`,
+        `  ${[...kind.keys()].join('\n  ')}`,
+        '>',
+      ].join('\n'),
+    ) as string;
+
+    if (!ans.replace(/^\s+|\s+$/g, '').startsWith('y')) {
+      continue;
+    }
     for (const [bqId, resource] of kind) {
       console.log(`Deleting ${bqId}`);
       if (!options?.dryRun ?? true) {
@@ -540,6 +582,7 @@ const cleanupBigQueryDataset = async (
       }
     }
   }
+  rl.close();
 };
 
 const main = async () => {
