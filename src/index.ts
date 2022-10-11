@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import readlinePromises from 'node:readline';
+import readline from 'node:readline';
 import { isatty } from 'node:tty';
 import {
   BigQuery,
@@ -292,13 +292,15 @@ export async function pushLocalFilesToBigQuery(
     if (isatty(0)) {
       return await walk(rootDir);
     }
-    const rl = readlinePromises.createInterface({
+    const rl = readline.createInterface({
       input: process.stdin,
     });
+
     const buffer: string[] = [];
     for await (const line of rl) {
       buffer.push(line);
     }
+    rl.close();
     return buffer;
   })();
 
@@ -438,35 +440,6 @@ function createCLI() {
       }
     });
 
-  const cleanCommand = new Command('clean')
-    .description(
-      'Clean up remote BigQuery resources whose local files are not found',
-    )
-    .argument('<project>')
-    .argument('<dataset>')
-    .option('--dry-run', 'dry run', false)
-    .option(
-      '--force',
-      'Force to remove BigQuery resources without confirmation',
-      false,
-    )
-    .action(async (_: string, dataset: string, localCmdOptions: any, cmd) => {
-      const cmdOptions = cmd.optsWithGlobals();
-      const options = {
-        // rootDir: cmdOptions.rootPath,
-        // forceAll: cmdOptions.force,
-        dryRun: localCmdOptions.dryRun,
-      };
-      const bqClient = new BigQuery();
-      await cleanupBigQueryDataset(
-        bqClient,
-        cmdOptions.rootPath ?? './bigquery/',
-        localCmdOptions.project,
-        dataset,
-        options,
-      );
-    });
-
   const formatCommmand = new Command('format')
     .description('Fix reference in local DDL files')
     .option('--dry-run', 'dry run', false)
@@ -480,7 +453,6 @@ function createCLI() {
 
   program.addCommand(pushCommand);
   program.addCommand(pullCommand);
-  program.addCommand(cleanCommand);
   program.addCommand(formatCommmand);
 
   program.parse();
@@ -552,23 +524,32 @@ const cleanupBigQueryDataset = async (
     });
 
   // Use current tty for pipe input
-  const rl = readlinePromises.createInterface({
-    input: process.stdin,
-    output: process.stdout,
+  const tty = fs.createReadStream('/dev/tty');
+  const rl = readline.createInterface({
+    input: tty,
+    output: process.stderr,
   });
+
   const prompt = (query: string) =>
-    new Promise((resolve) => rl.question(query, resolve));
+    new Promise(
+      (resolve) => {
+        rl.question(query, (ret) => {
+          tty.close();
+          rl.close();
+          resolve(ret);
+        });
+      },
+    );
 
   for (const kind of [tables, routines, models]) {
     if (kind.size == 0) {
       continue;
     }
-
     const ans = await prompt(
       [
         `Found BigQuery reousrces with no local files. Do you delete these resources? (y/n)`,
         `  ${[...kind.keys()].join('\n  ')}`,
-        '>',
+        'Ans>',
       ].join('\n'),
     ) as string;
 
@@ -582,7 +563,6 @@ const cleanupBigQueryDataset = async (
       }
     }
   }
-  rl.close();
 };
 
 const main = async () => {
