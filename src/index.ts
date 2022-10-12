@@ -376,7 +376,7 @@ function createCLI() {
         rootDir: rootDir,
         projectId: projects.pop() ?? '@default',
         concurrency: parseInt(cmdOptions.threads),
-        dryRun: cmdOptions.dryRun,
+        dryRun: cmdOptions.dryRun ?? false,
       };
 
       if (cmdOptions.parameter) {
@@ -402,7 +402,7 @@ function createCLI() {
           options.projectId ?? '@default',
           path.basename(dataset),
           {
-            dryRun: true,
+            dryRun: options.dryRun,
           },
         );
       }
@@ -463,7 +463,10 @@ const cleanupBigQueryDataset = async (
   rootDir: string,
   projectId: string,
   datasetId: string,
-  options?: { dryRun?: boolean },
+  options?: {
+    dryRun?: boolean;
+    force?: boolean;
+  },
 ): Promise<void> => {
   const defaultProjectId = await bqClient.getProjectId();
 
@@ -523,47 +526,55 @@ const cleanupBigQueryDataset = async (
       }
     });
 
-  // Use current tty for pipe input
-  const tty = fs.createReadStream('/dev/tty');
-  const rl = readline.createInterface({
-    input: tty,
-    output: process.stderr,
-  });
-
-  const prompt = (query: string) =>
-    new Promise(
-      (resolve) => {
-        rl.question(query, (ret) => {
-          tty.close();
-          rl.close();
-          resolve(ret);
-        });
-      },
-    );
+  const isDryRun = options?.dryRun ?? true;
+  const isForce = options?.force ?? false;
 
   for (const kind of [tables, routines, models]) {
     if (kind.size == 0) {
       continue;
     }
-    const ans = await prompt(
-      [
-        `Found BigQuery reousrces with no local files. Do you delete these resources? (y/n)`,
-        `  ${[...kind.keys()].join('\n  ')}`,
-        'Ans>',
-      ].join('\n'),
-    ) as string;
 
-    if (!ans.replace(/^\s+|\s+$/g, '').startsWith('y')) {
-      continue;
+    if (!isForce && !isDryRun) {
+      const ans = await prompt(
+        [
+          `Found BigQuery reousrces with no local files. Do you delete these resources? (y/n)`,
+          `  ${[...kind.keys()].join('\n  ')}`,
+          'Ans>',
+        ].join('\n'),
+      ) as string;
+      if (!ans.replace(/^\s+|\s+$/g, '').startsWith('y')) {
+        continue;
+      }
     }
     for (const [bqId, resource] of kind) {
-      console.log(`Deleting ${bqId}`);
-      if (!options?.dryRun ?? true) {
-        await resource.delete();
+      console.error(`${isDryRun ? '(DRYRUN) ' : ''}Deleting ${bqId}`);
+      if (isDryRun) {
+        continue;
       }
+
+      await resource.delete();
     }
   }
 };
+
+// Use current tty for pipe input
+const prompt = (query: string) =>
+  new Promise(
+    (resolve) => {
+      const tty = fs.createReadStream('/dev/tty');
+      const rl = readline.createInterface({
+        input: tty,
+        output: process.stderr,
+      });
+
+      rl.question(query, (ret) => {
+        // Order matters and rl should close after use once
+        tty.close();
+        rl.close();
+        resolve(ret);
+      });
+    },
+  );
 
 const main = async () => {
   createCLI();
