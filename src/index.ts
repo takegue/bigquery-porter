@@ -171,7 +171,6 @@ export async function pullBigQueryResources({
 
     await fs.promises.writeFile(pathDDL, cleanedDDL);
     retFiles.push('ddl.sql');
-
     return retFiles;
   };
 
@@ -196,6 +195,7 @@ export async function pullBigQueryResources({
         .createQueryJob({
           query: sql,
           params,
+          jobPrefix: `bqport-metadata_import-`,
         })
         .catch((e) => {
           console.log(e.message);

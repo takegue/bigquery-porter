@@ -178,6 +178,11 @@ const deployBigQueryResouce = async (
           query:
             `CREATE OR REPLACE VIEW \`${schema.id}.${tableId}\` as\n${query}`,
           priority: 'BATCH',
+          jobPrefix: `bqport-${schemaId}_${name}-`,
+          labels: {
+            ...BigQueryJobOptions?.labels,
+            'bqport': 'true',
+          },
         });
 
         if (ret.statistics?.totalBytesProcessed !== undefined) {
@@ -201,6 +206,11 @@ const deployBigQueryResouce = async (
         ...BigQueryJobOptions,
         query,
         priority: 'BATCH',
+        jobPrefix: `bqport-${schemaId}_${name}-`,
+        labels: {
+          ...BigQueryJobOptions?.labels,
+          'bqport': 'true',
+        },
       });
 
       if (
