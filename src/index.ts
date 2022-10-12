@@ -26,7 +26,7 @@ import {
 } from '../src/bigquery.js';
 import logUpdate from 'log-update';
 
-import { Reporter, Task } from '../src/reporter.js';
+import { Reporter, Task } from '../src/reporter/beautiful.js';
 import 'process';
 import { Command } from 'commander';
 

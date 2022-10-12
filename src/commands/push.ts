@@ -16,7 +16,7 @@ import {
 } from '@google-cloud/bigquery';
 
 import { spyConsole } from '../../src/runtime/console.js';
-import { Reporter, Task } from '../../src/reporter.js';
+import { Reporter, Task } from '../../src/reporter/beautiful.js';
 import { syncMetadata } from '../../src/metadata.js';
 import {
   extractDestinations,
