@@ -1,6 +1,6 @@
 import process from 'node:process';
 import pc from 'picocolors';
-import { F_CHECK, F_CROSS } from '../src/figures.js';
+import { F_CHECK, F_CROSS } from '../../src/figures.js';
 
 const spinnerFrames = process.platform === 'win32'
   ? ['-', '\\', '|', '/']
