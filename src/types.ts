@@ -1,9 +1,10 @@
+type TaskStatus = 'pending' | 'running' | 'success' | 'failed';
+
 interface ReporterTask {
   id: string;
+  error: string;
   message: string;
-  status: 'pending' | 'running' | 'success' | 'failed';
-  runningPromise: Promise<string | undefined> | undefined;
-
+  status: TaskStatus;
   run: () => Promise<void>;
   done: () => boolean;
 }
