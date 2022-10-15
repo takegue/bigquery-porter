@@ -282,6 +282,7 @@ export async function pushLocalFilesToBigQuery(
     projectId?: string;
     concurrency?: number;
     dryRun?: boolean;
+    force?: boolean;
     maximumBytesBilled?: string;
     labels?: { [label: string]: string };
     params?: any[] | { [param: string]: any };
@@ -348,6 +349,11 @@ function createCLI() {
     )
     .argument('[...projects]')
     .option(
+      '--force',
+      'Force to apply changes such as deletion without confirmation',
+      false,
+    )
+    .option(
       '--label <key:value>',
       'A label to set on a query job. The format is "key:value"; repeat this option to specify a list of values',
     )
@@ -377,6 +383,7 @@ function createCLI() {
         projectId: projects.pop() ?? '@default',
         concurrency: parseInt(cmdOptions.threads),
         dryRun: cmdOptions.dryRun ?? false,
+        force: cmdOptions.force ?? false,
       };
 
       if (cmdOptions.parameter) {
@@ -403,6 +410,7 @@ function createCLI() {
           path.basename(dataset),
           {
             dryRun: options.dryRun,
+            force: options.force,
           },
         );
       }
