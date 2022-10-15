@@ -1,6 +1,5 @@
 import * as fs from 'node:fs';
 import pLimit from 'p-limit';
-import logUpdate from 'log-update';
 import * as path from 'node:path';
 import { ApiError } from '@google-cloud/common';
 import {
@@ -15,8 +14,7 @@ import {
   Table,
 } from '@google-cloud/bigquery';
 
-import { spyConsole } from '../../src/runtime/console.js';
-import { Reporter, Task } from '../../src/reporter/beautiful.js';
+import { DefaultReporter, Task } from '../../src/reporter/index.js';
 import { syncMetadata } from '../../src/metadata.js';
 import {
   extractDestinations,
@@ -439,38 +437,19 @@ export async function pushBigQueryResourecs(
     }
   }
 
-  const { buffer, teardown } = spyConsole(() => 'unknown');
   const tasks = [...DAG.values()]
     .map(({ tasks }) => {
       tasks.forEach((task) => limit(async () => await task.run()));
       return tasks;
     }).flat();
 
-  const reporter = new Reporter(tasks);
-  logUpdate.done();
-  for await (let report of reporter.show_until_finished()) {
-    logUpdate(
-      `Tasks: remaing ${limit.pendingCount + limit.activeCount}\n` +
-        report,
-    );
+  const reporter = new DefaultReporter();
+  reporter.onInit(tasks);
+  while (tasks.some((t) => !t.done())) {
+    reporter.onUpdate();
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  teardown();
+  reporter.onUpdate();
 
-  {
-    const stdout = buffer.stdout.get('unknown');
-    const stderr = buffer.stderr.get('unknown');
-    if (stdout && stdout.length > 0) {
-      console.log('STDOUT: ');
-      for (const data of stdout) {
-        console.log(data.toString());
-      }
-    }
-
-    if (stderr && stderr.length > 0) {
-      console.log('STDERR: ');
-      for (const data of stderr) {
-        console.log(data.toString());
-      }
-    }
-  }
+  reporter.onFinished();
 }

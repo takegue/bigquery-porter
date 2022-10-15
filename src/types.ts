@@ -1,17 +1,24 @@
 type TaskStatus = 'pending' | 'running' | 'success' | 'failed';
 
-interface ReporterTask {
-  id: string;
-  error: string;
+type TaskResult = {
   message: string;
+  error: string;
+};
+
+interface ReporterTask {
+  name: string;
   status: TaskStatus;
+
+  error: string | undefined;
+  message: string | undefined;
   run: () => Promise<void>;
   done: () => boolean;
 }
 
 interface Reporter {
-  push: (task: ReporterTask) => void;
-  show_until_finished: () => AsyncGenerator<string, void, unknown>;
+  onInit: (tasks: ReporterTask) => void;
+  onUpdate: () => Promise<void>;
+  onFinished: () => void;
 }
 
-export { Reporter, ReporterTask };
+export { Reporter, ReporterTask, TaskResult, TaskStatus };

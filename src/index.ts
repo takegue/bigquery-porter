@@ -24,9 +24,8 @@ import {
   buildThrottledBigQueryClient,
   path2bq,
 } from '../src/bigquery.js';
-import logUpdate from 'log-update';
 
-import { Reporter, Task } from '../src/reporter/beautiful.js';
+import { DefaultReporter, Task } from '../src/reporter/index.js';
 import 'process';
 import { Command } from 'commander';
 
@@ -224,7 +223,7 @@ export async function pullBigQueryResources({
     bqObj2DDL = { ...schemaDDL, ...resourceDDL };
   }
 
-  const reporter = new Reporter([]);
+  const tasks: Task[] = [];
   const registerTask = (bqObj: Dataset | Table | Routine | Model) => {
     const parent = (bqObj.parent as ServiceObject);
     const projectId = bqObj.projectId ?? parent.projectId;
@@ -236,7 +235,7 @@ export async function pullBigQueryResources({
         return `Updated: ${updated.join(', ')}`;
       },
     );
-    reporter.push(task);
+    tasks.push(task);
     task.run();
   };
 
@@ -267,13 +266,16 @@ export async function pullBigQueryResources({
     return `Total ${cnt}`;
   });
 
-  reporter.push(task);
+  tasks.push(task);
   task.run();
 
-  logUpdate.done();
-  for await (let report of reporter.show_until_finished()) {
-    logUpdate(report);
+  const reporter = new DefaultReporter();
+  reporter.onInit(tasks);
+  while (tasks.some((t) => !t.done())) {
+    reporter.onUpdate();
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
+  reporter.onFinished();
 }
 
 export async function pushLocalFilesToBigQuery(

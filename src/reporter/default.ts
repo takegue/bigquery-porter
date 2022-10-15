@@ -1,6 +1,11 @@
 import process from 'node:process';
 import pc from 'picocolors';
+import logUpdate from 'log-update';
+
 import { F_CHECK, F_CROSS } from '../../src/figures.js';
+import { spyConsole } from '../../src/runtime/console.js';
+
+import type { Reporter, ReporterTask, TaskStatus } from '../../src/types.js';
 
 const spinnerFrames = process.platform === 'win32'
   ? ['-', '\\', '|', '/']
@@ -16,10 +21,10 @@ function elegantSpinner() {
 }
 
 type TaskJob = Promise<string | undefined>;
-class Task {
+class Task implements ReporterTask {
   name: string;
   job: () => TaskJob;
-  status: 'pending' | 'running' | 'success' | 'failed';
+  status: TaskStatus;
   spin: () => string;
   runningPromise: TaskJob | undefined;
   error: string | undefined;
@@ -56,16 +61,10 @@ class Task {
   }
 }
 
-class Reporter {
-  tasks: Task[];
+class DefaultReporter implements Reporter {
+  tasks: Task[] = [];
+  hooks: (() => void)[] = [];
   separator: string = '/';
-  constructor(tasks: Task[]) {
-    this.tasks = tasks;
-  }
-
-  push(task: Task) {
-    this.tasks.push(task);
-  }
 
   report_task(task: Task): string {
     let s = '';
@@ -136,12 +135,44 @@ class Reporter {
     return s;
   }
 
-  async *show_until_finished() {
-    while (this.tasks.some((t) => !t.done())) {
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      yield this.report_tree(this.tasks);
-    }
+  onInit(tasks: Task[]) {
+    this.tasks = tasks;
+    logUpdate.done();
+    const { buffer, teardown } = spyConsole(() => 'unknown');
+    this.hooks.push(
+      teardown,
+      () => {
+        const stdout = buffer.stdout.get('unknown');
+        const stderr = buffer.stderr.get('unknown');
+        if (stdout && stdout.length > 0) {
+          console.log('STDOUT: ');
+          for (const data of stdout) {
+            console.log(data.toString());
+          }
+        }
+
+        if (stderr && stderr.length > 0) {
+          console.log('STDERR: ');
+          for (const data of stderr) {
+            console.log(data.toString());
+          }
+        }
+      },
+    );
+  }
+
+  async onUpdate() {
+    const report = this.report_tree(this.tasks);
+    const taskCount = this.tasks.filter((t) => !t.done()).length;
+    logUpdate(
+      `Tasks: remaing ${taskCount}\n` +
+        report,
+    );
+  }
+
+  onFinished() {
+    this.hooks.forEach((h) => h());
   }
 }
 
-export { Reporter, Task };
+export { DefaultReporter, Task };
