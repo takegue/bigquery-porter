@@ -333,19 +333,30 @@ const buildDAG = (
     for (const dst of dsts) {
       const dstJob = file2job[dst];
       if (dstJob === undefined) {
-        continue;
+        throw new Error(`Job not found: ${dst}`);
       }
 
       if (!job2deps.has(dstJob)) {
         job2deps.set(dstJob, []);
       }
+    }
 
-      for (const src of srcs) {
-        const srcJob = file2job[src];
-        if (srcJob === undefined) {
-          continue;
+    for (const src of srcs) {
+      const srcJob = file2job[src];
+      if (srcJob === undefined) {
+        throw new Error(`Job not found: ${src}`);
+      }
+      if (!job2deps.has(srcJob)) {
+        job2deps.set(srcJob, []);
+      }
+
+      for (const dst of dsts) {
+        const dstJob = file2job[dst];
+        if (dstJob === undefined) {
+          throw new Error(`Job not found: ${dst}`);
         }
-        job2deps.get(dstJob)?.push(srcJob);
+
+        job2deps.get(srcJob)?.push(dstJob);
       }
     }
   }
@@ -374,6 +385,47 @@ const buildDAG = (
   return [orderdJobs, job2deps];
 };
 
+const buildTasks = (
+  jobs: JobConfig[],
+  jobDeps: WeakMap<JobConfig, JobConfig[]>,
+  taskbuilder: (file: string) => Promise<string | undefined>,
+): Task[] => {
+  const tasks: Task[] = [];
+  const job2task = new WeakMap<JobConfig, Task>();
+
+  const inquiryTasks = (
+    j: JobConfig,
+  ) => (
+    (jobDeps.get(j) ?? [])
+      .map((t) => job2task.get(t))
+      .filter((t): t is Task => t !== undefined)
+  );
+
+  for (const job of jobs) {
+    const task = new Task(
+      `${job.namespace.replace(/\./g, path.sep)}/${path.basename(job.file)}`,
+      async () => {
+        const deps: Task[] = inquiryTasks(job);
+        await Promise.all(
+          deps.map((d) => d.runningPromise).flat(),
+        ).catch(() => {
+          const msg = deps
+            .filter((t) => t && t.status == 'failed')
+            .map((t) => t?.name).join(', ');
+          throw Error('Suspended: Parent job is faild: ' + msg);
+        });
+
+        return await taskbuilder(job.file);
+      },
+    );
+
+    tasks.push(task);
+    job2task.set(job, task);
+    task.run();
+  }
+  return tasks;
+};
+
 export async function pushBigQueryResourecs(
   rootPath: string,
   files: string[],
@@ -400,54 +452,28 @@ export async function pushBigQueryResourecs(
 
   const [orderdJobs, jobDeps] = buildDAG(targets);
 
-  // Validation: All files should included
+  // DAG Validation: All files should included
   for (const target of targets) {
     if (!jobDeps.has(target)) {
       console.warn(`Warning: No deployment files for ${target.file}`);
     }
+
+    if (
+      !target.destinations.includes(target.namespace) &&
+      !target.dependencies.includes(target.namespace)
+    ) {
+      console.warn(
+        `Warning: Irrelevant SQL file for ${target.file}, ${target.namespace}`,
+      );
+    }
   }
 
-  const tasks: Task[] = [];
-  const job2Task = new WeakMap<JobConfig, Task>();
-
-  const inquiryTasks = (
-    j: JobConfig,
-  ) => (
-    (jobDeps.get(j) ?? [])
-      .map((t) => job2Task.get(t))
-      .filter((t): t is Task => t !== undefined)
+  const tasks = buildTasks(
+    orderdJobs,
+    jobDeps,
+    (file: string) =>
+      deployBigQueryResouce(bqClient, rootPath, file, jobOption),
   );
-
-  for (const job of orderdJobs) {
-    const task = new Task(
-      path.relative(rootPath, job.file).replace(
-        /@default/,
-        defaultProjectId,
-      ),
-      async () => {
-        const deps: Task[] = inquiryTasks(job);
-        await Promise.all(
-          deps.map((d) => d.runningPromise).flat(),
-        ).catch(() => {
-          const msg = deps
-            .filter((t) => t && t.status == 'failed')
-            .map((t) => t?.name).join(', ');
-          throw Error('Suspended: Parent job is faild: ' + msg);
-        });
-
-        return await deployBigQueryResouce(
-          bqClient,
-          rootPath,
-          job.file,
-          jobOption,
-        );
-      },
-    );
-
-    task.run();
-    tasks.push(task);
-    job2Task.set(job, task);
-  }
 
   const reporter = new DefaultReporter();
   reporter.onInit(tasks);
