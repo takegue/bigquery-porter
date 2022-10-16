@@ -150,7 +150,9 @@ function createCLI() {
             dryRun: options.dryRun,
             force: options.force,
           },
-        );
+        ).catch((e) => {
+          console.error(e);
+        });
       }
 
       await pushLocalFilesToBigQuery(options);
