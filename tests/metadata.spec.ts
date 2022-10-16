@@ -21,7 +21,7 @@ describe('syncMetadata: Pull', () => {
   const dPath = path.join(_dataset, _resource);
 
   afterAll(async () => {
-    fs.rmdirSync(_dataset, { recursive: true });
+    fs.rmSync(_dataset, { recursive: true });
   });
 
   beforeEach(async () => {
@@ -29,7 +29,7 @@ describe('syncMetadata: Pull', () => {
   });
 
   afterEach(async () => {
-    fs.rmdirSync(path.join(_dataset, _resource), { recursive: true });
+    fs.rmSync(path.join(_dataset, _resource), { recursive: true });
   });
 
   it('for Table: bigquery-public-data:austin_bikeshare.bikeshare_stations', async () => {
@@ -113,7 +113,7 @@ describe('syncMetadata: Push', () => {
 
   afterAll(async () => {
     await bqClient.dataset(_dataset).delete({ force: true });
-    fs.rmdirSync(_local, { recursive: true });
+    fs.rmSync(_local, { recursive: true });
   });
 
   it('for Table: sample_table', async () => {
