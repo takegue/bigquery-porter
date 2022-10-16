@@ -155,11 +155,13 @@ export const deployBigQueryResouce = async (
   rootPath: string,
   p: string,
   BigQueryJobOptions?: Query,
-) => {
+): Promise<string> => {
   const msgWithPath = (msg: string) => `${path.dirname(p)}: ${msg}`;
   const defaultProjectId = await bqClient.getProjectId();
 
-  if (p && !p.endsWith('sql')) return undefined;
+  if (p && !p.endsWith('sql')) {
+    throw new Error(`Invalid file: ${p}`);
+  }
 
   const [_, schemaId, name] = path2bq(p, rootPath, defaultProjectId).split('.');
   const query = await fs.promises.readFile(p)
@@ -169,7 +171,7 @@ export const deployBigQueryResouce = async (
     });
 
   if (!schemaId) {
-    throw new Error('Invalid SchemaId');
+    throw new Error(`Invalid SchemaId: ${schemaId}`);
   }
 
   const jobPrefix = `bqporter-${schemaId}_${name}-`;
@@ -179,7 +181,7 @@ export const deployBigQueryResouce = async (
       const schema = bqClient.dataset(schemaId);
       const tableId = name;
       if (!tableId) {
-        return;
+        throw new Error(`Invalid tableID: ${tableId}`);
       }
       if (BigQueryJobOptions?.dryRun) {
         const [_, ret] = await bqClient.createQueryJob({
@@ -247,7 +249,8 @@ export const deployBigQueryResouce = async (
       }
       break;
   }
-  return;
+
+  throw new Error('Unrechable code');
 };
 
 const extractBigQueryDependencies = async (
@@ -388,7 +391,7 @@ const buildDAG = (
 const buildTasks = (
   jobs: JobConfig[],
   jobDeps: WeakMap<JobConfig, JobConfig[]>,
-  taskbuilder: (file: string) => Promise<string | undefined>,
+  taskbuilder: (file: string) => Promise<string>,
 ): Task[] => {
   const tasks: Task[] = [];
   const job2task = new WeakMap<JobConfig, Task>();
@@ -410,7 +413,7 @@ const buildTasks = (
           deps.map((d) => d.runningPromise).flat(),
         ).catch(() => {
           const msg = deps
-            .filter((t) => t && t.status == 'failed')
+            .filter((t) => t && t.result().status == 'failed')
             .map((t) => t?.name).join(', ');
           throw Error('Suspended: Parent job is faild: ' + msg);
         });

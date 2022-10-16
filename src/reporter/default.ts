@@ -5,7 +5,7 @@ import logUpdate from 'log-update';
 import { F_CHECK, F_CROSS } from './figures.js';
 import { spyConsole } from '../../src/runtime/console.js';
 
-import type { Reporter, ReporterTask } from '../../src/types.js';
+import type { Reporter, ReporterTask, Stringable } from '../../src/types.js';
 
 const spinnerFrames = process.platform === 'win32'
   ? ['-', '\\', '|', '/']
@@ -19,16 +19,17 @@ function elegantSpinner() {
   };
 }
 
-class DefaultReporter implements Reporter {
-  tasks: ReporterTask[] = [];
+class DefaultReporter<T extends Stringable> implements Reporter<T> {
+  tasks: ReporterTask<T>[] = [];
   hooks: (() => void)[] = [];
   separator: string = '/';
-  spinnerMap: WeakMap<ReporterTask, () => string> = new WeakMap();
+  spinnerMap: WeakMap<ReporterTask<T>, () => string> = new WeakMap();
 
-  report_task(task: ReporterTask): string {
+  report_task(task: ReporterTask<T>): string {
     let s = '';
     let c = pc.red;
-    switch (task.status) {
+    const result = task.result();
+    switch (result.status) {
       case 'success':
         s = F_CHECK;
         c = pc.green;
@@ -57,15 +58,17 @@ class DefaultReporter implements Reporter {
     }
 
     const title = c(`${s} ${task.name.split(this.separator).pop()}`);
-    if (task.error) {
-      return `${title}: ${pc.bold(task.error)}`.trim();
-    } else {
-      const msg = task.message ? ` (${task.message ?? ''})` : '';
+    if (result.status === 'failed') {
+      return `${title}: ${pc.bold(result.error)}`.trim();
+    } else if (result.status === 'success') {
+      const msg = result.result.toString() ?? '';
       return `${title} ${msg}`.trim();
+    } else {
+      return '';
     }
   }
 
-  report_tree(tasks: ReporterTask[], level = 0, max_level = 4): string {
+  report_tree(tasks: ReporterTask<T>[], level = 0, max_level = 4): string {
     const groups = tasks.reduce((acc, t) => {
       const parts = t.name.split(this.separator);
       const key = parts.length === level + 1
@@ -76,10 +79,10 @@ class DefaultReporter implements Reporter {
       }
       acc.get(key)?.push(t);
       return acc;
-    }, new Map<string, ReporterTask[]>());
+    }, new Map<string, ReporterTask<T>[]>());
 
     let s = '';
-    const childStingifier = (tasks: ReporterTask[], level: number) => {
+    const childStingifier = (tasks: ReporterTask<T>[], level: number) => {
       const spaces = '  '.repeat(level);
       const body = tasks.map((t) => this.report_task(t)).filter((s) => s).join(
         '\n' + spaces,
@@ -102,7 +105,7 @@ class DefaultReporter implements Reporter {
     return s;
   }
 
-  onInit(tasks: ReporterTask[]) {
+  onInit(tasks: ReporterTask<T>[]) {
     this.tasks = tasks;
     this.spinnerMap = new WeakMap();
     logUpdate.done();

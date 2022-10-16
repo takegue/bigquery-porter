@@ -1,41 +1,46 @@
-import type { ReporterTask, TaskJob, TaskStatus } from '../src/types.js';
+import type {
+  Failed,
+  Pending,
+  ReporterTask,
+  Success,
+  TaskResult,
+} from '../src/types.js';
 
-class Task implements ReporterTask {
+class BaseTask<T> implements ReporterTask<T> {
   name: string;
-  job: () => TaskJob;
-  status: TaskStatus;
-  runningPromise: TaskJob | undefined;
-  error: string | undefined;
-  message: string | undefined;
+  job: () => Promise<T>;
+  _result: TaskResult<T> = {} as Pending;
+  runningPromise: Promise<T> | undefined;
 
-  constructor(name: string, job: () => TaskJob) {
+  constructor(name: string, job: () => Promise<T>) {
     this.name = name;
     this.job = job;
-    this.status = 'pending';
   }
 
   async run() {
-    if (this.status != 'pending') {
+    if (this._result.status == 'pending') {
       return;
     }
 
-    this.status = 'running';
-    // start job
     this.runningPromise = this.job();
     await this.runningPromise
-      .then((msg) => {
-        this.status = 'success';
-        this.message = msg;
+      .then((result) => {
+        this._result = { result } as Success<T>;
       })
       .catch((e) => {
-        this.status = 'failed';
-        this.error = e.message.trim();
+        this._result = { error: e.message.trim() } as Failed<T>;
       });
   }
 
+  result(): TaskResult<T> {
+    return this._result;
+  }
+
   done() {
-    return ['success', 'failed'].includes(this.status);
+    return ['success', 'failed'].includes(this._result.status);
   }
 }
 
+class Task extends BaseTask<string> {
+}
 export { Task };

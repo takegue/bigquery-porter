@@ -1,26 +1,58 @@
-type TaskStatus = 'pending' | 'running' | 'success' | 'failed';
+type Success<T> = {
+  status: 'success';
+  result: T;
+};
 
-type TaskResult = {
-  message: string;
+type Running<T> = {
+  status: 'running';
+  result: T | undefined;
+};
+
+type Pending = {
+  status: 'pending';
+};
+
+type Failed<T> = {
+  status: 'failed';
+  result: T;
   error: string;
 };
 
-type TaskJob = Promise<string | undefined>;
+type TaskResult<T> =
+  | Success<T>
+  | Running<T>
+  | Pending
+  | Failed<T>;
 
-interface ReporterTask {
-  name: string;
-  status: TaskStatus;
-  runningPromise: TaskJob | undefined;
-  error: string | undefined;
-  message: string | undefined;
-  run: () => Promise<void>;
-  done: () => boolean;
+interface Stringable {
+  toString: () => string;
 }
 
-interface Reporter {
-  onInit: (tasks: ReporterTask[]) => void;
+interface Seriaziable {
+  toObject: () => Object;
+}
+
+interface ReporterTask<T> {
+  name: string;
+  runningPromise: Promise<T> | undefined;
+  run: () => Promise<void>;
+  done: () => boolean;
+  result: () => TaskResult<T>;
+}
+
+interface Reporter<T> {
+  onInit: (tasks: ReporterTask<T>[]) => void;
   onUpdate: () => Promise<void>;
   onFinished: () => void;
 }
 
-export { Reporter, ReporterTask, TaskJob, TaskResult, TaskStatus };
+export {
+  Failed,
+  Pending,
+  Reporter,
+  ReporterTask,
+  Seriaziable,
+  Stringable,
+  Success,
+  TaskResult,
+};

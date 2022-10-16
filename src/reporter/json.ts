@@ -1,9 +1,9 @@
-import type { Reporter, ReporterTask } from '../types.js';
+import type { Reporter, ReporterTask, Seriaziable } from '../types.js';
 
-class JSONReporter implements Reporter {
-  tasks: ReporterTask[] = [];
+class JSONReporter<T extends Seriaziable> implements Reporter<T> {
+  tasks: ReporterTask<T>[] = [];
 
-  onInit(tasks: ReporterTask[]) {
+  onInit(tasks: ReporterTask<T>[]) {
     this.tasks = tasks;
   }
 
@@ -12,17 +12,24 @@ class JSONReporter implements Reporter {
 
   onFinished() {
     for (const task of this.tasks) {
-      console.log(JSON.stringify(
-        {
-          name: task.name,
-          status: task.status,
-          result: {
-            message: task.message,
-            error: task.error,
-          },
-        },
-        null,
-      ));
+      const result = task.result();
+      switch (result.status) {
+        case 'success':
+          console.log(JSON.stringify({
+            name: task.name,
+            result: result.result.toObject(),
+          }, null));
+          break;
+        case 'failed':
+          console.log(JSON.stringify({
+            name: task.name,
+            error: result.error,
+            result: result.result.toObject(),
+          }, null));
+          break;
+        default:
+          throw 'Unexpected task status: ${task} ${result.status}';
+      }
     }
   }
 }
