@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, it } from 'vitest';
 import { DefaultReporter } from '../src/reporter/index.js';
 import { Task } from '../src/task.js';
 
