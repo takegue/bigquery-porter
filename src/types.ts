@@ -5,10 +5,12 @@ type TaskResult = {
   error: string;
 };
 
+type TaskJob = Promise<string | undefined>;
+
 interface ReporterTask {
   name: string;
   status: TaskStatus;
-
+  runningPromise: TaskJob | undefined;
   error: string | undefined;
   message: string | undefined;
   run: () => Promise<void>;
@@ -16,9 +18,9 @@ interface ReporterTask {
 }
 
 interface Reporter {
-  onInit: (tasks: ReporterTask) => void;
+  onInit: (tasks: ReporterTask[]) => void;
   onUpdate: () => Promise<void>;
   onFinished: () => void;
 }
 
-export { Reporter, ReporterTask, TaskResult, TaskStatus };
+export { Reporter, ReporterTask, TaskJob, TaskResult, TaskStatus };

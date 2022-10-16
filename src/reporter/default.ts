@@ -5,7 +5,12 @@ import logUpdate from 'log-update';
 import { F_CHECK, F_CROSS } from '../../src/figures.js';
 import { spyConsole } from '../../src/runtime/console.js';
 
-import type { Reporter, ReporterTask, TaskStatus } from '../../src/types.js';
+import type {
+  Reporter,
+  ReporterTask,
+  TaskJob,
+  TaskStatus,
+} from '../../src/types.js';
 
 const spinnerFrames = process.platform === 'win32'
   ? ['-', '\\', '|', '/']
@@ -20,12 +25,10 @@ function elegantSpinner() {
   };
 }
 
-type TaskJob = Promise<string | undefined>;
 class Task implements ReporterTask {
   name: string;
   job: () => TaskJob;
   status: TaskStatus;
-  spin: () => string;
   runningPromise: TaskJob | undefined;
   error: string | undefined;
   message: string | undefined;
@@ -34,7 +37,6 @@ class Task implements ReporterTask {
     this.name = name;
     this.job = job;
     this.status = 'pending';
-    this.spin = elegantSpinner();
   }
 
   async run() {
@@ -62,11 +64,12 @@ class Task implements ReporterTask {
 }
 
 class DefaultReporter implements Reporter {
-  tasks: Task[] = [];
+  tasks: ReporterTask[] = [];
   hooks: (() => void)[] = [];
   separator: string = '/';
+  spinnerMap: WeakMap<ReporterTask, () => string> = new WeakMap();
 
-  report_task(task: Task): string {
+  report_task(task: ReporterTask): string {
     let s = '';
     let c = pc.red;
     switch (task.status) {
@@ -81,7 +84,15 @@ class DefaultReporter implements Reporter {
         break;
 
       case 'running':
-        s = task.spin();
+        if (!this.spinnerMap.has(task)) {
+          this.spinnerMap.set(task, elegantSpinner());
+        }
+        const spin = this.spinnerMap.get(task);
+        if (!spin) {
+          throw new Error('Unreachable codes');
+        }
+
+        s = spin();
         c = pc.gray;
         break;
 
@@ -98,7 +109,7 @@ class DefaultReporter implements Reporter {
     }
   }
 
-  report_tree(tasks: Task[], level = 0, max_level = 4): string {
+  report_tree(tasks: ReporterTask[], level = 0, max_level = 4): string {
     const groups = tasks.reduce((acc, t) => {
       const parts = t.name.split(this.separator);
       const key = parts.length === level + 1
@@ -109,10 +120,10 @@ class DefaultReporter implements Reporter {
       }
       acc.get(key)?.push(t);
       return acc;
-    }, new Map<string, Task[]>());
+    }, new Map<string, ReporterTask[]>());
 
     let s = '';
-    const childStingifier = (tasks: Task[], level: number) => {
+    const childStingifier = (tasks: ReporterTask[], level: number) => {
       const spaces = '  '.repeat(level);
       const body = tasks.map((t) => this.report_task(t)).filter((s) => s).join(
         '\n' + spaces,
@@ -135,8 +146,9 @@ class DefaultReporter implements Reporter {
     return s;
   }
 
-  onInit(tasks: Task[]) {
+  onInit(tasks: ReporterTask[]) {
     this.tasks = tasks;
+    this.spinnerMap = new WeakMap();
     logUpdate.done();
     const { buffer, teardown } = spyConsole(() => 'unknown');
     this.hooks.push(
@@ -166,7 +178,7 @@ class DefaultReporter implements Reporter {
     const taskCount = this.tasks.filter((t) => !t.done()).length;
     logUpdate(
       `Tasks: remaing ${taskCount}\n` +
-        report,
+      report,
     );
   }
 
