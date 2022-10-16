@@ -1,8 +1,7 @@
 import * as fs from 'node:fs';
-import pLimit from 'p-limit';
 import * as path from 'node:path';
 import { ApiError } from '@google-cloud/common';
-import {
+import type {
   BigQuery,
   Dataset,
   // GetDatasetsOptions,
@@ -26,9 +25,7 @@ import {
 } from '../../src/util.js';
 
 import {
-  // BigQueryResource,
-  // bq2path,
-  // buildThrottledBigQueryClient,
+  buildThrottledBigQueryClient,
   normalizedBQPath,
   path2bq,
 } from '../../src/bigquery.js';
@@ -320,11 +317,10 @@ export async function pushBigQueryResourecs(
   concurrency: number,
   jobOption: Query,
 ) {
-  const limit = pLimit(concurrency);
-  const bqClient = new BigQuery();
+  const bqClient = buildThrottledBigQueryClient(concurrency, 500);
   const defaultProjectId = await bqClient.getProjectId();
 
-  const results = await Promise.all(
+  const targets = await Promise.all(
     files
       .map(async (n: string) => ({
         file: n,
@@ -336,7 +332,7 @@ export async function pushBigQueryResourecs(
   );
 
   const relations = [
-    ...results
+    ...targets
       .reduce(
         (ret, { namespace: ns, dependencies: _deps, destinations: _dsts }) => {
           ret.add(JSON.stringify([ns, '#sentinal']));
@@ -364,7 +360,7 @@ export async function pushBigQueryResourecs(
     .map((n) => (typeof n === 'string') ? JSON.parse(n) : {})
     .filter(([src, dst]) => src !== dst);
 
-  const bigquery2Objs = results.reduce(
+  const bigquery2Objs = targets.reduce(
     (ret, obj) => {
       ret.set(
         obj.namespace,
@@ -389,7 +385,6 @@ export async function pushBigQueryResourecs(
         ([ns, jobs]) => [
           ns,
           {
-            // bigquery: ns,
             tasks: jobs.map(
               (job: BigQueryJobResource, ix) =>
                 new Task(
@@ -449,7 +444,7 @@ export async function pushBigQueryResourecs(
 
   const tasks = [...DAG.values()]
     .map(({ tasks }) => {
-      tasks.forEach((task) => limit(async () => await task.run()));
+      tasks.forEach(async (t) => await t.run());
       return tasks;
     }).flat();
 
