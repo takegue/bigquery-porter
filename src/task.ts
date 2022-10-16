@@ -1,8 +1,4 @@
-import type {
-  ReporterTask,
-  TaskJob,
-  TaskStatus,
-} from '../src/types.js';
+import type { ReporterTask, TaskJob, TaskStatus } from '../src/types.js';
 
 class Task implements ReporterTask {
   name: string;
@@ -42,7 +38,4 @@ class Task implements ReporterTask {
   }
 }
 
-
-export {
-  Task
-}
+export { Task };

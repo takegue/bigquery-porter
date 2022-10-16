@@ -5,9 +5,7 @@ import logUpdate from 'log-update';
 import { F_CHECK, F_CROSS } from '../../src/figures.js';
 import { spyConsole } from '../../src/runtime/console.js';
 
-import type {
-  Reporter, ReporterTask,
-} from '../../src/types.js';
+import type { Reporter, ReporterTask } from '../../src/types.js';
 
 const spinnerFrames = process.platform === 'win32'
   ? ['-', '\\', '|', '/']
