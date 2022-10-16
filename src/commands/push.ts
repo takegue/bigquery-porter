@@ -4,7 +4,6 @@ import { ApiError } from '@google-cloud/common';
 import type {
   BigQuery,
   Dataset,
-  // GetDatasetsOptions,
   GetJobsOptions,
   Job,
   // Model,
@@ -146,15 +145,12 @@ const fetchBQJobResource = async (
       return table;
     }
     default:
-      throw new Error(
-        `Not Supported: ${
-          JSON.stringify(job.metadata.statistics)
-        } (${job.id} )`,
-      );
+      const stats = JSON.stringify(job.metadata.statistics);
+      throw new Error(`Not Supported: ${stats} (${job.id} )`);
   }
 };
 
-const deployBigQueryResouce = async (
+export const deployBigQueryResouce = async (
   bqClient: BigQuery,
   rootPath: string,
   p: string,
@@ -312,54 +308,70 @@ const extractBigQueryDestinations = async (
 
 const buildDAG = (
   jobs: JobConfig[],
-): [Map<string, JobConfig[]>, string[]] => {
-  const relations = [
-    ...jobs
-      .reduce(
-        (ret, { namespace: ns, dependencies: _deps, destinations: _dsts }) => {
-          ret.add(JSON.stringify([ns, '#sentinal']));
+): [JobConfig[], WeakMap<JobConfig, JobConfig[]>] => {
+  const job2deps = new WeakMap<JobConfig, JobConfig[]>();
+  const file2job = Object.fromEntries(jobs.map((j) => [j.file, j]));
 
-          const dsts = new Set<string>(_dsts);
-          _dsts
-            .forEach(
-              (dst: string) => {
-                ret.add(JSON.stringify([dst, '#sentinal']));
-                _deps
-                  //  Intra-file dependencies will ignore
-                  .filter((s) => !dsts.has(s))
-                  .forEach(
-                    (src: string) => {
-                      ret.add(JSON.stringify([dst, src]));
-                    },
-                  );
-              },
-            );
-          return ret;
-        },
-        new Set(),
-      ),
-  ]
-    .map((n) => (typeof n === 'string') ? JSON.parse(n) : {})
-    .filter(([src, dst]) => src !== dst);
-
-  const bigquery2Objs = jobs.reduce(
-    (ret, obj) => {
-      ret.set(
-        obj.namespace,
-        //FIXME: Sort by sql kind (DDL > DML > QUERY)
-        [...ret.get(obj.namespace) ?? [], obj],
-      );
-      return ret;
-    },
-    new Map<string, JobConfig[]>(),
-  );
-
-  try {
-    const sortedJobs = topologicalSort(relations);
-    return [bigquery2Objs, sortedJobs];
-  } catch {
-    throw new Error('Circular dependency detected');
+  const bq2files = new Map<string, { dsts: string[]; srcs: string[] }>();
+  for (const { destinations, dependencies, file } of jobs) {
+    for (const dst of destinations) {
+      if (!bq2files.has(dst)) {
+        bq2files.set(dst, { dsts: [], srcs: [] });
+      }
+      bq2files.get(dst)?.dsts.push(file);
+    }
+    for (const dep of dependencies) {
+      if (!bq2files.has(dep)) {
+        bq2files.set(dep, { dsts: [], srcs: [] });
+      }
+      bq2files.get(dep)?.srcs.push(file);
+    }
   }
+
+  // job => deps
+  for (const { dsts, srcs } of bq2files.values()) {
+    for (const dst of dsts) {
+      const dstJob = file2job[dst];
+      if (dstJob === undefined) {
+        continue;
+      }
+
+      if (!job2deps.has(dstJob)) {
+        job2deps.set(dstJob, []);
+      }
+
+      for (const src of srcs) {
+        const srcJob = file2job[src];
+        if (srcJob === undefined) {
+          continue;
+        }
+        job2deps.get(dstJob)?.push(srcJob);
+      }
+    }
+  }
+
+  // ordered jobs
+  const relations = new Set<string>();
+  for (const { dsts, srcs } of bq2files.values()) {
+    for (const dst of dsts) {
+      relations.add(JSON.stringify([dst, '#root']));
+      for (const src of srcs) {
+        relations.add(JSON.stringify(['#leaf', dst]));
+        relations.add(JSON.stringify([src, dst]));
+      }
+    }
+  }
+
+  const orderdJobs = topologicalSort(
+    Array.from(relations.values())
+      .map((n: string) => JSON.parse(n))
+      .filter(([src, dst]) => src !== dst),
+  )
+    .filter((s) => !['#root', '#leaf'].includes(s))
+    .map((s) => file2job[s])
+    .filter((s): s is JobConfig => s !== undefined);
+
+  return [orderdJobs, job2deps];
 };
 
 export async function pushBigQueryResourecs(
@@ -386,94 +398,56 @@ export async function pushBigQueryResourecs(
       })),
   );
 
-  const [bigquery2Objs, sortedJobs] = buildDAG(targets);
-  console.dir(
-    await extractBigQueryDestinations(
-      rootPath,
-      'examples/@default/sandbox/sample_table/preview.sql',
-      bqClient,
-    ),
-    { depth: null },
-  );
-
-  if (!!true) {
-    return;
-  }
-
-  const inquiryTasks = (d: string) => DAG.get(d)?.tasks ?? [];
-  const DAG: Map<string, { tasks: Task[] }> = new Map(
-    sortedJobs
-      .map((bq: string) =>
-        [bq, bigquery2Objs.get(bq) ?? []] as [string, JobConfig[]]
-      )
-      .filter(([_, tasks]) => (tasks.length ?? 0) > 0)
-      .map(
-        ([ns, jobs]) => [
-          ns,
-          {
-            tasks: jobs.map(
-              (job: JobConfig, ix) =>
-                new Task(
-                  path.relative(rootPath, job.file).replace(
-                    /@default/,
-                    defaultProjectId,
-                  ),
-                  async () => {
-                    const deps = job.dependencies;
-                    await Promise.all(
-                      deps
-                        .map(
-                          (d: string) =>
-                            inquiryTasks(d).map((t) => t.runningPromise),
-                        )
-                        .flat()
-                        .concat(
-                          // Intra-directory tasks
-                          inquiryTasks(ns).slice(0, ix).map((t) =>
-                            t.runningPromise
-                          ) ?? [],
-                        ),
-                    ).catch(() => {
-                      const msg = deps
-                        .map((t) => inquiryTasks(t))
-                        .flat()
-                        .filter((t) => t && t.status == 'failed')
-                        .map((t) => t?.name).join(', ');
-                      throw Error('Suspended: Parent job is faild: ' + msg);
-                    });
-                    return await deployBigQueryResouce(
-                      bqClient,
-                      rootPath,
-                      job.file,
-                      jobOption,
-                    );
-                  },
-                ),
-            ),
-          },
-        ],
-      ),
-  );
+  const [orderdJobs, jobDeps] = buildDAG(targets);
 
   // Validation: All files should included
-  const namespaces = new Set(DAG.keys());
-  for (const [key, item] of bigquery2Objs.entries()) {
-    if (!namespaces.has(key)) {
-      console.warn(`Warning: No deployment files for ${key}`);
-    }
-    const allDestinations = new Set(item.map((f) => f.destinations).flat());
-    if (!allDestinations.has(key) && namespaces.has(key)) {
-      console.warn(
-        `Warning: No DDL file exist but target directory found: ${key}`,
-      );
+  for (const target of targets) {
+    if (!jobDeps.has(target)) {
+      console.warn(`Warning: No deployment files for ${target.file}`);
     }
   }
 
-  const tasks = [...DAG.values()]
-    .map(({ tasks }) => {
-      tasks.forEach(async (t) => await t.run());
-      return tasks;
-    }).flat();
+  const tasks: Task[] = [];
+  const job2Task = new WeakMap<JobConfig, Task>();
+
+  const inquiryTasks = (
+    j: JobConfig,
+  ) => (
+    (jobDeps.get(j) ?? [])
+      .map((t) => job2Task.get(t))
+      .filter((t): t is Task => t !== undefined)
+  );
+
+  for (const job of orderdJobs) {
+    const task = new Task(
+      path.relative(rootPath, job.file).replace(
+        /@default/,
+        defaultProjectId,
+      ),
+      async () => {
+        const deps: Task[] = inquiryTasks(job);
+        await Promise.all(
+          deps.map((d) => d.runningPromise).flat(),
+        ).catch(() => {
+          const msg = deps
+            .filter((t) => t && t.status == 'failed')
+            .map((t) => t?.name).join(', ');
+          throw Error('Suspended: Parent job is faild: ' + msg);
+        });
+
+        return await deployBigQueryResouce(
+          bqClient,
+          rootPath,
+          job.file,
+          jobOption,
+        );
+      },
+    );
+
+    task.run();
+    tasks.push(task);
+    job2Task.set(job, task);
+  }
 
   const reporter = new DefaultReporter();
   reporter.onInit(tasks);
