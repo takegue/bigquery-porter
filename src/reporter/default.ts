@@ -2,7 +2,7 @@ import process from 'node:process';
 import pc from 'picocolors';
 import logUpdate from 'log-update';
 
-import { F_CHECK, F_CROSS } from '../../src/figures.js';
+import { F_CHECK, F_CROSS } from './figures.js';
 import { spyConsole } from '../../src/runtime/console.js';
 
 import type { Reporter, ReporterTask } from '../../src/types.js';
@@ -134,7 +134,7 @@ class DefaultReporter implements Reporter {
     const taskCount = this.tasks.filter((t) => !t.done()).length;
     logUpdate(
       `Tasks: remaing ${taskCount}\n` +
-      report,
+        report,
     );
   }
 

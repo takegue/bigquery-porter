@@ -157,7 +157,8 @@ const deployBigQueryResouce = async (
 
       default:
         throw new Error(
-          `Not Supported: ${JSON.stringify(job.metadata.statistics)
+          `Not Supported: ${
+            JSON.stringify(job.metadata.statistics)
           } (${job.id} )`,
         );
     }
