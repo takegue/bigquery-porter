@@ -2,6 +2,7 @@ import type {
   Failed,
   Pending,
   ReporterTask,
+  Running,
   Success,
   TaskResult,
 } from '../src/types.js';
@@ -9,7 +10,7 @@ import type {
 class BaseTask<T> implements ReporterTask<T> {
   name: string;
   job: () => Promise<T>;
-  _result: TaskResult<T> = {} as Pending;
+  _result: TaskResult<T> = { status: 'pending' } as Pending;
   runningPromise: Promise<T> | undefined;
 
   constructor(name: string, job: () => Promise<T>) {
@@ -18,17 +19,20 @@ class BaseTask<T> implements ReporterTask<T> {
   }
 
   async run() {
-    if (this._result.status == 'pending') {
+    if (this._result.status != 'pending') {
       return;
     }
 
+    this._result = { status: 'running' } as Running;
     this.runningPromise = this.job();
     await this.runningPromise
       .then((result) => {
-        this._result = { result } as Success<T>;
+        this._result = { status: 'success', result } as Success<T>;
       })
       .catch((e) => {
-        this._result = { error: e.message.trim() } as Failed<T>;
+        this._result = { status: 'failed', error: e.message.trim() } as Failed<
+          T
+        >;
       });
   }
 

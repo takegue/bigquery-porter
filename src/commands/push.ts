@@ -480,6 +480,7 @@ export async function pushBigQueryResourecs(
 
   const reporter = new DefaultReporter();
   reporter.onInit(tasks);
+  tasks.forEach((t) => t.run());
   while (tasks.some((t) => !t.done())) {
     reporter.onUpdate();
     await new Promise((resolve) => setTimeout(resolve, 100));

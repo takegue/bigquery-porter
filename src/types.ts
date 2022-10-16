@@ -3,9 +3,8 @@ type Success<T> = {
   result: T;
 };
 
-type Running<T> = {
+type Running = {
   status: 'running';
-  result: T | undefined;
 };
 
 type Pending = {
@@ -19,9 +18,9 @@ type Failed<T> = {
 };
 
 type TaskResult<T> =
-  | Success<T>
-  | Running<T>
   | Pending
+  | Running
+  | Success<T>
   | Failed<T>;
 
 interface Stringable {
@@ -51,6 +50,7 @@ export {
   Pending,
   Reporter,
   ReporterTask,
+  Running,
   Seriaziable,
   Stringable,
   Success,
