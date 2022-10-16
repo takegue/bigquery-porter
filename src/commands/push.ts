@@ -40,6 +40,123 @@ type BigQueryJobResource = {
   destinations: string[];
 };
 
+const fetchBQJobResource = async (
+  job: Job,
+): Promise<Dataset | Routine | Table | undefined> => {
+  await job.promise()
+    .catch((e) => e);
+  await job.getMetadata();
+  if (job.metadata.status.errorResult) {
+    throw new Error(job.metadata.status.errorResult.message);
+  }
+
+  if (!job.id) {
+    throw new Error('Invalid Job ID');
+  }
+  switch (job.metadata.statistics.query.statementType) {
+    case 'SCRIPT':
+      const [childJobs] = await job.bigQuery.getJobs(
+        { parentJobId: job.id } as GetJobsOptions,
+      );
+      for (const ix in childJobs) {
+        const stat = childJobs[ix]?.metadata.statistics;
+        try {
+          if (stat.query?.ddlTargetRoutine) {
+            const schema = job.bigQuery.dataset(
+              stat.query.ddlTargetRoutine.schemaId,
+            );
+            const [routine] = await schema.routine(
+              stat.query.ddlTargetRoutine.routineId,
+            ).get();
+            return routine;
+          }
+          if (stat.query?.ddlTargetTable) {
+            const schema = job.bigQuery.dataset(
+              stat.query.ddlTargetTable.schemaId,
+            );
+            const [table] = await schema.table(
+              stat.query.ddlTargetTable.tableId,
+            ).get();
+            return table;
+          }
+        } catch (e: unknown) {
+          // ignore error: Not Found Table or Routine
+          if (e instanceof ApiError) {
+            if (e.code === 404) {
+              continue;
+            }
+            throw new Error(e.message);
+          }
+        }
+      }
+      return undefined;
+    case 'CREATE_SCHEMA':
+    case 'DROP_SCHEMA':
+    case 'ALTER_SCHEMA':
+      const [dataset] = await job.bigQuery.dataset(
+        job.metadata.statistics.query.ddlTargetDataset.schemaId,
+      ).get();
+      return dataset;
+    case 'CREATE_ROW_ACCESS_POLICY':
+    case 'DROP_ROW_ACCESS_POLICY':
+      //TODO: row access policy
+      throw new Error(
+        `Not Supported: ROW_ACCES_POLICY ${job.metadata.statistics}`,
+      );
+    case 'CREATE_MODEL':
+    case 'EXPORT_MODEL':
+      //TODO: models
+      throw new Error(
+        `Not Supported: MODEL ${job.metadata.statistics}`,
+      );
+    case 'CREATE_FUNCTION':
+    case 'CREATE_TABLE_FUNCTION':
+    case 'DROP_FUNCTION':
+    case 'CREATE_PROCEDURE':
+    case 'DROP_PROCEDURE': {
+      const schema = job.bigQuery.dataset(
+        job.metadata.statistics.ddlTargetRoutine.schemaId,
+      );
+      const routineId =
+        job.metadata.statistics.query.ddlTargetRoutine.routineId;
+      if (!routineId) {
+        throw new Error('Invalid routineId');
+      }
+      const [routine] = await schema.routine(routineId).get();
+      return routine;
+    }
+    case 'CREATE_TABLE':
+    case 'CREATE_VIEW':
+    case 'CREATE_TABLE_AS_SELECT':
+    case 'DROP_TABLE':
+    case 'DROP_VIEW':
+    case 'ALTER_TABLE':
+    case 'ALTER_VIEW':
+    case 'INSERT':
+    case 'UPDATE':
+    case 'DELETE':
+    case 'MERGE':
+    case 'CREATE_MATERIALIZED_VIEW':
+    case 'DROP_MATERIALIZED_VIEW': {
+      const tableId = job.metadata.statistics.query.ddlTargetTable.tableId;
+      if (!tableId) {
+        throw new Error('Invalid tableId');
+      }
+      const schema = job.bigQuery.dataset(
+        job.metadata.statistics.ddlTargetRoutine.schemaId,
+      );
+      const [table] = await schema.table(tableId).get();
+      return table;
+    }
+    default:
+      throw new Error(
+        `Not Supported: ${
+          JSON.stringify(job.metadata.statistics)
+        } (${job.id} )`,
+      );
+  }
+};
+
 const deployBigQueryResouce = async (
   bqClient: BigQuery,
   rootPath: string,
@@ -62,107 +179,7 @@ const deployBigQueryResouce = async (
     throw new Error('Invalid SchemaId');
   }
 
-  const fetchBQJobResource = async (
-    job: Job,
-  ): Promise<Dataset | Routine | Table | undefined> => {
-    await job.promise()
-      .catch((e) => e);
-    await job.getMetadata();
-    if (job.metadata.status.errorResult) {
-      throw new Error(job.metadata.status.errorResult.message);
-    }
-
-    if (!job.id) {
-      throw new Error('Invalid SchemaId');
-    }
-
-    const schema = bqClient.dataset(schemaId);
-    switch (job.metadata.statistics.query.statementType) {
-      case 'SCRIPT':
-        const [childJobs] = await bqClient.getJobs(
-          { parentJobId: job.id } as GetJobsOptions,
-        );
-        for (const ix in childJobs) {
-          const stat = childJobs[ix]?.metadata.statistics;
-          try {
-            if (stat.query?.ddlTargetRoutine) {
-              const [routine] = await schema.routine(
-                stat.query.ddlTargetRoutine.routineId,
-              ).get();
-              return routine;
-            }
-            if (stat.query?.ddlTargetTable) {
-              const [table] = await schema.table(
-                stat.query.ddlTargetTable.tableId,
-              ).get();
-              return table;
-            }
-          } catch (e: unknown) {
-            // ignore error: Not Found Table or Routine
-            if (e instanceof ApiError) {
-              if (e.code === 404) {
-                continue;
-              }
-              throw new Error(e.message);
-            }
-          }
-        }
-        return undefined;
-      case 'CREATE_SCHEMA':
-      case 'DROP_SCHEMA':
-      case 'ALTER_SCHEMA':
-        const [dataset] = await schema.get();
-        return dataset;
-      case 'CREATE_ROW_ACCESS_POLICY':
-      case 'DROP_ROW_ACCESS_POLICY':
-        //TODO: row access policy
-        throw new Error(
-          `Not Supported: ROW_ACCES_POLICY ${job.metadata.statistics}`,
-        );
-      case 'CREATE_MODEL':
-      case 'EXPORT_MODEL':
-        //TODO: models
-        throw new Error(
-          `Not Supported: MODEL ${job.metadata.statistics}`,
-        );
-      case 'CREATE_FUNCTION':
-      case 'CREATE_TABLE_FUNCTION':
-      case 'DROP_FUNCTION':
-      case 'CREATE_PROCEDURE':
-      case 'DROP_PROCEDURE':
-        const routineId = name;
-        if (!routineId) {
-          throw new Error('Invalid routineId');
-        }
-        const [routine] = await schema.routine(routineId).get();
-        return routine;
-      case 'CREATE_TABLE':
-      case 'CREATE_VIEW':
-      case 'CREATE_TABLE_AS_SELECT':
-      case 'DROP_TABLE':
-      case 'DROP_VIEW':
-      case 'ALTER_TABLE':
-      case 'ALTER_VIEW':
-      case 'INSERT':
-      case 'UPDATE':
-      case 'DELETE':
-      case 'MERGE':
-      case 'CREATE_MATERIALIZED_VIEW':
-      case 'DROP_MATERIALIZED_VIEW':
-        if (!name) {
-          throw new Error('Invalid tableId');
-        }
-        const [table] = await schema.table(name).get();
-        return table;
-
-      default:
-        throw new Error(
-          `Not Supported: ${
-            JSON.stringify(job.metadata.statistics)
-          } (${job.id} )`,
-        );
-    }
-  };
+  const jobPrefix = `bqporter-${schemaId}_${name}-`;
 
   switch (path.basename(p)) {
     case 'view.sql':
@@ -177,11 +194,7 @@ const deployBigQueryResouce = async (
           query:
             `CREATE OR REPLACE VIEW \`${schema.id}.${tableId}\` as\n${query}`,
           priority: 'BATCH',
-          jobPrefix: `bqport-${schemaId}_${name}-`,
-          labels: {
-            ...BigQueryJobOptions?.labels,
-            'bqport': 'true',
-          },
+          jobPrefix,
         });
 
         if (ret.statistics?.totalBytesProcessed !== undefined) {
@@ -205,11 +218,7 @@ const deployBigQueryResouce = async (
         ...BigQueryJobOptions,
         query,
         priority: 'BATCH',
-        jobPrefix: `bqport-${schemaId}_${name}-`,
-        labels: {
-          ...BigQueryJobOptions?.labels,
-          'bqport': 'true',
-        },
+        jobPrefix,
       });
 
       if (
@@ -451,6 +460,5 @@ export async function pushBigQueryResourecs(
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
   reporter.onUpdate();
-
   reporter.onFinished();
 }
