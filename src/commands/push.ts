@@ -30,7 +30,7 @@ import {
   path2bq,
 } from '../../src/bigquery.js';
 
-type BigQueryJobResource = {
+type JobConfig = {
   file: string;
   namespace: string;
   dependencies: string[];
@@ -293,12 +293,11 @@ const extractBigQueryDestinations = async (
   const bqID = path2bq(fpath, rootPath, defaultProjectId);
   const [projectID] = bqID.split('.');
 
-  if (fpath.endsWith('view.sql')) {
+  if (fpath.endsWith(`${path.sep}view.sql`)) {
     return [bqID];
   }
 
-  const sql: string = await fs.promises.readFile(fpath)
-    .then((s: any) => s.toString());
+  const sql: string = await fs.promises.readFile(fpath, 'utf-8');
   const refs = [
     ...new Set(
       extractDestinations(sql)
@@ -311,28 +310,11 @@ const extractBigQueryDestinations = async (
   return refs;
 };
 
-export async function pushBigQueryResourecs(
-  rootPath: string,
-  files: string[],
-  concurrency: number,
-  jobOption: Query,
-) {
-  const bqClient = buildThrottledBigQueryClient(concurrency, 500);
-  const defaultProjectId = await bqClient.getProjectId();
-
-  const targets = await Promise.all(
-    files
-      .map(async (n: string) => ({
-        file: n,
-        namespace: path2bq(n, rootPath, defaultProjectId),
-        dependencies: (await extractBigQueryDependencies(rootPath, n, bqClient))
-          .filter((n) => n !== path2bq(n, rootPath, defaultProjectId)),
-        destinations: await extractBigQueryDestinations(rootPath, n, bqClient),
-      } as BigQueryJobResource)),
-  );
-
+const buildDAG = (
+  jobs: JobConfig[],
+): [Map<string, JobConfig[]>, string[]] => {
   const relations = [
-    ...targets
+    ...jobs
       .reduce(
         (ret, { namespace: ns, dependencies: _deps, destinations: _dsts }) => {
           ret.add(JSON.stringify([ns, '#sentinal']));
@@ -360,7 +342,7 @@ export async function pushBigQueryResourecs(
     .map((n) => (typeof n === 'string') ? JSON.parse(n) : {})
     .filter(([src, dst]) => src !== dst);
 
-  const bigquery2Objs = targets.reduce(
+  const bigquery2Objs = jobs.reduce(
     (ret, obj) => {
       ret.set(
         obj.namespace,
@@ -369,16 +351,60 @@ export async function pushBigQueryResourecs(
       );
       return ret;
     },
-    new Map<string, BigQueryJobResource[]>(),
+    new Map<string, JobConfig[]>(),
   );
 
-  const DAG: Map<string, {
-    tasks: Task[];
-    // bigquery: BigQueryJobResource;
-  }> = new Map(
-    topologicalSort(relations)
+  try {
+    const sortedJobs = topologicalSort(relations);
+    return [bigquery2Objs, sortedJobs];
+  } catch {
+    throw new Error('Circular dependency detected');
+  }
+};
+
+export async function pushBigQueryResourecs(
+  rootPath: string,
+  files: string[],
+  concurrency: number,
+  jobOption: Query,
+) {
+  const bqClient = buildThrottledBigQueryClient(concurrency, 500);
+  const defaultProjectId = await bqClient.getProjectId();
+
+  const targets: JobConfig[] = await Promise.all(
+    files
+      .map(async (n: string) => ({
+        namespace: path2bq(n, rootPath, defaultProjectId),
+        file: n,
+        destinations: await extractBigQueryDestinations(
+          rootPath,
+          n,
+          bqClient,
+        ),
+        dependencies: (await extractBigQueryDependencies(rootPath, n, bqClient))
+          .filter((n) => n !== path2bq(n, rootPath, defaultProjectId)),
+      })),
+  );
+
+  const [bigquery2Objs, sortedJobs] = buildDAG(targets);
+  console.dir(
+    await extractBigQueryDestinations(
+      rootPath,
+      'examples/@default/sandbox/sample_table/preview.sql',
+      bqClient,
+    ),
+    { depth: null },
+  );
+
+  if (!!true) {
+    return;
+  }
+
+  const inquiryTasks = (d: string) => DAG.get(d)?.tasks ?? [];
+  const DAG: Map<string, { tasks: Task[] }> = new Map(
+    sortedJobs
       .map((bq: string) =>
-        [bq, bigquery2Objs.get(bq) ?? []] as [string, BigQueryJobResource[]]
+        [bq, bigquery2Objs.get(bq) ?? []] as [string, JobConfig[]]
       )
       .filter(([_, tasks]) => (tasks.length ?? 0) > 0)
       .map(
@@ -386,29 +412,30 @@ export async function pushBigQueryResourecs(
           ns,
           {
             tasks: jobs.map(
-              (job: BigQueryJobResource, ix) =>
+              (job: JobConfig, ix) =>
                 new Task(
                   path.relative(rootPath, job.file).replace(
                     /@default/,
                     defaultProjectId,
                   ),
                   async () => {
+                    const deps = job.dependencies;
                     await Promise.all(
-                      job.dependencies
+                      deps
                         .map(
                           (d: string) =>
-                            DAG.get(d)?.tasks.map((t) => t.runningPromise),
+                            inquiryTasks(d).map((t) => t.runningPromise),
                         )
                         .flat()
                         .concat(
                           // Intra-directory tasks
-                          DAG.get(ns)?.tasks.slice(0, ix).map((t) =>
+                          inquiryTasks(ns).slice(0, ix).map((t) =>
                             t.runningPromise
                           ) ?? [],
                         ),
                     ).catch(() => {
-                      const msg = job.dependencies
-                        .map((t) => DAG.get(t)?.tasks)
+                      const msg = deps
+                        .map((t) => inquiryTasks(t))
                         .flat()
                         .filter((t) => t && t.status == 'failed')
                         .map((t) => t?.name).join(', ');
