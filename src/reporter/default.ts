@@ -6,10 +6,7 @@ import { F_CHECK, F_CROSS } from '../../src/figures.js';
 import { spyConsole } from '../../src/runtime/console.js';
 
 import type {
-  Reporter,
-  ReporterTask,
-  TaskJob,
-  TaskStatus,
+  Reporter, ReporterTask,
 } from '../../src/types.js';
 
 const spinnerFrames = process.platform === 'win32'
@@ -18,49 +15,10 @@ const spinnerFrames = process.platform === 'win32'
 
 function elegantSpinner() {
   let index = 0;
-
   return () => {
     index = ++index % spinnerFrames.length;
     return spinnerFrames[index] ?? '';
   };
-}
-
-class Task implements ReporterTask {
-  name: string;
-  job: () => TaskJob;
-  status: TaskStatus;
-  runningPromise: TaskJob | undefined;
-  error: string | undefined;
-  message: string | undefined;
-
-  constructor(name: string, job: () => TaskJob) {
-    this.name = name;
-    this.job = job;
-    this.status = 'pending';
-  }
-
-  async run() {
-    if (this.status != 'pending') {
-      return;
-    }
-
-    this.status = 'running';
-    // start job
-    this.runningPromise = this.job();
-    await this.runningPromise
-      .then((msg) => {
-        this.status = 'success';
-        this.message = msg;
-      })
-      .catch((e) => {
-        this.status = 'failed';
-        this.error = e.message.trim();
-      });
-  }
-
-  done() {
-    return ['success', 'failed'].includes(this.status);
-  }
 }
 
 class DefaultReporter implements Reporter {
@@ -187,4 +145,4 @@ class DefaultReporter implements Reporter {
   }
 }
 
-export { DefaultReporter, Task };
+export { DefaultReporter };

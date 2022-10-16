@@ -25,7 +25,8 @@ import {
   path2bq,
 } from '../src/bigquery.js';
 
-import { DefaultReporter, Task } from '../src/reporter/index.js';
+import { DefaultReporter } from '../src/reporter/index.js';
+import { Task } from '../src/task.js';
 import 'process';
 import { Command } from 'commander';
 

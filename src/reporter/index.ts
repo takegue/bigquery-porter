@@ -1,3 +1,3 @@
-import { DefaultReporter, Task } from './default.js';
+import { DefaultReporter } from './default.js';
 
-export { DefaultReporter, Task };
+export { DefaultReporter };

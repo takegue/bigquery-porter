@@ -14,7 +14,8 @@ import {
   Table,
 } from '@google-cloud/bigquery';
 
-import { DefaultReporter, Task } from '../../src/reporter/index.js';
+import { DefaultReporter } from '../../src/reporter/index.js';
+import { Task } from '../../src/task.js';
 import { syncMetadata } from '../../src/metadata.js';
 import {
   extractDestinations,
