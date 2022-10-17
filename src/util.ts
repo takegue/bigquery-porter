@@ -191,7 +191,7 @@ function msToTime(ms: number): string {
     return `${pad(Math.floor(seconds % 60))}s`;
   }
 
-  return `${pad(Math.floor(ms), 3)}ms`;
+  return `${pad(Math.floor(ms), 2)}ms`;
 }
 
 /**
@@ -208,7 +208,7 @@ function humanFileSize(bytes: number, si = false, dp = 1) {
   const thresh = si ? 1000 : 1024;
 
   if (Math.abs(bytes) < thresh) {
-    return bytes + ' B';
+    return bytes + 'B';
   }
 
   const units = si
