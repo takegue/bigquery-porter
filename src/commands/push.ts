@@ -58,7 +58,7 @@ const fetchBQJobResource = async (
         try {
           if (stat.query?.ddlTargetRoutine) {
             const schema = job.bigQuery.dataset(
-              stat.query.ddlTargetRoutine.schemaId,
+              stat.query.ddlTargetRoutine.datasetId,
             );
             const [routine] = await schema.routine(
               stat.query.ddlTargetRoutine.routineId,
@@ -67,7 +67,7 @@ const fetchBQJobResource = async (
           }
           if (stat.query?.ddlTargetTable) {
             const schema = job.bigQuery.dataset(
-              stat.query.ddlTargetTable.schemaId,
+              stat.query.ddlTargetTable.datasetId,
             );
             const [table] = await schema.table(
               stat.query.ddlTargetTable.tableId,
@@ -80,7 +80,7 @@ const fetchBQJobResource = async (
             if (e.code === 404) {
               continue;
             }
-            throw new Error(e.message);
+            throw new Error(`e.message ${JSON.stringify(stat.query)}`);
           }
         }
       }
@@ -89,7 +89,7 @@ const fetchBQJobResource = async (
     case 'DROP_SCHEMA':
     case 'ALTER_SCHEMA':
       const [dataset] = await job.bigQuery.dataset(
-        job.metadata.statistics.query.ddlTargetDataset.schemaId,
+        job.metadata.statistics.query.ddlTargetDataset.datasetId,
       ).get();
       return dataset;
     case 'CREATE_ROW_ACCESS_POLICY':
@@ -110,7 +110,7 @@ const fetchBQJobResource = async (
     case 'CREATE_PROCEDURE':
     case 'DROP_PROCEDURE': {
       const schema = job.bigQuery.dataset(
-        job.metadata.statistics.ddlTargetRoutine.schemaId,
+        job.metadata.statistics.query.ddlTargetRoutine.datasetId,
       );
       const routineId =
         job.metadata.statistics.query.ddlTargetRoutine.routineId;
@@ -138,7 +138,7 @@ const fetchBQJobResource = async (
         throw new Error('Invalid tableId');
       }
       const schema = job.bigQuery.dataset(
-        job.metadata.statistics.ddlTargetRoutine.schemaId,
+        job.metadata.statistics.query.ddlTargetTable.datasetId,
       );
       const [table] = await schema.table(tableId).get();
       return table;
@@ -166,22 +166,24 @@ export const deployBigQueryResouce = async (
     throw new Error(`Invalid file: ${p}`);
   }
 
-  const [_, schemaId, name] = path2bq(p, rootPath, defaultProjectId).split('.');
+  const [_, datasetId, name] = path2bq(p, rootPath, defaultProjectId).split(
+    '.',
+  );
   const query = await fs.promises.readFile(p)
     .then((s: any) => s.toString())
     .catch((err: any) => {
       throw new Error(msgWithPath(err));
     });
 
-  if (!schemaId) {
-    throw new Error(`Invalid SchemaId: ${schemaId}`);
+  if (!datasetId) {
+    throw new Error(`Invalid SchemaId: ${datasetId}`);
   }
 
-  const jobPrefix = `bqporter-${schemaId}_${name}-`;
+  const jobPrefix = `bqporter-${datasetId}_${name}-`;
 
   switch (path.basename(p)) {
     case 'view.sql':
-      const schema = bqClient.dataset(schemaId);
+      const schema = bqClient.dataset(datasetId);
       const tableId = name;
       if (!tableId) {
         throw new Error(`Invalid tableID: ${tableId}`);
