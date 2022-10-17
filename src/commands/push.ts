@@ -13,13 +13,11 @@ import type {
 } from '@google-cloud/bigquery';
 
 import { DefaultReporter } from '../../src/reporter/index.js';
-import { Task } from '../../src/task.js';
+import { BigQueryJobTask, BQJob } from '../../src/task.js';
 import { syncMetadata } from '../../src/metadata.js';
 import {
   extractDestinations,
   extractRefenrences,
-  humanFileSize,
-  msToTime,
   topologicalSort,
 } from '../../src/util.js';
 
@@ -155,7 +153,7 @@ export const deployBigQueryResouce = async (
   rootPath: string,
   p: string,
   BigQueryJobOptions?: Query,
-): Promise<string> => {
+): Promise<BQJob> => {
   const msgWithPath = (msg: string) => `${path.dirname(p)}: ${msg}`;
   const defaultProjectId = await bqClient.getProjectId();
 
@@ -184,7 +182,7 @@ export const deployBigQueryResouce = async (
         throw new Error(`Invalid tableID: ${tableId}`);
       }
       if (BigQueryJobOptions?.dryRun) {
-        const [_, ret] = await bqClient.createQueryJob({
+        const [_, ijob] = await bqClient.createQueryJob({
           ...BigQueryJobOptions,
           query:
             `CREATE OR REPLACE VIEW \`${schema.id}.${tableId}\` as\n${query}`,
@@ -192,9 +190,17 @@ export const deployBigQueryResouce = async (
           jobPrefix,
         });
 
-        if (ret.statistics?.totalBytesProcessed !== undefined) {
-          return humanFileSize(parseInt(ret.statistics.totalBytesProcessed));
+        const ret: BQJob = {};
+        if (ijob.jobReference?.jobId) {
+          ret.jobID = ijob.jobReference.jobId;
         }
+        if (ijob.statistics?.totalBytesProcessed) {
+          ret.totalBytesProcessed = parseInt(
+            ijob.statistics.totalBytesProcessed,
+          );
+        }
+
+        return ret;
       }
 
       const api = schema.table(tableId);
@@ -206,7 +212,8 @@ export const deployBigQueryResouce = async (
         })
       );
       await syncMetadata(view, path.dirname(p), { push: true });
-      break;
+      return {};
+
     default:
       // https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#jobconfiguration
       const [job, ijob] = await bqClient.createQueryJob({
@@ -216,11 +223,26 @@ export const deployBigQueryResouce = async (
         jobPrefix,
       });
 
-      if (
-        ijob.configuration?.dryRun &&
-        ijob.statistics?.totalBytesProcessed !== undefined
-      ) {
-        return humanFileSize(parseInt(ijob.statistics.totalBytesProcessed));
+      const stats = job.metadata?.statistics;
+      const ret: BQJob = {};
+      if (stats.totalBytesProcessed) {
+        ret.totalBytesProcessed = parseInt(stats.totalBytesProcessed);
+      }
+      if (ijob.jobReference?.jobId) {
+        ret.jobID = ijob.jobReference?.jobId;
+      }
+
+      const elapsedTimeMs =
+        stats.endTime !== undefined && stats.startTime !== undefined
+          ? parseInt(stats.endTime) - parseInt(stats.startTime)
+          : undefined;
+
+      if (elapsedTimeMs !== undefined) {
+        ret['elapsedTimeMs'] = elapsedTimeMs;
+      }
+
+      if (ijob.configuration?.dryRun) {
+        return ret;
       }
 
       try {
@@ -232,25 +254,8 @@ export const deployBigQueryResouce = async (
         console.warn((e as Error).message);
       }
 
-      if (job.metadata.statistics?.totalBytesProcessed !== undefined) {
-        const stats = job.metadata?.statistics;
-        const elpasedTime =
-          stats.endTime !== undefined && stats.startTime !== undefined
-            ? msToTime(parseInt(stats.endTime) - parseInt(stats.startTime))
-            : undefined;
-
-        const totalBytes = humanFileSize(
-          parseInt(job.metadata.statistics?.totalBytesProcessed),
-        );
-
-        return [totalBytes, elpasedTime].filter((s) => s !== undefined).join(
-          ', ',
-        );
-      }
-      break;
+      return ret;
   }
-
-  throw new Error('Unrechable code');
 };
 
 const extractBigQueryDependencies = async (
@@ -391,24 +396,24 @@ const buildDAG = (
 const buildTasks = (
   jobs: JobConfig[],
   jobDeps: WeakMap<JobConfig, JobConfig[]>,
-  taskbuilder: (file: string) => Promise<string>,
-): Task[] => {
-  const tasks: Task[] = [];
-  const job2task = new WeakMap<JobConfig, Task>();
+  taskbuilder: (file: string) => Promise<BQJob>,
+): BigQueryJobTask[] => {
+  const tasks: BigQueryJobTask[] = [];
+  const job2task = new WeakMap<JobConfig, BigQueryJobTask>();
 
   const inquiryTasks = (
     j: JobConfig,
   ) => (
     (jobDeps.get(j) ?? [])
       .map((t) => job2task.get(t))
-      .filter((t): t is Task => t !== undefined)
+      .filter((t): t is BigQueryJobTask => t !== undefined)
   );
 
   for (const job of jobs) {
-    const task = new Task(
+    const task = new BigQueryJobTask(
       `${job.namespace.replace(/\./g, path.sep)}/${path.basename(job.file)}`,
       async () => {
-        const deps: Task[] = inquiryTasks(job);
+        const deps: BigQueryJobTask[] = inquiryTasks(job);
         await Promise.all(
           deps.map((d) => d.runningPromise).flat(),
         ).catch(() => {
