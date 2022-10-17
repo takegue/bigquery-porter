@@ -12,7 +12,8 @@ import type {
   Table,
 } from '@google-cloud/bigquery';
 
-import { DefaultReporter } from '../../src/reporter/index.js';
+import type { Reporter } from '../../src/types.js';
+import { DefaultReporter, JSONReporter } from '../../src/reporter/index.js';
 import { BigQueryJobTask, BQJob } from '../../src/task.js';
 import { syncMetadata } from '../../src/metadata.js';
 import {
@@ -101,7 +102,7 @@ const fetchBQJobResource = async (
     case 'EXPORT_MODEL':
       //TODO: models
       throw new Error(
-        `Not Supported: MODEL ${job.metadata.statistics}`,
+        `Not Supported: MODEL ${JSON.stringify(job.metadata.statistics)}`,
       );
     case 'CREATE_FUNCTION':
     case 'CREATE_TABLE_FUNCTION':
@@ -143,8 +144,12 @@ const fetchBQJobResource = async (
       return table;
     }
     default:
-      const stats = JSON.stringify(job.metadata.statistics);
-      throw new Error(`Not Supported: ${stats} (${job.id} )`);
+      const stats = job.metadata.statistics;
+      throw new Error(
+        `Not Supported: ${stats.query.statementType} (${job.id}, ${
+          JSON.stringify(stats)
+        })`,
+      );
   }
 };
 
@@ -194,7 +199,7 @@ export const deployBigQueryResouce = async (
         if (ijob.jobReference?.jobId) {
           ret.jobID = ijob.jobReference.jobId;
         }
-        if (ijob.statistics?.totalBytesProcessed) {
+        if (ijob.statistics?.totalBytesProcessed !== undefined) {
           ret.totalBytesProcessed = parseInt(
             ijob.statistics.totalBytesProcessed,
           );
@@ -225,7 +230,7 @@ export const deployBigQueryResouce = async (
 
       const stats = job.metadata?.statistics;
       const ret: BQJob = {};
-      if (stats.totalBytesProcessed) {
+      if (stats.totalBytesProcessed !== undefined) {
         ret.totalBytesProcessed = parseInt(stats.totalBytesProcessed);
       }
       if (ijob.jobReference?.jobId) {
@@ -439,6 +444,7 @@ export async function pushBigQueryResourecs(
   files: string[],
   concurrency: number,
   jobOption: Query,
+  reporterType: 'console' | 'json',
 ) {
   const bqClient = buildThrottledBigQueryClient(concurrency, 500);
   const defaultProjectId = await bqClient.getProjectId();
@@ -483,7 +489,11 @@ export async function pushBigQueryResourecs(
       deployBigQueryResouce(bqClient, rootPath, file, jobOption),
   );
 
-  const reporter = new DefaultReporter();
+  let reporter: Reporter<BQJob> = new DefaultReporter();
+  if (reporterType === 'json') {
+    reporter = new JSONReporter<BQJob>();
+  }
+
   reporter.onInit(tasks);
   tasks.forEach((t) => t.run());
   while (tasks.some((t) => !t.done())) {

@@ -3,7 +3,6 @@ import type {
   Pending,
   ReporterTask,
   Running,
-  Seriaziable,
   Stringable,
   Success,
   TaskResult,
@@ -58,8 +57,7 @@ type BQJob = {
   elapsedTimeMs?: number;
 };
 
-class BigQueryJobTask extends BaseTask<BQJob>
-  implements Seriaziable, Stringable {
+class BigQueryJobTask extends BaseTask<BQJob> implements Stringable {
   override toString(): string {
     const result = this.result();
     if (['pending', 'running'].includes(result.status)) {
@@ -73,7 +71,7 @@ class BigQueryJobTask extends BaseTask<BQJob>
     if (result.status === 'success') {
       const payload = [];
       if (result.result.jobID) {
-        payload.push(`Job ID: ${result.result.jobID}`);
+        payload.push(`ID: ${result.result.jobID}`);
       }
 
       if (result.result.totalBytesProcessed) {
@@ -87,9 +85,6 @@ class BigQueryJobTask extends BaseTask<BQJob>
       return payload.join(', ');
     }
     return '';
-  }
-  toObject(): Object {
-    return {};
   }
 }
 

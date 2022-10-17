@@ -1,6 +1,6 @@
-import type { Reporter, ReporterTask, Seriaziable } from '../types.js';
+import type { Reporter, ReporterTask } from '../types.js';
 
-class JSONReporter<T extends Seriaziable> implements Reporter<T> {
+class JSONReporter<T extends Object> implements Reporter<T> {
   tasks: ReporterTask<T>[] = [];
 
   onInit(tasks: ReporterTask<T>[]) {
@@ -17,14 +17,14 @@ class JSONReporter<T extends Seriaziable> implements Reporter<T> {
         case 'success':
           console.log(JSON.stringify({
             name: task.name,
-            result: result.result.toObject(),
+            result: result.result,
           }, null));
           break;
         case 'failed':
           console.log(JSON.stringify({
             name: task.name,
             error: result.error,
-            result: result.result.toObject(),
+            result: result.result,
           }, null));
           break;
         default:

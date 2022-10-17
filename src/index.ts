@@ -21,6 +21,7 @@ export async function pushLocalFilesToBigQuery(
     concurrency?: number;
     dryRun?: boolean;
     force?: boolean;
+    reporter?: 'console' | 'json';
     maximumBytesBilled?: string;
     labels?: { [label: string]: string };
     params?: any[] | { [param: string]: any };
@@ -69,6 +70,7 @@ export async function pushLocalFilesToBigQuery(
     files,
     options.concurrency ?? 1,
     jobOption,
+    options.reporter ?? 'console',
   );
 }
 
@@ -79,7 +81,12 @@ function createCLI() {
     .description('Easy and Quick BigQuery Deployment Tool')
     // Global Options
     .option('-n, --threads <threads>', 'API Call Concurrency', '8')
-    .option('-C, --root-path <rootPath>', 'Root Directory', './bigquery');
+    .option('-C, --root-path <rootPath>', 'Root Directory', './bigquery')
+    .option(
+      '--format <reporter>',
+      'formatter option: console., json',
+      'console',
+    );
 
   const pushCommand = new Command('push')
     .description(
@@ -122,6 +129,7 @@ function createCLI() {
         concurrency: parseInt(cmdOptions.threads),
         dryRun: cmdOptions.dryRun ?? false,
         force: cmdOptions.force ?? false,
+        reporter: cmdOptions.format ?? 'console',
       };
 
       if (cmdOptions.parameter) {
