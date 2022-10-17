@@ -1,6 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { ApiError } from '@google-cloud/common';
+import { ApiError, Metadata } from '@google-cloud/common';
 import type {
   BigQuery,
   Dataset,
@@ -35,11 +35,31 @@ type JobConfig = {
   destinations: string[];
 };
 
+const buildBQJobFromMetadata = (metadata: Metadata): BQJob => {
+  const ret: BQJob = {};
+  const stats = metadata.statistics;
+  if (metadata.jobReference?.jobId) {
+    ret.jobID = metadata.jobReference?.jobId;
+  }
+
+  if (stats?.totalBytesProcessed !== undefined) {
+    ret.totalBytesProcessed = parseInt(stats.totalBytesProcessed);
+  }
+
+  const elapsedTimeMs =
+    stats?.endTime !== undefined && stats?.startTime !== undefined
+      ? parseInt(stats.endTime) - parseInt(stats.startTime)
+      : undefined;
+
+  if (elapsedTimeMs !== undefined) {
+    ret['elapsedTimeMs'] = elapsedTimeMs;
+  }
+  return ret;
+};
+
 const fetchBQJobResource = async (
   job: Job,
 ): Promise<Dataset | Routine | Table | undefined> => {
-  await job.promise()
-    .catch((e) => e);
   await job.getMetadata();
   if (job.metadata.status.errorResult) {
     throw new Error(job.metadata.status.errorResult.message);
@@ -166,9 +186,8 @@ export const deployBigQueryResouce = async (
     throw new Error(`Invalid file: ${p}`);
   }
 
-  const [_, datasetId, name] = path2bq(p, rootPath, defaultProjectId).split(
-    '.',
-  );
+  const [_, datasetId, name] = path2bq(p, rootPath, defaultProjectId)
+    .split('.');
   const query = await fs.promises.readFile(p)
     .then((s: any) => s.toString())
     .catch((err: any) => {
@@ -179,7 +198,12 @@ export const deployBigQueryResouce = async (
     throw new Error(`Invalid SchemaId: ${datasetId}`);
   }
 
-  const jobPrefix = `bqporter-${datasetId}_${name}-`;
+  const jobPrefix = (() => {
+    if (name) {
+      return `bqporter-${datasetId}_${name}-`;
+    }
+    return `bqporter-${datasetId}-`;
+  })();
 
   switch (path.basename(p)) {
     case 'view.sql':
@@ -197,17 +221,7 @@ export const deployBigQueryResouce = async (
           jobPrefix,
         });
 
-        const ret: BQJob = {};
-        if (ijob.jobReference?.jobId) {
-          ret.jobID = ijob.jobReference.jobId;
-        }
-        if (ijob.statistics?.totalBytesProcessed !== undefined) {
-          ret.totalBytesProcessed = parseInt(
-            ijob.statistics.totalBytesProcessed,
-          );
-        }
-
-        return ret;
+        return buildBQJobFromMetadata(ijob);
       }
 
       const api = schema.table(tableId);
@@ -230,30 +244,14 @@ export const deployBigQueryResouce = async (
         jobPrefix,
       });
 
-      const stats = job.metadata?.statistics;
-      const ret: BQJob = {};
-      if (stats.totalBytesProcessed !== undefined) {
-        ret.totalBytesProcessed = parseInt(stats.totalBytesProcessed);
-      }
-      if (ijob.jobReference?.jobId) {
-        ret.jobID = ijob.jobReference?.jobId;
-      }
-
-      const elapsedTimeMs =
-        stats.endTime !== undefined && stats.startTime !== undefined
-          ? parseInt(stats.endTime) - parseInt(stats.startTime)
-          : undefined;
-
-      if (elapsedTimeMs !== undefined) {
-        ret['elapsedTimeMs'] = elapsedTimeMs;
-      }
-
       if (ijob.configuration?.dryRun) {
-        return ret;
+        return buildBQJobFromMetadata(ijob);
       }
+      await job.promise();
 
       try {
         const resource = await fetchBQJobResource(job);
+
         if (resource !== undefined && resource.id == path.dirname(p)) {
           await syncMetadata(resource, path.dirname(p), { push: true });
         }
@@ -261,7 +259,7 @@ export const deployBigQueryResouce = async (
         console.warn((e as Error).message);
       }
 
-      return ret;
+      return buildBQJobFromMetadata(job.metadata);
   }
 };
 
