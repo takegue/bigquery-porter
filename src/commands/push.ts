@@ -46,6 +46,10 @@ const buildBQJobFromMetadata = (metadata: Metadata): BQJob => {
     ret.totalBytesProcessed = parseInt(stats.totalBytesProcessed);
   }
 
+  if (stats?.totalSlotMs !== undefined) {
+    ret.totalSlotMs = parseInt(stats.totalSlotMs);
+  }
+
   const elapsedTimeMs =
     stats?.endTime !== undefined && stats?.startTime !== undefined
       ? parseInt(stats.endTime) - parseInt(stats.startTime)

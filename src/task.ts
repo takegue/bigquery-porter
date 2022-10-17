@@ -54,6 +54,7 @@ class Task extends BaseTask<string> {
 type BQJob = {
   jobID?: string;
   totalBytesProcessed?: number;
+  totalSlotMs?: number;
   elapsedTimeMs?: number;
 };
 
@@ -74,12 +75,18 @@ class BigQueryJobTask extends BaseTask<BQJob> implements Stringable {
         payload.push(`ID: ${result.result.jobID}`);
       }
 
-      if (result.result.totalBytesProcessed) {
-        payload.push(humanFileSize(result.result.totalBytesProcessed));
+      if (result.result.totalBytesProcessed !== undefined) {
+        payload.push(
+          `processed: ${humanFileSize(result.result.totalBytesProcessed)}`,
+        );
       }
 
-      if (result.result.elapsedTimeMs) {
-        payload.push(msToTime(result.result.elapsedTimeMs));
+      if (result.result.totalSlotMs !== undefined) {
+        payload.push(`slot: ${msToTime(result.result.totalSlotMs)}`);
+      }
+
+      if (result.result.elapsedTimeMs !== undefined) {
+        payload.push(`elapsed: ${msToTime(result.result.elapsedTimeMs)}`);
       }
 
       return payload.join(', ');
