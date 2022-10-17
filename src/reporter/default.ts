@@ -40,6 +40,7 @@ class DefaultReporter<T extends Stringable> implements Reporter<T> {
         c = pc.red;
         break;
 
+      case 'pending':
       case 'running':
         if (!this.spinnerMap.has(task)) {
           this.spinnerMap.set(task, elegantSpinner());
@@ -52,9 +53,6 @@ class DefaultReporter<T extends Stringable> implements Reporter<T> {
         s = spin();
         c = pc.gray;
         break;
-
-      case 'pending':
-        return '';
     }
 
     const title = c(`${s} ${task.name.split(this.separator).pop()}`);
@@ -67,7 +65,7 @@ class DefaultReporter<T extends Stringable> implements Reporter<T> {
       }
       return title;
     } else {
-      return '';
+      return title;
     }
   }
 
