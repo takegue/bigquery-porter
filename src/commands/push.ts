@@ -119,11 +119,17 @@ const fetchBQJobResource = async (
         `Not Supported: ROW_ACCES_POLICY ${job.metadata.statistics}`,
       );
     case 'CREATE_MODEL':
-    case 'EXPORT_MODEL':
-      //TODO: models
-      throw new Error(
-        `Not Supported: MODEL ${JSON.stringify(job.metadata.statistics)}`,
+    case 'EXPORT_MODEL': {
+      const schema = job.bigQuery.dataset(
+        job.metadata.statistics.query.ddlTargetTable.datasetId,
       );
+      const modelId = job.metadata.statistics.query.ddlTargetTable.tableId;
+      if (!modelId) {
+        throw new Error('Invalid modelId');
+      }
+      const [model] = await schema.model(modelId).get();
+      return model;
+    }
     case 'CREATE_FUNCTION':
     case 'CREATE_TABLE_FUNCTION':
     case 'DROP_FUNCTION':
