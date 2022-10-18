@@ -459,7 +459,7 @@ const buildTasks = (
           const msg = deps
             .filter((t) => t && t.result().status == 'failed')
             .map((t) => t?.name).join(', ');
-          throw Error('Suspended: Parent job is faild: ' + msg);
+          throw Error('Suspended: Parent job is failed: ' + msg);
         });
 
         return await taskbuilder(job.file);
@@ -522,6 +522,29 @@ export async function pushBigQueryResourecs(
     (file: string) =>
       deployBigQueryResouce(bqClient, rootPath, file, jobOption),
   );
+
+  // Deletion tasks
+  for (
+    const dataset of await fs.promises.readdir(
+      path.join(rootPath, defaultProjectId),
+    )
+  ) {
+    let deleteTasks = await cleanupBigQueryDataset(
+      bqClient,
+      rootPath,
+      // FIXME: options.projectId ?? defaultProjectId
+      defaultProjectId,
+      path.basename(dataset),
+      {
+        dryRun: jobOption?.dryRun ?? false,
+        force: false,
+      },
+    ).catch((e) => {
+      console.error(e);
+    });
+
+    tasks.push(...(deleteTasks ?? []));
+  }
 
   let reporter: Reporter<BQJob> = new DefaultReporter();
   if (reporterType === 'json') {
@@ -592,26 +615,6 @@ export async function pushLocalFilesToBigQuery(
     jobOption.params = options.params;
   }
 
-  const bqClient = buildThrottledBigQueryClient(options.concurrency ?? 8, 500);
-  for (
-    const dataset of await fs.promises.readdir(
-      path.join(rootDir, options.projectId),
-    )
-  ) {
-    await cleanupBigQueryDataset(
-      bqClient,
-      options.rootDir,
-      options.projectId ?? '@default',
-      path.basename(dataset),
-      {
-        dryRun: options.dryRun,
-        force: options.force,
-      },
-    ).catch((e) => {
-      console.error(e);
-    });
-  }
-
   await pushBigQueryResourecs(
     rootDir,
     files,
@@ -630,12 +633,12 @@ const cleanupBigQueryDataset = async (
     dryRun?: boolean;
     force?: boolean;
   },
-): Promise<void> => {
+): Promise<BigQueryJobTask[]> => {
   const defaultProjectId = await bqClient.getProjectId();
 
   const datasetPath = path.join(rootDir, projectId, datasetId);
   if (!fs.existsSync(datasetPath)) {
-    return;
+    return [];
   }
 
   const routines = await bqClient.dataset(datasetId).getRoutines()
@@ -692,6 +695,7 @@ const cleanupBigQueryDataset = async (
   const isDryRun = options?.dryRun ?? true;
   const isForce = options?.force ?? false;
 
+  const tasks = [];
   for (const kind of [tables, routines, models]) {
     if (kind.size == 0) {
       continue;
@@ -710,14 +714,26 @@ const cleanupBigQueryDataset = async (
       }
     }
     for (const [bqId, resource] of kind) {
-      console.error(`${isDryRun ? '(DRYRUN) ' : ''}Deleting ${bqId}`);
-      if (isDryRun) {
-        continue;
-      }
-
-      await resource.delete();
+      const task = new BigQueryJobTask(
+        `${bqId.replace(/\./g, '/')}/(delete)`,
+        async () => {
+          try {
+            console.error(`${isDryRun ? '(DRYRUN) ' : ''}Deleting ${bqId}`);
+            if (!isDryRun) {
+              await resource.delete();
+            }
+          } catch (e) {
+          }
+          return {
+            isDryRun: isDryRun,
+          };
+        },
+      );
+      tasks.push(task);
     }
   }
+
+  return tasks;
 };
 
 // Use current tty for pipe input
