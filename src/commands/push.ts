@@ -262,7 +262,21 @@ export const deployBigQueryResouce = async (
       if (ijob.configuration?.dryRun) {
         return buildBQJobFromMetadata(ijob);
       }
-      await job.promise();
+
+      try {
+        await job.promise();
+      } catch (e: unknown) {
+        if (e instanceof ApiError) {
+          throw new Error(
+            `${job.metadata.status.errorResult.message}`,
+            // custom error options
+            {
+              ...job.metadata.status.errorResult,
+              ...buildBQJobFromMetadata(ijob),
+            },
+          );
+        }
+      }
 
       try {
         const resource = await fetchBQJobResource(job);
@@ -491,12 +505,8 @@ export async function pushBigQueryResourecs(
       !target.destinations.includes(target.namespace) &&
       !target.dependencies.includes(target.namespace)
     ) {
-      console.dir(
-        [
-          `Warning: Irrelevant SQL file for ${target.file}, ${target.namespace}, `,
-          target,
-        ],
-        { depth: null },
+      console.error(
+        `Warning: Irrelevant SQL file located in ${target.file} for ${target.namespace}`,
       );
     }
   }
@@ -513,12 +523,15 @@ export async function pushBigQueryResourecs(
     reporter = new JSONReporter<BQJob>();
   }
 
-  reporter.onInit(tasks);
-  tasks.forEach((t) => t.run());
-  while (tasks.some((t) => !t.done())) {
+  try {
+    reporter.onInit(tasks);
+    tasks.forEach((t) => t.run());
+    while (tasks.some((t) => !t.done())) {
+      reporter.onUpdate();
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
     reporter.onUpdate();
-    await new Promise((resolve) => setTimeout(resolve, 100));
+  } finally {
+    reporter.onFinished();
   }
-  reporter.onUpdate();
-  reporter.onFinished();
 }
