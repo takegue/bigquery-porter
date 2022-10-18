@@ -75,16 +75,14 @@ class BigQueryJobTask extends BaseTask<BQJob> implements Stringable {
     }
 
     if (result.status === 'failed') {
-      // return `(Job ID: ${result.result.jobID}) ${result.error}`;
+      if (result.result?.jobID) {
+        return `${result.error} (Job ID: ${result.result.jobID})`;
+      }
       return `${result.error}`;
     }
 
     if (result.status === 'success') {
       const payload = [];
-      if (result.result?.jobID) {
-        payload.push(`ID: ${result.result.jobID}`);
-      }
-
       if (result.result.totalBytesProcessed !== undefined) {
         const category = result.result.isDryRun ? 'estimated' : 'processed';
         payload.push(
@@ -98,6 +96,10 @@ class BigQueryJobTask extends BaseTask<BQJob> implements Stringable {
 
       if (result.result.elapsedTimeMs !== undefined) {
         payload.push(`elapsed: ${msToTime(result.result.elapsedTimeMs)}`);
+      }
+
+      if (result.result?.jobID) {
+        payload.push(`ID: ${result.result.jobID}`);
       }
 
       return payload.join(', ');
