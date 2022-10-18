@@ -486,8 +486,12 @@ export async function pushBigQueryResourecs(
       !target.destinations.includes(target.namespace) &&
       !target.dependencies.includes(target.namespace)
     ) {
-      console.warn(
-        `Warning: Irrelevant SQL file for ${target.file}, ${target.namespace}`,
+      console.dir(
+        [
+          `Warning: Irrelevant SQL file for ${target.file}, ${target.namespace}, `,
+          target,
+        ],
+        { depth: null },
       );
     }
   }

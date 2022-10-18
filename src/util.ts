@@ -109,6 +109,10 @@ const _extractBigQueryResourceIdentifier = (node: any) => {
     return node.aliasNameNode;
   }
 
+  if (fields.includes('functionNode')) {
+    return node.functionNode;
+  }
+
   return null;
 };
 
