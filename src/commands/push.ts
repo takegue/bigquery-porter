@@ -271,8 +271,10 @@ export const deployBigQueryResouce = async (
             `${job.metadata.status.errorResult.message}`,
             // custom error options
             {
-              ...job.metadata.status.errorResult,
-              ...buildBQJobFromMetadata(ijob),
+              cause: {
+                ...job.metadata.status.errorResult,
+                ...buildBQJobFromMetadata(ijob),
+              },
             },
           );
         }

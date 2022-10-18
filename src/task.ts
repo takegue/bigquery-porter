@@ -32,12 +32,18 @@ class BaseTask<T> implements ReporterTask<T> {
       .then((result) => {
         this._result = { status: 'success', result } as Success<T>;
       })
-      .catch((e) => {
-        this._result = {
-          status: 'failed',
-          error: e.message.trim(),
-          result: e.result as T,
-        } as Failed<T>;
+      .catch((e: unknown) => {
+        if (e instanceof Error) {
+          this._result = {
+            status: 'failed',
+            error: e.message.trim(),
+          } as Failed<T>;
+          if (e.cause) {
+            this._result.result = e.cause as unknown as T;
+          }
+        } else {
+          throw e;
+        }
       });
   }
 
