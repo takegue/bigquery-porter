@@ -1,6 +1,8 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import readline from 'node:readline';
 import { ApiError } from '@google-cloud/common';
+import { isatty } from 'node:tty';
 import type {
   BigQuery,
   Dataset,
@@ -21,6 +23,7 @@ import {
   extractDestinations,
   extractRefenrences,
   topologicalSort,
+  walk,
 } from '../../src/util.js';
 
 import {
@@ -537,3 +540,201 @@ export async function pushBigQueryResourecs(
     reporter.onFinished();
   }
 }
+
+export async function pushLocalFilesToBigQuery(
+  options: {
+    rootDir: string;
+    projectId: string;
+    concurrency?: number;
+    dryRun: boolean;
+    force: boolean;
+    reporter?: 'console' | 'json';
+    maximumBytesBilled?: string;
+    labels?: { [label: string]: string };
+    params?: any[] | { [param: string]: any };
+  },
+) {
+  const rootDir = options.rootDir;
+  const inputFiles: string[] = await (async () => {
+    if (isatty(0)) {
+      return await walk(rootDir);
+    }
+    const rl = readline.createInterface({
+      input: process.stdin,
+    });
+
+    const buffer: string[] = [];
+    for await (const line of rl) {
+      buffer.push(line);
+    }
+    rl.close();
+    return buffer;
+  })();
+
+  const files = inputFiles
+    .filter((p: string) => p.endsWith('sql'))
+    .filter((p: string) => p.includes(options.projectId ?? '@default'));
+
+  const jobOption: Query = {};
+  if (options.dryRun) {
+    jobOption.dryRun = options.dryRun;
+  }
+  if (options.maximumBytesBilled) {
+    jobOption.maximumBytesBilled = options.maximumBytesBilled;
+  }
+  if (options.labels) {
+    jobOption.labels = {
+      ...options.labels,
+      'bqporter-enable': 'true',
+    };
+  }
+  if (options.params) {
+    jobOption.params = options.params;
+  }
+
+  const bqClient = buildThrottledBigQueryClient(options.concurrency ?? 8, 500);
+  for (
+    const dataset of await fs.promises.readdir(
+      path.join(rootDir, options.projectId),
+    )
+  ) {
+    await cleanupBigQueryDataset(
+      bqClient,
+      options.rootDir,
+      options.projectId ?? '@default',
+      path.basename(dataset),
+      {
+        dryRun: options.dryRun,
+        force: options.force,
+      },
+    ).catch((e) => {
+      console.error(e);
+    });
+  }
+
+  await pushBigQueryResourecs(
+    rootDir,
+    files,
+    options.concurrency ?? 1,
+    jobOption,
+    options.reporter ?? 'console',
+  );
+}
+
+const cleanupBigQueryDataset = async (
+  bqClient: BigQuery,
+  rootDir: string,
+  projectId: string,
+  datasetId: string,
+  options?: {
+    dryRun?: boolean;
+    force?: boolean;
+  },
+): Promise<void> => {
+  const defaultProjectId = await bqClient.getProjectId();
+
+  const datasetPath = path.join(rootDir, projectId, datasetId);
+  if (!fs.existsSync(datasetPath)) {
+    return;
+  }
+
+  const routines = await bqClient.dataset(datasetId).getRoutines()
+    .then(([rr]) =>
+      new Map(
+        rr.map((r) => [
+          (({ metadata: { routineReference: r } }) =>
+            `${r.projectId}.${r.datasetId}.${r.routineId}`)(r),
+          r,
+        ]),
+      )
+    );
+  const models = await bqClient.dataset(datasetId).getModels()
+    .then(([rr]) =>
+      new Map(
+        rr.map((r) => [
+          (({ metadata: { modelReference: r } }) =>
+            `${r.projectId}.${r.datasetId}.${r.modelId}`)(r),
+          r,
+        ]),
+      )
+    );
+  const tables = await bqClient.dataset(datasetId).getTables()
+    .then(([rr]) =>
+      new Map(
+        rr.map((r) => [
+          (({ metadata: { tableReference: r } }) =>
+            `${r.projectId}.${r.datasetId}.${r.tableId}`)(r),
+          r,
+        ]),
+      )
+    );
+
+  // Marks for deletion
+  (await walk(datasetPath))
+    .filter((p: string) => p.endsWith('sql'))
+    .filter((p: string) => p.includes('@default'))
+    .forEach((f) => {
+      const bqId = path2bq(f, rootDir, defaultProjectId);
+      if (f.match(/@routine/) && routines.has(bqId)) {
+        // Check Routine
+        routines.delete(bqId);
+      } else if (f.match(/@model/) && models.has(bqId)) {
+        // Check Model
+        models.delete(bqId);
+      } else {
+        if (tables.has(bqId)) {
+          // Check Table or Dataset
+          tables.delete(bqId);
+        }
+      }
+    });
+
+  const isDryRun = options?.dryRun ?? true;
+  const isForce = options?.force ?? false;
+
+  for (const kind of [tables, routines, models]) {
+    if (kind.size == 0) {
+      continue;
+    }
+
+    if (!isForce && !isDryRun) {
+      const ans = await prompt(
+        [
+          `Found BigQuery reousrces with no local files. Do you delete these resources? (y/n)`,
+          `  ${[...kind.keys()].join('\n  ')}`,
+          'Ans>',
+        ].join('\n'),
+      ) as string;
+      if (!ans.replace(/^\s+|\s+$/g, '').startsWith('y')) {
+        continue;
+      }
+    }
+    for (const [bqId, resource] of kind) {
+      console.error(`${isDryRun ? '(DRYRUN) ' : ''}Deleting ${bqId}`);
+      if (isDryRun) {
+        continue;
+      }
+
+      await resource.delete();
+    }
+  }
+};
+
+// Use current tty for pipe input
+const prompt = (query: string) =>
+  new Promise(
+    (resolve) => {
+      const tty = fs.createReadStream('/dev/tty');
+      const rl = readline.createInterface({
+        input: tty,
+        output: process.stderr,
+      });
+
+      rl.question(query, (ret) => {
+        // Order matters and rl should close after use once
+        tty.close();
+        rl.close();
+        resolve(ret);
+      });
+    },
+  );
