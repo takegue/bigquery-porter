@@ -33,9 +33,11 @@ class BaseTask<T> implements ReporterTask<T> {
         this._result = { status: 'success', result } as Success<T>;
       })
       .catch((e) => {
-        this._result = { status: 'failed', error: e.message.trim() } as Failed<
-          T
-        >;
+        this._result = {
+          status: 'failed',
+          error: e.message.trim(),
+          result: e.result as T,
+        } as Failed<T>;
       });
   }
 
@@ -56,6 +58,7 @@ type BQJob = {
   totalBytesProcessed?: number;
   totalSlotMs?: number;
   elapsedTimeMs?: number;
+  isDryRun?: boolean;
 };
 
 class BigQueryJobTask extends BaseTask<BQJob> implements Stringable {
@@ -66,18 +69,20 @@ class BigQueryJobTask extends BaseTask<BQJob> implements Stringable {
     }
 
     if (result.status === 'failed') {
-      return `(Job ID: ${result.result.jobID}) ${result.error}`;
+      // return `(Job ID: ${result.result.jobID}) ${result.error}`;
+      return `${result.error}`;
     }
 
     if (result.status === 'success') {
       const payload = [];
-      if (result.result.jobID) {
+      if (result.result?.jobID) {
         payload.push(`ID: ${result.result.jobID}`);
       }
 
       if (result.result.totalBytesProcessed !== undefined) {
+        const category = result.result.isDryRun ? 'estimated' : 'processed';
         payload.push(
-          `processed: ${humanFileSize(result.result.totalBytesProcessed)}`,
+          `${category}: ${humanFileSize(result.result.totalBytesProcessed)}`,
         );
       }
 

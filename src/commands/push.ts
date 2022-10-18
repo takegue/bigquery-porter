@@ -1,11 +1,12 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { ApiError, Metadata } from '@google-cloud/common';
+import { ApiError } from '@google-cloud/common';
 import type {
   BigQuery,
   Dataset,
   GetJobsOptions,
   Job,
+  JobMetadata,
   // Model,
   Query,
   Routine,
@@ -35,15 +36,19 @@ type JobConfig = {
   destinations: string[];
 };
 
-const buildBQJobFromMetadata = (metadata: Metadata): BQJob => {
+const buildBQJobFromMetadata = (job: JobMetadata): BQJob => {
   const ret: BQJob = {};
-  const stats = metadata.statistics;
-  if (metadata.jobReference?.jobId) {
-    ret.jobID = metadata.jobReference?.jobId;
+  const stats = job.statistics;
+  if (job.jobReference?.jobId) {
+    ret.jobID = job.jobReference?.jobId;
   }
 
   if (stats?.totalBytesProcessed !== undefined) {
     ret.totalBytesProcessed = parseInt(stats.totalBytesProcessed);
+  }
+
+  if (job.configuration?.dryRun !== undefined) {
+    ret.isDryRun = job.configuration.dryRun;
   }
 
   if (stats?.totalSlotMs !== undefined) {
