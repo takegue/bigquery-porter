@@ -475,6 +475,7 @@ const buildTasks = (
 
 export async function pushBigQueryResourecs(
   rootPath: string,
+  projectId: string,
   files: string[],
   concurrency: number,
   jobOption: Query,
@@ -516,24 +517,17 @@ export async function pushBigQueryResourecs(
     }
   }
 
-  const tasks = buildTasks(
-    orderdJobs,
-    jobDeps,
-    (file: string) =>
-      deployBigQueryResouce(bqClient, rootPath, file, jobOption),
-  );
-
   // Deletion tasks
+  const tasks: BigQueryJobTask[] = [];
   for (
     const dataset of await fs.promises.readdir(
-      path.join(rootPath, defaultProjectId),
+      path.join(rootPath, projectId),
     )
   ) {
     let deleteTasks = await cleanupBigQueryDataset(
       bqClient,
       rootPath,
-      // FIXME: options.projectId ?? defaultProjectId
-      defaultProjectId,
+      projectId,
       path.basename(dataset),
       {
         dryRun: jobOption?.dryRun ?? false,
@@ -545,6 +539,13 @@ export async function pushBigQueryResourecs(
 
     tasks.push(...(deleteTasks ?? []));
   }
+
+  tasks.push(...buildTasks(
+    orderdJobs,
+    jobDeps,
+    (file: string) =>
+      deployBigQueryResouce(bqClient, rootPath, file, jobOption),
+  ));
 
   let reporter: Reporter<BQJob> = new DefaultReporter();
   if (reporterType === 'json') {
@@ -617,6 +618,7 @@ export async function pushLocalFilesToBigQuery(
 
   await pushBigQueryResourecs(
     rootDir,
+    options.projectId,
     files,
     options.concurrency ?? 1,
     jobOption,
@@ -672,7 +674,7 @@ const cleanupBigQueryDataset = async (
       )
     );
 
-  // Marks for deletion
+  // Leave reousrces to delete
   (await walk(datasetPath))
     .filter((p: string) => p.endsWith('sql'))
     .filter((p: string) => p.includes('@default'))
@@ -696,6 +698,7 @@ const cleanupBigQueryDataset = async (
   const isForce = options?.force ?? false;
 
   const tasks = [];
+  const nsProject = projectId != '@default' ? projectId : defaultProjectId;
   for (const kind of [tables, routines, models]) {
     if (kind.size == 0) {
       continue;
@@ -713,9 +716,13 @@ const cleanupBigQueryDataset = async (
         continue;
       }
     }
+
     for (const [bqId, resource] of kind) {
+      const resourceType = resource.metadata.type;
       const task = new BigQueryJobTask(
-        `${bqId.replace(/\./g, '/')}/(delete)`,
+        `${nsProject}/${datasetId}/(DELETE ${resourceType})/${
+          bqId.split('.').pop()
+        }`,
         async () => {
           try {
             console.error(`${isDryRun ? '(DRYRUN) ' : ''}Deleting ${bqId}`);
