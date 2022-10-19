@@ -25,7 +25,7 @@ function createCLI() {
     .description(
       'Deploy your local BigQuery Resources in topological-sorted order',
     )
-    .argument('[...projects]')
+    .argument('[projects...]')
     .option(
       '--force',
       'Force to apply changes such as deletion without confirmation',
@@ -48,7 +48,7 @@ function createCLI() {
     .option('--dry-run', 'Dry Run', false)
     .action(async (cmdProjects: string[] | undefined, _, cmd) => {
       const cmdOptions = cmd.optsWithGlobals();
-      const projects = cmdProjects ?? [];
+      const projects = cmdProjects ?? ['@default'];
 
       const rootDir = cmdOptions.rootPath;
       if (!rootDir) {
@@ -56,32 +56,34 @@ function createCLI() {
         return;
       }
 
-      const options = {
-        rootDir: rootDir,
-        projectId: projects.pop() ?? '@default',
-        concurrency: parseInt(cmdOptions.threads),
-        dryRun: cmdOptions.dryRun ?? false,
-        force: cmdOptions.force ?? false,
-        reporter: cmdOptions.format ?? 'console',
-      };
+      for (const project of projects) {
+        const options = {
+          rootDir: rootDir,
+          projectId: project,
+          concurrency: parseInt(cmdOptions.threads),
+          dryRun: cmdOptions.dryRun ?? false,
+          force: cmdOptions.force ?? false,
+          reporter: cmdOptions.format ?? 'console',
+        };
 
-      if (cmdOptions.parameter) {
-        (options as any)['params'] = Object.fromEntries(
-          (cmdOptions.parameter as string[])
-            .map((s) => {
-              const elms = s.split(':');
-              const rawValue = elms[2];
-              return [elms[0], rawValue];
-            }),
-        );
+        if (cmdOptions.parameter) {
+          (options as any)['params'] = Object.fromEntries(
+            (cmdOptions.parameter as string[])
+              .map((s) => {
+                const elms = s.split(':');
+                const rawValue = elms[2];
+                return [elms[0], rawValue];
+              }),
+          );
+        }
+
+        await pushLocalFilesToBigQuery(options);
       }
-
-      await pushLocalFilesToBigQuery(options);
     });
 
   const pullCommand = new Command('pull')
     .description('pull dataset and its tabald and routine information')
-    .argument('[...projects]')
+    .argument('[projects...]')
     .option('--all', 'Pulling All BugQuery Datasets', false)
     .option('--with-ddl', 'Pulling BigQuery Resources with DDL SQL', false)
     // .option('--ddl-useful-rewrite', "Rewrite DDL in useful", {
