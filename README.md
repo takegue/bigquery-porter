@@ -1,8 +1,8 @@
 # BigQuery Porter
 
-![Demo](./docs/assets/demo.gif)
-
 BigQuery Porter is a tool to fetch/deploy BigQuery Resource and its metadata.
+
+![Demo](./docs/assets/demo.gif)
 
 ## Get Started
 
