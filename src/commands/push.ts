@@ -643,7 +643,14 @@ const cleanupBigQueryDataset = async (
     return [];
   }
 
-  const routines = await bqClient.dataset(datasetId).getRoutines()
+  let dataset: Dataset;
+  try {
+    [dataset] = await bqClient.dataset(datasetId).get();
+  } catch (e: unknown) {
+    return [];
+  }
+
+  const routines = await dataset.getRoutines()
     .then(([rr]) =>
       new Map(
         rr.map((r) => [
@@ -653,7 +660,7 @@ const cleanupBigQueryDataset = async (
         ]),
       )
     );
-  const models = await bqClient.dataset(datasetId).getModels()
+  const models = await dataset.getModels()
     .then(([rr]) =>
       new Map(
         rr.map((r) => [
@@ -663,7 +670,7 @@ const cleanupBigQueryDataset = async (
         ]),
       )
     );
-  const tables = await bqClient.dataset(datasetId).getTables()
+  const tables = await dataset.getTables()
     .then(([rr]) =>
       new Map(
         rr.map((r) => [
@@ -720,9 +727,7 @@ const cleanupBigQueryDataset = async (
     for (const [bqId, resource] of kind) {
       const resourceType = resource.metadata.type;
       const task = new BigQueryJobTask(
-        `${nsProject}/${datasetId}/(DELETE ${resourceType})/${
-          bqId.split('.').pop()
-        }`,
+        [nsProject, datasetId, resourceType, bqId.split('.').pop()].join('/'),
         async () => {
           try {
             console.error(`${isDryRun ? '(DRYRUN) ' : ''}Deleting ${bqId}`);
