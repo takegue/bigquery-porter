@@ -480,6 +480,7 @@ export async function pushBigQueryResourecs(
   concurrency: number,
   jobOption: Query,
   reporterType: 'console' | 'json',
+  withoutConrimation: boolean,
 ) {
   const bqClient = buildThrottledBigQueryClient(concurrency, 500);
   const defaultProjectId = await bqClient.getProjectId();
@@ -531,7 +532,7 @@ export async function pushBigQueryResourecs(
       path.basename(dataset),
       {
         dryRun: jobOption?.dryRun ?? false,
-        force: false,
+        withoutConrimation: withoutConrimation ?? false,
       },
     ).catch((e) => {
       console.error(e);
@@ -623,6 +624,7 @@ export async function pushLocalFilesToBigQuery(
     options.concurrency ?? 1,
     jobOption,
     options.reporter ?? 'console',
+    options.force ?? false,
   );
 }
 
@@ -633,7 +635,7 @@ const cleanupBigQueryDataset = async (
   datasetId: string,
   options?: {
     dryRun?: boolean;
-    force?: boolean;
+    withoutConrimation: boolean;
   },
 ): Promise<BigQueryJobTask[]> => {
   const defaultProjectId = await bqClient.getProjectId();
@@ -702,7 +704,7 @@ const cleanupBigQueryDataset = async (
     });
 
   const isDryRun = options?.dryRun ?? true;
-  const isForce = options?.force ?? false;
+  const isForce = options?.withoutConrimation ?? false;
 
   const tasks = [];
   const nsProject = projectId != '@default' ? projectId : defaultProjectId;
