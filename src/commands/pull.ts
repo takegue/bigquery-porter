@@ -260,12 +260,19 @@ async function pullBigQueryResources({
   task.run();
 
   const reporter = new DefaultReporter();
-  reporter.onInit(tasks);
-  while (tasks.some((t) => !t.done())) {
+  try {
+    reporter.onInit(tasks);
+    tasks.forEach((t) => t.run());
+    while (tasks.some((t) => !t.done())) {
+      reporter.onUpdate();
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
     reporter.onUpdate();
-    await new Promise((resolve) => setTimeout(resolve, 100));
+  } catch (e: unknown) {
+    console.error(e);
+  } finally {
+    reporter.onFinished();
   }
-  reporter.onFinished();
 }
 
 export { pullBigQueryResources };

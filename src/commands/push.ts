@@ -473,161 +473,6 @@ const buildTasks = (
   return tasks;
 };
 
-export async function pushBigQueryResourecs(
-  rootPath: string,
-  projectId: string,
-  files: string[],
-  concurrency: number,
-  jobOption: Query,
-  reporterType: 'console' | 'json',
-  withoutConrimation: boolean,
-) {
-  const bqClient = buildThrottledBigQueryClient(concurrency, 500);
-  const defaultProjectId = await bqClient.getProjectId();
-
-  const targets: JobConfig[] = await Promise.all(
-    files
-      .map(async (n: string) => ({
-        namespace: path2bq(n, rootPath, defaultProjectId),
-        file: n,
-        destinations: await extractBigQueryDestinations(
-          rootPath,
-          n,
-          bqClient,
-        ),
-        dependencies: (await extractBigQueryDependencies(rootPath, n, bqClient))
-          .filter((n) => n !== path2bq(n, rootPath, defaultProjectId)),
-      })),
-  );
-
-  const [orderdJobs, jobDeps] = buildDAG(targets);
-
-  // DAG Validation: All files should included
-  for (const target of targets) {
-    if (!jobDeps.has(target)) {
-      console.warn(`Warning: No deployment files for ${target.file}`);
-    }
-
-    if (
-      !target.destinations.includes(target.namespace) &&
-      !target.dependencies.includes(target.namespace)
-    ) {
-      console.error(
-        `Warning: Irrelevant SQL file located in ${target.file} for ${target.namespace}`,
-      );
-    }
-  }
-
-  // Deletion tasks
-  const tasks: BigQueryJobTask[] = [];
-  for (
-    const dataset of await fs.promises.readdir(
-      path.join(rootPath, projectId),
-    )
-  ) {
-    let deleteTasks = await cleanupBigQueryDataset(
-      bqClient,
-      rootPath,
-      projectId,
-      path.basename(dataset),
-      {
-        dryRun: jobOption?.dryRun ?? false,
-        withoutConrimation: withoutConrimation ?? false,
-      },
-    ).catch((e) => {
-      console.error(e);
-    });
-
-    tasks.push(...(deleteTasks ?? []));
-  }
-
-  tasks.push(...buildTasks(
-    orderdJobs,
-    jobDeps,
-    (file: string) =>
-      deployBigQueryResouce(bqClient, rootPath, file, jobOption),
-  ));
-
-  let reporter: Reporter<BQJob> = new DefaultReporter();
-  if (reporterType === 'json') {
-    reporter = new JSONReporter<BQJob>();
-  }
-
-  try {
-    reporter.onInit(tasks);
-    tasks.forEach((t) => t.run());
-    while (tasks.some((t) => !t.done())) {
-      reporter.onUpdate();
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-    reporter.onUpdate();
-  } finally {
-    reporter.onFinished();
-  }
-}
-
-export async function pushLocalFilesToBigQuery(
-  options: {
-    rootDir: string;
-    projectId: string;
-    concurrency?: number;
-    dryRun: boolean;
-    force: boolean;
-    reporter?: 'console' | 'json';
-    maximumBytesBilled?: string;
-    labels?: { [label: string]: string };
-    params?: any[] | { [param: string]: any };
-  },
-) {
-  const rootDir = options.rootDir;
-  const inputFiles: string[] = await (async () => {
-    if (isatty(0)) {
-      return await walk(rootDir);
-    }
-    const rl = readline.createInterface({
-      input: process.stdin,
-    });
-
-    const buffer: string[] = [];
-    for await (const line of rl) {
-      buffer.push(line);
-    }
-    rl.close();
-    return buffer;
-  })();
-
-  const files = inputFiles
-    .filter((p: string) => p.endsWith('sql'))
-    .filter((p: string) => p.includes(options.projectId ?? '@default'));
-
-  const jobOption: Query = {};
-  if (options.dryRun) {
-    jobOption.dryRun = options.dryRun;
-  }
-  if (options.maximumBytesBilled) {
-    jobOption.maximumBytesBilled = options.maximumBytesBilled;
-  }
-  if (options.labels) {
-    jobOption.labels = {
-      ...options.labels,
-      'bqporter-enable': 'true',
-    };
-  }
-  if (options.params) {
-    jobOption.params = options.params;
-  }
-
-  await pushBigQueryResourecs(
-    rootDir,
-    options.projectId,
-    files,
-    options.concurrency ?? 1,
-    jobOption,
-    options.reporter ?? 'console',
-    options.force ?? false,
-  );
-}
-
 const cleanupBigQueryDataset = async (
   bqClient: BigQuery,
   rootDir: string,
@@ -768,3 +613,158 @@ const prompt = (query: string) =>
       });
     },
   );
+
+export async function pushLocalFilesToBigQuery(
+  options: {
+    rootDir: string;
+    projectId: string;
+    concurrency?: number;
+    dryRun: boolean;
+    force: boolean;
+    reporter?: 'console' | 'json';
+    maximumBytesBilled?: string;
+    labels?: { [label: string]: string };
+    params?: any[] | { [param: string]: any };
+  },
+) {
+  const rootDir = options.rootDir;
+  const inputFiles: string[] = await (async () => {
+    if (isatty(0)) {
+      return await walk(rootDir);
+    }
+    const rl = readline.createInterface({
+      input: process.stdin,
+    });
+
+    const buffer: string[] = [];
+    for await (const line of rl) {
+      buffer.push(line);
+    }
+    rl.close();
+    return buffer;
+  })();
+
+  const files = inputFiles
+    .filter((p: string) => p.endsWith('sql'))
+    .filter((p: string) => p.includes(options.projectId ?? '@default'));
+
+  const jobOption: Query = {};
+  if (options.dryRun) {
+    jobOption.dryRun = options.dryRun;
+  }
+  if (options.maximumBytesBilled) {
+    jobOption.maximumBytesBilled = options.maximumBytesBilled;
+  }
+  if (options.labels) {
+    jobOption.labels = {
+      ...options.labels,
+      'bqporter-enable': 'true',
+    };
+  }
+  if (options.params) {
+    jobOption.params = options.params;
+  }
+
+  await pushBigQueryResourecs(
+    rootDir,
+    options.projectId,
+    files,
+    options.concurrency ?? 1,
+    jobOption,
+    options.reporter ?? 'console',
+    options.force ?? false,
+  );
+}
+
+export async function pushBigQueryResourecs(
+  rootPath: string,
+  projectId: string,
+  files: string[],
+  concurrency: number,
+  jobOption: Query,
+  reporterType: 'console' | 'json',
+  withoutConrimation: boolean,
+) {
+  const bqClient = buildThrottledBigQueryClient(concurrency, 500);
+  const defaultProjectId = await bqClient.getProjectId();
+
+  const targets: JobConfig[] = await Promise.all(
+    files
+      .map(async (n: string) => ({
+        namespace: path2bq(n, rootPath, defaultProjectId),
+        file: n,
+        destinations: await extractBigQueryDestinations(
+          rootPath,
+          n,
+          bqClient,
+        ),
+        dependencies: (await extractBigQueryDependencies(rootPath, n, bqClient))
+          .filter((n) => n !== path2bq(n, rootPath, defaultProjectId)),
+      })),
+  );
+
+  const [orderdJobs, jobDeps] = buildDAG(targets);
+
+  // DAG Validation: All files should included
+  for (const target of targets) {
+    if (!jobDeps.has(target)) {
+      console.warn(`Warning: No deployment files for ${target.file}`);
+    }
+
+    if (
+      !target.destinations.includes(target.namespace) &&
+      !target.dependencies.includes(target.namespace)
+    ) {
+      console.error(
+        `Warning: Irrelevant SQL file located in ${target.file} for ${target.namespace}`,
+      );
+    }
+  }
+
+  // Deletion tasks
+  const tasks: BigQueryJobTask[] = [];
+  for (
+    const dataset of await fs.promises.readdir(
+      path.join(rootPath, projectId),
+    )
+  ) {
+    let deleteTasks = await cleanupBigQueryDataset(
+      bqClient,
+      rootPath,
+      projectId,
+      path.basename(dataset),
+      {
+        dryRun: jobOption?.dryRun ?? false,
+        withoutConrimation: withoutConrimation ?? false,
+      },
+    ).catch((e) => {
+      console.error(e);
+    });
+
+    tasks.push(...(deleteTasks ?? []));
+  }
+
+  tasks.push(...buildTasks(
+    orderdJobs,
+    jobDeps,
+    (file: string) =>
+      deployBigQueryResouce(bqClient, rootPath, file, jobOption),
+  ));
+
+  let reporter: Reporter<BQJob> = new DefaultReporter();
+  if (reporterType === 'json') {
+    reporter = new JSONReporter<BQJob>();
+  }
+
+  try {
+    reporter.onInit(tasks);
+    tasks.forEach((t) => t.run());
+    while (tasks.some((t) => !t.done())) {
+      reporter.onUpdate();
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    reporter.onUpdate();
+  } finally {
+    reporter.onFinished();
+  }
+}
