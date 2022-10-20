@@ -57,6 +57,13 @@ class BaseTask<T> implements ReporterTask<T> {
 }
 
 class Task extends BaseTask<string> {
+  override toString() {
+    const result = this.result();
+    if (result.status === 'success') {
+      return result.result;
+    }
+    return result.status;
+  }
 }
 
 type BQJob = {
