@@ -48,7 +48,9 @@ function createCLI() {
     .option('--dry-run', 'Dry Run', false)
     .action(async (cmdProjects: string[] | undefined, _, cmd) => {
       const cmdOptions = cmd.optsWithGlobals();
-      const projects = cmdProjects ?? ['@default'];
+      const projects = cmdProjects && cmdProjects.length > 0
+        ? cmdProjects
+        : ['@default'];
 
       const rootDir = cmdOptions.rootPath;
       if (!rootDir) {
