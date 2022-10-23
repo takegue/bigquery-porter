@@ -1,5 +1,5 @@
 import { describe, it } from 'vitest';
-import { DefaultReporter } from '../src/reporter/index.js';
+import { DefaultReporter } from '../src/reporter/default.js';
 import { Task } from '../src/task.js';
 
 describe('Reporter: Default Reporter', () => {

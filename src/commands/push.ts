@@ -16,7 +16,7 @@ import type {
 } from '@google-cloud/bigquery';
 
 import type { Reporter } from '../../src/types.js';
-import { DefaultReporter, JSONReporter } from '../../src/reporter/index.js';
+import { BuiltInReporters, ReporterMap } from '../../src/reporter/index.js';
 import { BigQueryJobTask, BQJob } from '../../src/task.js';
 import { syncMetadata } from '../../src/metadata.js';
 import {
@@ -37,6 +37,17 @@ type JobConfig = {
   namespace: string;
   dependencies: string[];
   destinations: string[];
+};
+
+type PushContext = {
+  dryRun: boolean;
+  force: boolean;
+  rootPath: string;
+  BigQuery: {
+    projectId: string;
+    client: BigQuery;
+  };
+  reporter: BuiltInReporters;
 };
 
 const buildBQJobFromMetadata = (job: JobMetadata): BQJob => {
@@ -429,6 +440,22 @@ const buildDAG = (
     .map((s) => file2job[s])
     .filter((s): s is JobConfig => s !== undefined);
 
+  // DAG Validation: All files should included
+  for (const job of jobs) {
+    if (!job2deps.has(job)) {
+      console.warn(`Warning: No deployment files for ${job.file}`);
+    }
+
+    if (
+      !job.destinations.includes(job.namespace) &&
+      !job.dependencies.includes(job.namespace)
+    ) {
+      console.error(
+        `Warning: Irrelevant SQL file located in ${job.file} for ${job.namespace}`,
+      );
+    }
+  }
+
   return [orderdJobs, job2deps];
 };
 
@@ -471,6 +498,50 @@ const buildTasks = (
     task.run();
   }
   return tasks;
+};
+
+const createDeployTasks = async (
+  ctx: PushContext,
+  files: string[],
+  jobOption: Query,
+) => {
+  const targets: JobConfig[] = await Promise.all(
+    files
+      .map(async (n: string) => ({
+        namespace: path2bq(
+          n,
+          ctx.rootPath,
+          await ctx.BigQuery.client.getProjectId(),
+        ),
+        file: n,
+        destinations: await extractBigQueryDestinations(
+          ctx.rootPath,
+          n,
+          ctx.BigQuery.client,
+        ),
+        dependencies: (await extractBigQueryDependencies(
+          ctx.rootPath,
+          n,
+          ctx.BigQuery.client,
+        ))
+          .filter(async (n) =>
+            n !== path2bq(
+              n,
+              ctx.rootPath,
+              await ctx.BigQuery.client.getProjectId(),
+            )
+          ),
+      })),
+  );
+
+  const [orderdJobs, jobDeps] = buildDAG(targets);
+
+  return buildTasks(
+    orderdJobs,
+    jobDeps,
+    (file: string) =>
+      deployBigQueryResouce(ctx.BigQuery.client, ctx.rootPath, file, jobOption),
+  );
 };
 
 const cleanupBigQueryDataset = async (
@@ -614,6 +685,55 @@ const prompt = (query: string) =>
     },
   );
 
+const createDelteTasks = async (
+  ctx: PushContext,
+) => {
+  let tasks = [];
+  for (
+    const dataset of await fs.promises.readdir(
+      path.join(ctx.rootPath, ctx.BigQuery.projectId),
+    )
+  ) {
+    let deleteTasks = await cleanupBigQueryDataset(
+      ctx.BigQuery.client,
+      ctx.rootPath,
+      ctx.BigQuery.projectId,
+      path.basename(dataset),
+      {
+        dryRun: ctx.dryRun,
+        withoutConrimation: ctx.force,
+      },
+    ).catch((e) => {
+      console.error(e);
+    });
+
+    tasks.push(...(deleteTasks ?? []));
+  }
+
+  return tasks;
+};
+
+const gatherTargetFiles = async (
+  targetDir: string,
+  pred: (s: string) => boolean,
+) => {
+  if (isatty(0)) {
+    return await walk(targetDir);
+  }
+  const rl = readline.createInterface({
+    input: process.stdin,
+  });
+
+  const buffer: string[] = [];
+  for await (const line of rl) {
+    if (pred(line)) {
+      buffer.push(line);
+    }
+  }
+  rl.close();
+  return buffer;
+};
+
 export async function pushLocalFilesToBigQuery(
   options: {
     rootDir: string;
@@ -621,32 +741,25 @@ export async function pushLocalFilesToBigQuery(
     concurrency?: number;
     dryRun: boolean;
     force: boolean;
-    reporter?: 'console' | 'json';
+    reporter?: BuiltInReporters;
     maximumBytesBilled?: string;
     labels?: { [label: string]: string };
     params?: any[] | { [param: string]: any };
   },
 ) {
   const rootDir = options.rootDir;
-  const inputFiles: string[] = await (async () => {
-    if (isatty(0)) {
-      return await walk(rootDir);
-    }
-    const rl = readline.createInterface({
-      input: process.stdin,
-    });
+  const concurrency = options.concurrency ?? 10;
+  const bqClient = buildThrottledBigQueryClient(concurrency, 500);
+  const defaultProjectId = await bqClient.getProjectId();
+  const projectId = options.projectId ?? defaultProjectId;
+  const withoutConrimation = options.force ?? false;
+  const reporterType: BuiltInReporters = options.reporter ?? 'console';
 
-    const buffer: string[] = [];
-    for await (const line of rl) {
-      buffer.push(line);
-    }
-    rl.close();
-    return buffer;
-  })();
-
-  const files = inputFiles
-    .filter((p: string) => p.endsWith('sql'))
-    .filter((p: string) => p.includes(options.projectId ?? '@default'));
+  const inputFiles = await gatherTargetFiles(
+    rootDir,
+    (p: string) =>
+      p.endsWith('.sql') && p.includes(options.projectId ?? '@default'),
+  );
 
   const jobOption: Query = {};
   if (options.dryRun) {
@@ -665,97 +778,26 @@ export async function pushLocalFilesToBigQuery(
     jobOption.params = options.params;
   }
 
-  await pushBigQueryResourecs(
-    rootDir,
-    options.projectId,
-    files,
-    options.concurrency ?? 1,
-    jobOption,
-    options.reporter ?? 'console',
-    options.force ?? false,
-  );
-}
+  const ctx = {
+    BigQuery: {
+      client: bqClient,
+      projectId: projectId ?? defaultProjectId,
+    },
+    rootPath: rootDir,
+    dryRun: options.dryRun,
+    force: withoutConrimation,
+    reporter: options.reporter ?? 'console',
+  };
 
-export async function pushBigQueryResourecs(
-  rootPath: string,
-  projectId: string,
-  files: string[],
-  concurrency: number,
-  jobOption: Query,
-  reporterType: 'console' | 'json',
-  withoutConrimation: boolean,
-) {
-  const bqClient = buildThrottledBigQueryClient(concurrency, 500);
-  const defaultProjectId = await bqClient.getProjectId();
+  const tasks: BigQueryJobTask[] = [
+    // Deletion tasks
+    ...await createDelteTasks(ctx),
+    // Deploy tasks
+    ...await createDeployTasks(ctx, inputFiles, jobOption),
+  ];
 
-  const targets: JobConfig[] = await Promise.all(
-    files
-      .map(async (n: string) => ({
-        namespace: path2bq(n, rootPath, defaultProjectId),
-        file: n,
-        destinations: await extractBigQueryDestinations(
-          rootPath,
-          n,
-          bqClient,
-        ),
-        dependencies: (await extractBigQueryDependencies(rootPath, n, bqClient))
-          .filter((n) => n !== path2bq(n, rootPath, defaultProjectId)),
-      })),
-  );
-
-  const [orderdJobs, jobDeps] = buildDAG(targets);
-
-  // DAG Validation: All files should included
-  for (const target of targets) {
-    if (!jobDeps.has(target)) {
-      console.warn(`Warning: No deployment files for ${target.file}`);
-    }
-
-    if (
-      !target.destinations.includes(target.namespace) &&
-      !target.dependencies.includes(target.namespace)
-    ) {
-      console.error(
-        `Warning: Irrelevant SQL file located in ${target.file} for ${target.namespace}`,
-      );
-    }
-  }
-
-  // Deletion tasks
-  const tasks: BigQueryJobTask[] = [];
-  for (
-    const dataset of await fs.promises.readdir(
-      path.join(rootPath, projectId),
-    )
-  ) {
-    let deleteTasks = await cleanupBigQueryDataset(
-      bqClient,
-      rootPath,
-      projectId,
-      path.basename(dataset),
-      {
-        dryRun: jobOption?.dryRun ?? false,
-        withoutConrimation: withoutConrimation ?? false,
-      },
-    ).catch((e) => {
-      console.error(e);
-    });
-
-    tasks.push(...(deleteTasks ?? []));
-  }
-
-  tasks.push(...buildTasks(
-    orderdJobs,
-    jobDeps,
-    (file: string) =>
-      deployBigQueryResouce(bqClient, rootPath, file, jobOption),
-  ));
-
-  let reporter: Reporter<BQJob> = new DefaultReporter();
-  if (reporterType === 'json') {
-    reporter = new JSONReporter<BQJob>();
-  }
-
+  // Task Execution
+  const reporter: Reporter<BQJob> = new ReporterMap[reporterType]();
   try {
     reporter.onInit(tasks);
     tasks.forEach((t) => t.run());
