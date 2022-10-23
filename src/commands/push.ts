@@ -33,6 +33,7 @@ type JobConfig = {
   namespace: string;
   dependencies: string[];
   destinations: string[];
+  shouldDeploy: boolean;
 };
 
 type PushContext = {
@@ -436,8 +437,17 @@ const buildDAG = (
     .map((s) => file2job[s])
     .filter((s): s is JobConfig => s !== undefined);
 
+  for (const job of orderdJobs) {
+    for (const dep of job2deps.get(job) ?? []) {
+      if (dep.shouldDeploy) {
+        job.shouldDeploy = true;
+        break;
+      }
+    }
+  }
+
   // DAG Validation: All files should included
-  for (const job of jobs) {
+  for (const job of orderdJobs) {
     if (!job2deps.has(job)) {
       console.warn(`Warning: No deployment files for ${job.file}`);
     }
@@ -467,6 +477,7 @@ const buildTasks = (
     j: JobConfig,
   ) => (
     (jobDeps.get(j) ?? [])
+      .filter((t) => t.shouldDeploy)
       .map((t) => job2task.get(t))
       .filter((t): t is BigQueryJobTask => t !== undefined)
   );
@@ -491,7 +502,6 @@ const buildTasks = (
 
     tasks.push(task);
     job2task.set(job, task);
-    task.run();
   }
   return tasks;
 };
@@ -499,16 +509,16 @@ const buildTasks = (
 const createDeployTasks = async (
   ctx: PushContext,
   files: string[],
+  ctxFiles: string[],
   jobOption: Query,
 ) => {
+  const defaultProjectID = await ctx.BigQuery.client.getProjectId();
+  const toBQID = (p: string) => path2bq(p, ctx.rootPath, defaultProjectID);
   const targets: JobConfig[] = await Promise.all(
-    files
+    Array.from(new Set(ctxFiles.concat(files)))
       .map(async (n: string) => ({
-        namespace: path2bq(
-          n,
-          ctx.rootPath,
-          await ctx.BigQuery.client.getProjectId(),
-        ),
+        namespace: toBQID(n),
+        shouldDeploy: files.includes(n),
         file: n,
         destinations: await extractBigQueryDestinations(
           ctx.rootPath,
@@ -520,20 +530,14 @@ const createDeployTasks = async (
           n,
           ctx.BigQuery.client,
         ))
-          .filter(async (n) =>
-            n !== path2bq(
-              n,
-              ctx.rootPath,
-              await ctx.BigQuery.client.getProjectId(),
-            )
-          ),
+          .filter(async (n) => n !== toBQID(n)),
       })),
   );
 
   const [orderdJobs, jobDeps] = buildDAG(targets);
 
   return buildTasks(
-    orderdJobs,
+    orderdJobs.filter((t) => t.shouldDeploy),
     jobDeps,
     (file: string) =>
       deployBigQueryResouce(ctx.BigQuery.client, ctx.rootPath, file, jobOption),
@@ -709,25 +713,27 @@ const createDelteTasks = async (
   return tasks;
 };
 
-const gatherTargetFiles = async (
-  targetDir: string,
-  pred: (s: string) => boolean,
-) => {
-  if (isatty(0)) {
-    return (await walk(targetDir)).filter(pred);
-  }
+async function* fromStdin(): AsyncGenerator<string> {
   const rl = readline.createInterface({
     input: process.stdin,
   });
 
-  const buffer: string[] = [];
   for await (const line of rl) {
-    if (pred(line)) {
-      buffer.push(line);
-    }
+    yield line;
   }
   rl.close();
-  return buffer;
+}
+
+const getTargetFiles = async () => {
+  if (isatty(0)) {
+    return undefined;
+  }
+
+  const inputFiles: string[] = [];
+  for await (const line of fromStdin()) {
+    inputFiles.push(line);
+  }
+  return inputFiles;
 };
 
 export async function pushLocalFilesToBigQuery(
@@ -737,17 +743,16 @@ export async function pushLocalFilesToBigQuery(
   const rootDir = ctx.rootPath;
   const reporterType: BuiltInReporters = ctx.reporter;
 
-  const inputFiles = await gatherTargetFiles(
-    rootDir,
-    (p: string) =>
-      p.endsWith('.sql') && p.includes(ctx.BigQuery.projectId ?? '@default'),
-  );
+  const predFilter = (p: string) =>
+    p.endsWith('.sql') && p.includes(ctx.BigQuery.projectId ?? '@default');
+  const ctxFiles = (await walk(rootDir)).filter(predFilter);
+  const inputFiles: string[] = (await getTargetFiles()) ?? ctxFiles;
 
   const tasks: BigQueryJobTask[] = [
     // Deletion tasks
     ...await createDelteTasks(ctx),
     // Deploy tasks
-    ...await createDeployTasks(ctx, inputFiles, jobOption),
+    ...await createDeployTasks(ctx, inputFiles, ctxFiles, jobOption),
   ];
 
   // Task Execution
