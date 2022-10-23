@@ -1,8 +1,11 @@
 import { defineConfig } from 'vite';
 export default defineConfig({
   test: {
-    threads: true,
-    maxThreads: 1,
-    minThreads: 0,
+    // FIXME: Couldn't thread in linux due to "Module did not self-register Error"
+    threads: false,
+    coverage: {
+      provider: 'istanbul', // or 'c8'
+      reporter: ['text', 'json', 'html'],
+    },
   },
 });
