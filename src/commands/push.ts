@@ -544,6 +544,42 @@ const createDeployTasks = async (
   );
 };
 
+export const createBundleSQL = async (
+  ctx: PushContext,
+  files: string[],
+  ctxFiles: string[],
+) => {
+  const defaultProjectID = await ctx.BigQuery.client.getProjectId();
+  const toBQID = (p: string) => path2bq(p, ctx.rootPath, defaultProjectID);
+  const targets: JobConfig[] = await Promise.all(
+    Array.from(new Set(ctxFiles.concat(files)))
+      .map(async (n: string) => ({
+        namespace: toBQID(n),
+        shouldDeploy: files.includes(n),
+        file: n,
+        destinations: await extractBigQueryDestinations(
+          ctx.rootPath,
+          n,
+          ctx.BigQuery.client,
+        ),
+        dependencies: (await extractBigQueryDependencies(
+          ctx.rootPath,
+          n,
+          ctx.BigQuery.client,
+        ))
+          .filter(async (n) => n !== toBQID(n)),
+      })),
+  );
+
+  const [orderdJobs] = buildDAG(targets);
+
+  return orderdJobs
+    .filter((t) => t.shouldDeploy)
+    .map((j) => (fs.readFileSync(j.file, 'utf-8')))
+    .map((sql) => `begin\n${sql.replace(/;\s*$/, '')};\n end;`)
+    .join('\n');
+};
+
 const cleanupBigQueryDataset = async (
   bqClient: BigQuery,
   rootDir: string,
@@ -756,6 +792,7 @@ export async function pushLocalFilesToBigQuery(
   ];
 
   // Task Execution
+
   const reporter: Reporter<BQJob> = new ReporterMap[reporterType]();
   try {
     reporter.onInit(tasks);
