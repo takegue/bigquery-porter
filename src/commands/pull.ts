@@ -15,7 +15,7 @@ import {
   buildThrottledBigQueryClient,
 } from '../..//src/bigquery.js';
 
-import { DefaultReporter } from '../../src/reporter/index.js';
+import { ReporterMap } from '../../src/reporter/index.js';
 import { Task } from '../../src/task.js';
 import 'process';
 
@@ -259,7 +259,7 @@ async function pullBigQueryResources({
   tasks.push(task);
   task.run();
 
-  const reporter = new DefaultReporter();
+  const reporter = new ReporterMap['default']();
   try {
     reporter.onInit(tasks);
     tasks.forEach((t) => t.run());

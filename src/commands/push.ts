@@ -718,7 +718,7 @@ const gatherTargetFiles = async (
   pred: (s: string) => boolean,
 ) => {
   if (isatty(0)) {
-    return await walk(targetDir);
+    return (await walk(targetDir)).filter(pred);
   }
   const rl = readline.createInterface({
     input: process.stdin,
