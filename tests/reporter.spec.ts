@@ -1,6 +1,6 @@
 import { describe, it } from 'vitest';
 import { DefaultReporter } from '../src/reporter/default.js';
-import { Task } from '../src/task.js';
+import { Task } from '../src/tasks/base.js';
 
 describe('Reporter: Default Reporter', () => {
   it('Should test', async () => {

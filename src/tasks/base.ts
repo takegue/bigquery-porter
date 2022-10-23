@@ -6,9 +6,9 @@ import type {
   Stringable,
   Success,
   TaskResult,
-} from '../src/types.js';
+} from '../../src/types.js';
 
-import { humanFileSize, msToTime } from '../src/util.js';
+import { humanFileSize, msToTime } from '../../src/util.js';
 
 class BaseTask<T> implements ReporterTask<T> {
   name: string;

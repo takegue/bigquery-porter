@@ -16,7 +16,7 @@ import {
 } from '../..//src/bigquery.js';
 
 import { ReporterMap } from '../../src/reporter/index.js';
-import { Task } from '../../src/task.js';
+import { Task } from '../../src/tasks/base.js';
 import 'process';
 
 const sqlDDLForSchemata = (projectId: string) => `
@@ -93,8 +93,8 @@ async function pullBigQueryResources({
     const pathDir = `${rootDir}/${fsPath}`;
     const catalogId = (
       bqObj.metadata?.datasetReference?.projectId ??
-        (bqObj.parent as Dataset).metadata.datasetReference.projectId ??
-        defaultProjectId
+      (bqObj.parent as Dataset).metadata.datasetReference.projectId ??
+      defaultProjectId
     ) as string;
     bqObj['projectId'] = catalogId;
     const retFiles: string[] = [];

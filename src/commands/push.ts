@@ -17,7 +17,7 @@ import type {
 
 import type { Reporter } from '../../src/types.js';
 import { BuiltInReporters, ReporterMap } from '../../src/reporter/index.js';
-import { BigQueryJobTask, BQJob } from '../../src/task.js';
+import { BigQueryJobTask, BQJob } from '../../src/tasks/base.js';
 import { syncMetadata } from '../../src/metadata.js';
 import {
   extractDestinations,
@@ -192,8 +192,7 @@ const fetchBQJobResource = async (
     default:
       const stats = job.metadata.statistics;
       throw new Error(
-        `Not Supported: ${stats.query.statementType} (${job.id}, ${
-          JSON.stringify(stats)
+        `Not Supported: ${stats.query.statementType} (${job.id}, ${JSON.stringify(stats)
         })`,
       );
   }
