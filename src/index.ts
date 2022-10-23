@@ -4,6 +4,9 @@ import { formatLocalfiles } from '../src/commands/fix.js';
 import { pushLocalFilesToBigQuery } from '../src/commands/push.js';
 import { pullBigQueryResources } from '../src/commands/pull.js';
 
+import { buildThrottledBigQueryClient } from '../src/bigquery.js';
+import type { Query } from '@google-cloud/bigquery';
+
 import 'process';
 import { Command } from 'commander';
 
@@ -58,28 +61,47 @@ function createCLI() {
         return;
       }
 
+      const jobOption: Query = {};
+      jobOption.dryRun = cmdOptions.dryRun ?? false;
+      if (cmdOptions.maximumBytesBilled) {
+        jobOption.maximumBytesBilled = cmdOptions.maximumBytesBilled;
+      }
+
+      if (cmdOptions.labels) {
+        jobOption.labels = {
+          ...(cmdOptions.labels ?? []),
+          'bqporter-enable': 'true',
+        };
+      }
+
+      if (cmdOptions.parameter) {
+        jobOption.params = cmdOptions.parameter = Object.fromEntries(
+          (cmdOptions.parameter as string[])
+            .map((s) => {
+              const elms = s.split(':');
+              const rawValue = elms[2];
+              return [elms[0], rawValue];
+            }),
+        );
+      }
+
+      const bqClient = buildThrottledBigQueryClient(
+        parseInt(cmdOptions.threads),
+        500,
+      );
       for (const project of projects) {
-        const options = {
-          rootDir: rootDir,
-          projectId: project,
-          concurrency: parseInt(cmdOptions.threads),
+        const ctx = {
+          BigQuery: {
+            client: bqClient,
+            projectId: project ?? await bqClient.getProjectId(),
+          },
+          rootPath: rootDir,
           dryRun: cmdOptions.dryRun ?? false,
           force: cmdOptions.force ?? false,
           reporter: cmdOptions.format ?? 'console',
         };
 
-        if (cmdOptions.parameter) {
-          (options as any)['params'] = Object.fromEntries(
-            (cmdOptions.parameter as string[])
-              .map((s) => {
-                const elms = s.split(':');
-                const rawValue = elms[2];
-                return [elms[0], rawValue];
-              }),
-          );
-        }
-
-        await pushLocalFilesToBigQuery(options);
+        await pushLocalFilesToBigQuery(ctx, jobOption);
       }
     });
 

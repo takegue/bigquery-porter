@@ -26,11 +26,7 @@ import {
   walk,
 } from '../../src/util.js';
 
-import {
-  buildThrottledBigQueryClient,
-  normalizedBQPath,
-  path2bq,
-} from '../../src/bigquery.js';
+import { normalizedBQPath, path2bq } from '../../src/bigquery.js';
 
 type JobConfig = {
   file: string;
@@ -202,7 +198,7 @@ const fetchBQJobResource = async (
   }
 };
 
-export const deployBigQueryResouce = async (
+const deployBigQueryResouce = async (
   bqClient: BigQuery,
   rootPath: string,
   p: string,
@@ -735,59 +731,17 @@ const gatherTargetFiles = async (
 };
 
 export async function pushLocalFilesToBigQuery(
-  options: {
-    rootDir: string;
-    projectId: string;
-    concurrency?: number;
-    dryRun: boolean;
-    force: boolean;
-    reporter?: BuiltInReporters;
-    maximumBytesBilled?: string;
-    labels?: { [label: string]: string };
-    params?: any[] | { [param: string]: any };
-  },
+  ctx: PushContext,
+  jobOption: Query,
 ) {
-  const rootDir = options.rootDir;
-  const concurrency = options.concurrency ?? 10;
-  const bqClient = buildThrottledBigQueryClient(concurrency, 500);
-  const defaultProjectId = await bqClient.getProjectId();
-  const projectId = options.projectId ?? defaultProjectId;
-  const withoutConrimation = options.force ?? false;
-  const reporterType: BuiltInReporters = options.reporter ?? 'console';
+  const rootDir = ctx.rootPath;
+  const reporterType: BuiltInReporters = ctx.reporter;
 
   const inputFiles = await gatherTargetFiles(
     rootDir,
     (p: string) =>
-      p.endsWith('.sql') && p.includes(options.projectId ?? '@default'),
+      p.endsWith('.sql') && p.includes(ctx.BigQuery.projectId ?? '@default'),
   );
-
-  const jobOption: Query = {};
-  if (options.dryRun) {
-    jobOption.dryRun = options.dryRun;
-  }
-  if (options.maximumBytesBilled) {
-    jobOption.maximumBytesBilled = options.maximumBytesBilled;
-  }
-  if (options.labels) {
-    jobOption.labels = {
-      ...options.labels,
-      'bqporter-enable': 'true',
-    };
-  }
-  if (options.params) {
-    jobOption.params = options.params;
-  }
-
-  const ctx = {
-    BigQuery: {
-      client: bqClient,
-      projectId: projectId ?? defaultProjectId,
-    },
-    rootPath: rootDir,
-    dryRun: options.dryRun,
-    force: withoutConrimation,
-    reporter: options.reporter ?? 'console',
-  };
 
   const tasks: BigQueryJobTask[] = [
     // Deletion tasks
