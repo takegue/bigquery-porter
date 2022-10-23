@@ -4,7 +4,10 @@ import fs from 'node:fs';
 import { tmpdir } from 'node:os';
 
 import { Task } from '../src/tasks/base.js';
-import { cleanupBigQueryDataset } from '../src/tasks/cleanup.js';
+import {
+  cleanupBigQueryDataset,
+  createCleanupTasks,
+} from '../src/tasks/cleanup.js';
 import { BigQuery } from '@google-cloud/bigquery';
 
 describe('Reporter: Task Reporter', () => {
@@ -43,34 +46,79 @@ describe('Reporter: Task Reporter', () => {
 describe('Task: Cleanup tasks', () => {
   const bqClient = new BigQuery();
 
-  const _root = fs.mkdtempSync(`${tmpdir()}${path.sep}`);
-  const _project = 'bigquery-public-data';
-  const _dataset = 'austin_311';
-  const dPath = path.join(_root, _project, _dataset);
+  describe('cleanupBigQueryDataset', () => {
+    const _root = fs.mkdtempSync(`${tmpdir()}${path.sep}`);
+    const _project = 'bigquery-public-data';
+    const dPath = path.join(_root, _project);
 
-  afterAll(async () => {
-    fs.rmSync(_root, { recursive: true });
+    afterAll(async () => {
+      fs.rmSync(_root, { recursive: true });
+    });
+
+    it('No dataset files', async () => {
+      fs.mkdirSync(dPath, { recursive: true });
+      const tasks = await cleanupBigQueryDataset(
+        bqClient,
+        _root,
+        _project,
+        'missing_dataset',
+        {
+          dryRun: true,
+          withoutConrimation: true,
+        },
+      );
+
+      expect(tasks.length).toBe(0);
+    });
+
+    it('Not found BigQuery', async () => {
+      fs.mkdirSync(path.join(dPath, 'missing_dataset'), { recursive: true });
+      const tasks = await cleanupBigQueryDataset(
+        bqClient,
+        _root,
+        _project,
+        'missing_dataset',
+        {
+          dryRun: true,
+          withoutConrimation: true,
+        },
+      );
+
+      expect(tasks.length).toBe(0);
+    });
   });
 
-  beforeAll(async () => {
-    fs.mkdirSync(dPath, { recursive: true });
-  });
+  describe('cleanupBigQueryDataset', () => {
+    const _root = fs.mkdtempSync(`${tmpdir()}${path.sep}`);
+    const _project = 'bigquery-public-data';
+    const _dataset = 'austin_311';
+    const dPath = path.join(_root, _project, _dataset);
 
-  it('clean up tables', async () => {
-    const tasks = await cleanupBigQueryDataset(
-      bqClient,
-      _root,
-      _project,
-      _dataset,
-      {
-        dryRun: true,
-        withoutConrimation: false,
-      },
-    );
+    afterAll(async () => {
+      fs.rmSync(_root, { recursive: true });
+    });
 
-    expect(tasks.length).toBe(1);
-    expect(tasks[0]?.name).toBe(
-      'bigquery-public-data/austin_311/TABLE/311_service_requests',
-    );
+    beforeAll(async () => {
+      fs.mkdirSync(dPath, { recursive: true });
+    });
+
+    it('clean up tables', async () => {
+      const tasks = await createCleanupTasks(
+        {
+          BigQuery: {
+            projectId: _project,
+            client: bqClient,
+          },
+          dryRun: false,
+          force: true,
+          rootPath: _root,
+        },
+      );
+
+      expect(tasks.length).toBe(1);
+      expect(tasks[0]?.name).toBe(
+        'bigquery-public-data/austin_311/TABLE/311_service_requests',
+      );
+    });
   });
 });

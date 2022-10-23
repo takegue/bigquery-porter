@@ -40,7 +40,7 @@ describe('util test: toposort', () => {
       expected: ['a', 'b', 'c'],
     },
   ];
-  it.each(cases)('topological sort', async (args) => {
+  it.concurrent.each(cases)('topological sort', async (args) => {
     const { input, expected } = args;
     expect(topologicalSort(input))
       .toMatchObject(expected);

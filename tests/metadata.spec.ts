@@ -14,7 +14,7 @@ import * as path from 'node:path';
 import { BigQuery } from '@google-cloud/bigquery';
 import { syncMetadata } from '../src/metadata.js';
 
-describe('syncMetadata: Pull', () => {
+describe('syncMetadata: Pull', async () => {
   const bqClient = new BigQuery();
   const _dataset = fs.mkdtempSync(`${tmpdir()}${path.sep}`);
   const _resource = 'resource';
@@ -84,7 +84,7 @@ describe('syncMetadata: Pull', () => {
   });
 });
 
-describe('syncMetadata: Push', () => {
+describe('syncMetadata: Push', async () => {
   const bqClient = new BigQuery();
   const _local = fs.mkdtempSync(`${tmpdir()}${path.sep}`);
 
