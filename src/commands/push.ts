@@ -568,36 +568,38 @@ const cleanupBigQueryDataset = async (
     return [];
   }
 
-  const routines = await dataset.getRoutines()
-    .then(([rr]) =>
-      new Map(
-        rr.map((r) => [
-          (({ metadata: { routineReference: r } }) =>
-            `${r.projectId}.${r.datasetId}.${r.routineId}`)(r),
-          r,
-        ]),
-      )
-    );
-  const models = await dataset.getModels()
-    .then(([rr]) =>
-      new Map(
-        rr.map((r) => [
-          (({ metadata: { modelReference: r } }) =>
-            `${r.projectId}.${r.datasetId}.${r.modelId}`)(r),
-          r,
-        ]),
-      )
-    );
-  const tables = await dataset.getTables()
-    .then(([rr]) =>
-      new Map(
-        rr.map((r) => [
-          (({ metadata: { tableReference: r } }) =>
-            `${r.projectId}.${r.datasetId}.${r.tableId}`)(r),
-          r,
-        ]),
-      )
-    );
+  const [routines, models, tables] = await Promise.all([
+    await dataset.getRoutines()
+      .then(([rr]) =>
+        new Map(
+          rr.map((r) => [
+            (({ metadata: { routineReference: r } }) =>
+              `${r.projectId}.${r.datasetId}.${r.routineId}`)(r),
+            r,
+          ]),
+        )
+      ),
+    await dataset.getModels()
+      .then(([rr]) =>
+        new Map(
+          rr.map((r) => [
+            (({ metadata: { modelReference: r } }) =>
+              `${r.projectId}.${r.datasetId}.${r.modelId}`)(r),
+            r,
+          ]),
+        )
+      ),
+    await dataset.getTables()
+      .then(([rr]) =>
+        new Map(
+          rr.map((r) => [
+            (({ metadata: { tableReference: r } }) =>
+              `${r.projectId}.${r.datasetId}.${r.tableId}`)(r),
+            r,
+          ]),
+        )
+      ),
+  ]);
 
   // Leave reousrces to delete
   (await walk(datasetPath))
@@ -654,9 +656,7 @@ const cleanupBigQueryDataset = async (
             }
           } catch (e) {
           }
-          return {
-            isDryRun: isDryRun,
-          };
+          return { isDryRun };
         },
       );
       tasks.push(task);
