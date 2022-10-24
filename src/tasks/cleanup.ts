@@ -1,13 +1,12 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import readline from 'node:readline';
-
 import type { BigQuery, Dataset } from '@google-cloud/bigquery';
 
 import { BigQueryJobTask } from '../../src/tasks/base.js';
 
 import { path2bq } from '../../src/bigquery.js';
 import { walk } from '../../src/util.js';
+import { prompt } from '../../src/prompt.js';
 
 type PushContext = {
   dryRun: boolean;
@@ -142,25 +141,6 @@ const cleanupBigQueryDataset = async (
 
   return tasks;
 };
-
-// Use current tty for pipe input
-const prompt = (query: string) =>
-  new Promise(
-    (resolve) => {
-      const tty = fs.createReadStream('/dev/tty');
-      const rl = readline.createInterface({
-        input: tty,
-        output: process.stderr,
-      });
-
-      rl.question(query, (ret) => {
-        // Order matters and rl should close after use once
-        tty.close();
-        rl.close();
-        resolve(ret);
-      });
-    },
-  );
 
 const createCleanupTasks = async (
   ctx: PushContext,

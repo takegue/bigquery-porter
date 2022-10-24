@@ -1,8 +1,28 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
+import readline from 'node:readline';
 import Parser from 'tree-sitter';
 import Language from 'tree-sitter-sql-bigquery';
+
+function prompt(query: string) {
+  return new Promise(
+    (resolve) => {
+      const tty = fs.createReadStream('/dev/tty');
+      const rl = readline.createInterface({
+        input: tty,
+        output: process.stderr,
+      });
+
+      rl.question(query, (ret) => {
+        // Order matters and rl should close after use once
+        tty.close();
+        rl.close();
+        resolve(ret);
+      });
+    },
+  );
+}
 
 async function walk(dir: string): Promise<string[]> {
   const fs_files = await fs.promises.readdir(dir);
@@ -236,6 +256,7 @@ export {
   extractRefenrences,
   humanFileSize,
   msToTime,
+  prompt,
   Relation,
   topologicalSort,
   walk,
