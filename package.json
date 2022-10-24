@@ -26,7 +26,7 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@google-cloud/bigquery": "^5.12.0",
+    "@google-cloud/bigquery": "^6.0.3",
     "@types/node": "^18.11.3",
     "commander": "^9.4.0",
     "log-update": "^5.0.1",
