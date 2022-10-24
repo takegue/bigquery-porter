@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 
 import { formatLocalfiles } from '../src/commands/fix.js';
-import { pushLocalFilesToBigQuery } from '../src/commands/push.js';
+import {
+  createBundleSQL,
+  pushLocalFilesToBigQuery,
+} from '../src/commands/push.js';
 import { pullBigQueryResources } from '../src/commands/pull.js';
 
 import { buildThrottledBigQueryClient } from '../src/bigquery.js';
@@ -41,8 +44,8 @@ function createCLI() {
     .option(
       '--parameter <key:value>',
       `Either a file containing a JSON list of query parameters, or a query parameter in the form "name:type:value".` +
-      `An empty name produces a positional parameter. The type may be omitted to assume STRING: name::value or ::value.` +
-      `The value "NULL" produces a null value. repeat this option to specify a list of values`,
+        `An empty name produces a positional parameter. The type may be omitted to assume STRING: name::value or ::value.` +
+        `The value "NULL" produces a null value. repeat this option to specify a list of values`,
     )
     .option(
       '--maximum_bytes_billed <number of bytes>',
@@ -146,9 +149,48 @@ function createCLI() {
       await formatLocalfiles(cmdOptions.rootPath ?? './bigquery/', options);
     });
 
+  const bundleCommand = new Command('bundle')
+    .description(
+      'Bundle SQLs into single execuatale BigQuery Script',
+    )
+    .argument('[projects...]')
+    .action(async (cmdProjects: string[] | undefined, _, cmd) => {
+      const cmdOptions = cmd.optsWithGlobals();
+      const projects = cmdProjects && cmdProjects.length > 0
+        ? cmdProjects
+        : ['@default'];
+
+      const rootDir = cmdOptions.rootPath;
+      if (!rootDir) {
+        console.error('CLI Error');
+        return;
+      }
+
+      const bqClient = buildThrottledBigQueryClient(
+        parseInt(cmdOptions.threads),
+        500,
+      );
+      for (const project of projects) {
+        const ctx = {
+          BigQuery: {
+            client: bqClient,
+            projectId: project ?? '@default',
+          },
+          rootPath: rootDir,
+          dryRun: cmdOptions.dryRun ?? false,
+          force: cmdOptions.force ?? false,
+          reporter: cmdOptions.format ?? 'console',
+        };
+
+        const sql = await createBundleSQL(ctx);
+        console.log(sql);
+      }
+    });
+
   program.addCommand(pushCommand);
   program.addCommand(pullCommand);
   program.addCommand(formatCommmand);
+  program.addCommand(bundleCommand);
 
   program.parse();
 }

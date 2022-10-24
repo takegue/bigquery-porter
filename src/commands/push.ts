@@ -547,16 +547,21 @@ const createDeployTasks = async (
 
 export const createBundleSQL = async (
   ctx: PushContext,
-  files: string[],
-  ctxFiles: string[],
 ) => {
+  const rootDir = ctx.rootPath;
+
+  const predFilter = (p: string) =>
+    p.endsWith('.sql') && p.includes(ctx.BigQuery.projectId ?? '@default');
+  const ctxFiles = (await walk(rootDir)).filter(predFilter);
+  const inputFiles: string[] = (await getTargetFiles()) ?? ctxFiles;
+
   const defaultProjectID = await ctx.BigQuery.client.getProjectId();
   const toBQID = (p: string) => path2bq(p, ctx.rootPath, defaultProjectID);
   const targets: JobConfig[] = await Promise.all(
-    Array.from(new Set(ctxFiles.concat(files)))
+    Array.from(new Set(ctxFiles.concat(inputFiles)))
       .map(async (n: string) => ({
         namespace: toBQID(n),
-        shouldDeploy: files.includes(n),
+        shouldDeploy: inputFiles.includes(n),
         file: n,
         destinations: await extractBigQueryDestinations(
           ctx.rootPath,
@@ -580,25 +585,6 @@ export const createBundleSQL = async (
     .map((sql) => `begin\n${sql.replace(/;\s*$/, '')};\n end;`)
     .join('\n');
 };
-
-// Use current tty for pipe input
-const prompt = (query: string) =>
-  new Promise(
-    (resolve) => {
-      const tty = fs.createReadStream('/dev/tty');
-      const rl = readline.createInterface({
-        input: tty,
-        output: process.stderr,
-      });
-
-      rl.question(query, (ret) => {
-        // Order matters and rl should close after use once
-        tty.close();
-        rl.close();
-        resolve(ret);
-      });
-    },
-  );
 
 async function* fromStdin(): AsyncGenerator<string> {
   const rl = readline.createInterface({

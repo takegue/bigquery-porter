@@ -93,8 +93,8 @@ async function pullBigQueryResources({
     const pathDir = `${rootDir}/${fsPath}`;
     const catalogId = (
       bqObj.metadata?.datasetReference?.projectId ??
-      (bqObj.parent as Dataset).metadata.datasetReference.projectId ??
-      defaultProjectId
+        (bqObj.parent as Dataset).metadata.datasetReference.projectId ??
+        defaultProjectId
     ) as string;
     bqObj['projectId'] = catalogId;
     const retFiles: string[] = [];
