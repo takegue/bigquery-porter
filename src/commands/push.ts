@@ -581,9 +581,17 @@ export const createBundleSQL = async (
 
   return orderdJobs
     .filter((t) => t.shouldDeploy)
-    .map((j) => (fs.readFileSync(j.file, 'utf-8')))
-    .map((sql) => `begin\n${sql.replace(/;\s*$/, '')};\n end;`)
-    .join('\n');
+    .map((j) => ({ job: j, sql: fs.readFileSync(j.file, 'utf-8') }))
+    .map(({ job: j, sql }) =>
+      [
+        'begin',
+        `-- BQPORTER: ${j.namespace} from ${j.file}`,
+        sql.replace(/;\s*$/, ''),
+        'exception when error then',
+        'end',
+      ].join('\n')
+    )
+    .join('\n\n');
 };
 
 async function* fromStdin(): AsyncGenerator<string> {
