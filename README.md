@@ -20,7 +20,7 @@ First step to start to use is cloning BigQuery resources as files in remote.
 Next comamnd, you'll get BigQuery metadata files and DDL codes in local filesystem.
 
 ```sh
-npx bqport pull --all --with-ddl @default
+npx bqport pull --all --with-ddl
 ```
 
 Typical directory strucuture follows:
