@@ -1,4 +1,7 @@
+
 # BigQuery Porter
+
+[![CI - testing](https://github.com/takegue/bigquery-porter/actions/workflows/ci.yml/badge.svg](https://github.com/takegue/bigquery-porter/actions/workflows/ci.yml)
 
 BigQuery Porter is a tool to fetch/deploy BigQuery Resource and its metadata.
 
