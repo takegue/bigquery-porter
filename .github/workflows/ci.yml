@@ -3,14 +3,14 @@ name: CI - testing
 on: [pull_request]
 jobs:
   build:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
     runs-on: ubuntu-latest
     strategy:
       matrix:
         node-version: [16.x, 18.x]
       # Add "id-token" with the intended permissions.
-      permissions:
-        contents: 'read'
-        id-token: 'write'
     steps:
     - uses: actions/checkout@v3
     - name: Use Node.js ${{ matrix.node-version }}
