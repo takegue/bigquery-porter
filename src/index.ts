@@ -130,7 +130,9 @@ function createCLI() {
       if (projects.length > 0) {
         await Promise.allSettled(
           projects.map(async (p) =>
-            await pullBigQueryResources({ projectId: p, ...options })
+            p == '@default'
+              ? await pullBigQueryResources({ ...options })
+              : await pullBigQueryResources({ projectId: p, ...options })
           ),
         );
       } else {
