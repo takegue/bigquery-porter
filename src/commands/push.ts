@@ -9,7 +9,7 @@ import type {
   GetJobsOptions,
   Job,
   JobMetadata,
-  // Model,
+  Model,
   Query,
   Routine,
   Table,
@@ -80,7 +80,7 @@ const buildBQJobFromMetadata = (job: JobMetadata): BQJob => {
 
 const fetchBQJobResource = async (
   job: Job,
-): Promise<Dataset | Routine | Table | undefined> => {
+): Promise<Dataset | Routine | Table | Model | undefined> => {
   await job.getMetadata();
   if (job.metadata.status.errorResult) {
     throw new Error(job.metadata.status.errorResult.message);
