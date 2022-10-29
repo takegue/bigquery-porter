@@ -1,4 +1,5 @@
 bigquery
 deno.jsonc
+coverage
 src
 .*

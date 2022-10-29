@@ -1,6 +1,10 @@
 
 ### Node ###
 
+# Vitest
+#
+coverage
+
 # Logs
 logs
 *.log
@@ -22,7 +26,7 @@ jspm_packages/
 
 # Optional npm cache directory
 .npm
-dist 
+dist
 
 # Optional eslint cache
 .eslintcache
@@ -49,4 +53,3 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
-
