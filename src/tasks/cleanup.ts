@@ -38,7 +38,9 @@ const cleanupBigQueryDataset = async (
 
   let dataset: Dataset;
   try {
-    [dataset] = await bqClient.dataset(datasetId, { projectId })
+    [dataset] = await bqClient.dataset(datasetId, {
+      projectId: projectId === '@default' ? defaultProjectId : projectId,
+    })
       .get();
   } catch (e: unknown) {
     return [];
