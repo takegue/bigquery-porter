@@ -263,7 +263,7 @@ const deployBigQueryResouce = async (
 
         // Update view query
         metadata.view = query;
-        await view.setMetadata(view);
+        await view.setMetadata(metadata);
       } else {
         await schema.createTable(tableId, {
           view: query,
