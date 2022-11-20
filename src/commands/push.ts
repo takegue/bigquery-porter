@@ -194,8 +194,8 @@ const fetchBQJobResource = async (
     default:
       const stats = job.metadata.statistics;
       throw new Error(
-        `Not Supported: ${stats.query.statementType}`
-        + `(${job.id}, ${JSON.stringify(stats)})`,
+        `Not Supported: ${stats.query.statementType}` +
+        `(${job.id}, ${JSON.stringify(stats)})`,
       );
   }
 };
@@ -256,18 +256,18 @@ const deployBigQueryResouce = async (
 
       if (isExist) {
         // Retrieve existing view
-        // const [view] = await api.get();
+        const [view] = await api.get();
 
-        // // Retrieve existing view metadata
-        // const [metadata] = await view.getMetadata();
+        // Retrieve existing view metadata
+        const [metadata] = await view.getMetadata();
 
-        // // Update view query
-        // metadata.view = query;
-        // await view.setMetadata(view)
+        // Update view query
+        metadata.view = query;
+        await view.setMetadata(view);
       } else {
         await schema.createTable(tableId, {
           view: query,
-        })
+        });
       }
 
       return {};
@@ -324,7 +324,7 @@ const extractBigQueryDependencies = async (
     defaultProjectId,
   ).split('.');
 
-  if (!await fs.promises.lstat(fpath).then(s => s.isFile())) {
+  if (!await fs.promises.lstat(fpath).then((s) => s.isFile())) {
     return [path2bq(fpath, rootPath, defaultProjectId)];
   }
 
@@ -356,7 +356,7 @@ const extractBigQueryDestinations = async (
   const bqID = path2bq(fpath, rootPath, defaultProjectId);
   const [projectID] = bqID.split('.');
 
-  if (!await fs.promises.lstat(fpath).then(s => s.isFile())) {
+  if (!await fs.promises.lstat(fpath).then((s) => s.isFile())) {
     return [];
   }
 
@@ -499,7 +499,9 @@ const buildTasks = (
   );
 
   for (const job of jobs) {
-    const taskName = job.file.endsWith('.sql') ? path.basename(job.file) : '(Metadata)';
+    const taskName = job.file.endsWith('.sql')
+      ? path.basename(job.file)
+      : '(Metadata)';
     const task = new BigQueryJobTask(
       `${job.namespace.replace(/\./g, path.sep)}/${taskName}`,
       async () => {
@@ -534,7 +536,7 @@ const createDeployTasks = async (
   const targets: JobConfig[] = [
     ...await Promise.all(
       Array.from(new Set(ctxFiles.concat(files)))
-        .filter(p => p.endsWith('.sql'))
+        .filter((p) => p.endsWith('.sql'))
         .map(async (n: string) => ({
           namespace: toBQID(n),
           shouldDeploy: files.includes(n),
@@ -553,16 +555,15 @@ const createDeployTasks = async (
         })),
     ),
     // For Metadata Update
-    ...Array.from(new Set(files.map(f => f)))
+    ...Array.from(new Set(files.map((f) => f)))
       .map((n) => ({
         namespace: toBQID(n),
         shouldDeploy: files.includes(n),
         file: path.join(path.dirname(n), 'metadata.json'),
         destinations: [],
         dependencies: [toBQID(n)],
-      }))
+      })),
   ];
-
 
   const [orderdJobs, jobDeps] = buildDAG(targets);
 
@@ -571,13 +572,20 @@ const createDeployTasks = async (
     jobDeps,
     (file: string) => {
       if (file.endsWith('.sql')) {
-        return deployBigQueryResouce(ctx.BigQuery.client, ctx.rootPath, file, jobOption);
+        return deployBigQueryResouce(
+          ctx.BigQuery.client,
+          ctx.rootPath,
+          file,
+          jobOption,
+        );
       }
 
-      const [projectId, dataset, tableOrRoutineOrModel] = toBQID(file).split('.');
+      const [projectId, dataset, tableOrRoutineOrModel] = toBQID(file).split(
+        '.',
+      );
       const fileDir = path.dirname(file);
       if (dataset === undefined) {
-        throw Error("Unreachable code");
+        throw Error('Unreachable code');
       }
 
       if (tableOrRoutineOrModel === undefined) {
@@ -586,18 +594,17 @@ const createDeployTasks = async (
           const [model] = await ctx.BigQuery.client
             .dataset(dataset, { projectId } as DatasetOptions)
             .get();
-          await syncMetadata(model, fileDir, { push: true })
-          return {} as BQJob
+          await syncMetadata(model, fileDir, { push: true });
+          return {} as BQJob;
         })();
-      }
-      else if (file.match('@routine')) {
+      } else if (file.match('@routine')) {
         return (async () => {
           const [routine] = await ctx.BigQuery.client
             .dataset(dataset, { projectId } as DatasetOptions)
             .routine(tableOrRoutineOrModel)
             .get();
-          await syncMetadata(routine, fileDir, { push: true })
-          return {} as BQJob
+          await syncMetadata(routine, fileDir, { push: true });
+          return {} as BQJob;
         })();
       } else if (file.match('@model')) {
         return (async () => {
@@ -605,8 +612,8 @@ const createDeployTasks = async (
             .dataset(dataset, { projectId } as DatasetOptions)
             .model(tableOrRoutineOrModel)
             .get();
-          await syncMetadata(model, fileDir, { push: true })
-          return {} as BQJob
+          await syncMetadata(model, fileDir, { push: true });
+          return {} as BQJob;
         })();
       } else {
         // Table
@@ -615,11 +622,11 @@ const createDeployTasks = async (
             .dataset(dataset, { projectId } as DatasetOptions)
             .table(tableOrRoutineOrModel)
             .get();
-          await syncMetadata(table, fileDir, { push: true })
-          return {} as BQJob
+          await syncMetadata(table, fileDir, { push: true });
+          return {} as BQJob;
         })();
       }
-    }
+    },
   );
 };
 
@@ -705,7 +712,9 @@ export async function pushLocalFilesToBigQuery(
   const predFilter = (p: string) =>
     p.endsWith('.sql') && p.includes(ctx.BigQuery.projectId ?? '@default');
   const ctxFiles = (await walk(rootDir)).filter(predFilter);
-  const inputFiles: string[] = ((await getTargetFiles()) ?? ctxFiles).filter(predFilter);
+  const inputFiles: string[] = ((await getTargetFiles()) ?? ctxFiles).filter(
+    predFilter,
+  );
 
   const tasks: BigQueryJobTask[] = [
     // Deletion tasks
@@ -725,9 +734,8 @@ export async function pushLocalFilesToBigQuery(
     }
     reporter.onUpdate();
   } catch (e) {
-    console.error(e)
+    console.error(e);
   } finally {
     reporter.onFinished();
-    console.log('hoge')
   }
 }
