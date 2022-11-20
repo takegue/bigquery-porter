@@ -126,7 +126,7 @@ const cleanupBigQueryDataset = async (
         [
           nsProject,
           datasetId,
-          resourceType.toLowerCase(),
+          resourceType.toUpperCase(),
           bqId.split('.').pop(),
         ]
           .join('/'),
