@@ -195,7 +195,7 @@ const fetchBQJobResource = async (
       const stats = job.metadata.statistics;
       throw new Error(
         `Not Supported: ${stats.query.statementType}` +
-        `(${job.id}, ${JSON.stringify(stats)})`,
+          `(${job.id}, ${JSON.stringify(stats)})`,
       );
   }
 };
@@ -540,7 +540,7 @@ const createDeployTasks = async (
         .map(async (n: string) => ({
           namespace: toBQID(n),
           shouldDeploy: files.includes(n),
-          file: n,
+          file: path.normalize(n),
           destinations: await extractBigQueryDestinations(
             ctx.rootPath,
             n,
@@ -559,7 +559,7 @@ const createDeployTasks = async (
       .map((n) => ({
         namespace: toBQID(n),
         shouldDeploy: files.includes(n),
-        file: path.join(path.dirname(n), 'metadata.json'),
+        file: path.normalize(path.join(path.dirname(n), 'metadata.json')),
         destinations: [],
         dependencies: [toBQID(n)],
       })),
@@ -647,7 +647,7 @@ export const createBundleSQL = async (
       .map(async (n: string) => ({
         namespace: toBQID(n),
         shouldDeploy: inputFiles.includes(n),
-        file: n,
+        file: path.normalize(n),
         destinations: await extractBigQueryDestinations(
           ctx.rootPath,
           n,
