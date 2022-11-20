@@ -8,7 +8,7 @@
     "url": "https://www.opensource.org/licenses/mit-license.php"
   },
   "bin": {
-    "bqport": "dist/src/index.js"
+    "bqport": "dist/index.js"
   },
   "keywords": [
     "deployment",
