@@ -30,6 +30,7 @@ const cleanupBigQueryDataset = async (
   },
 ): Promise<BigQueryJobTask[]> => {
   const defaultProjectId = await bqClient.getProjectId();
+  const nsProject = projectId != '@default' ? projectId : defaultProjectId;
 
   const datasetPath = path.join(rootDir, projectId, datasetId);
   if (!fs.existsSync(datasetPath)) {
@@ -38,9 +39,7 @@ const cleanupBigQueryDataset = async (
 
   let dataset: Dataset;
   try {
-    [dataset] = await bqClient.dataset(datasetId, {
-      projectId: projectId === '@default' ? defaultProjectId : projectId,
-    })
+    [dataset] = await bqClient.dataset(datasetId, { projectId: nsProject })
       .get();
   } catch (e: unknown) {
     return [];
@@ -81,7 +80,6 @@ const cleanupBigQueryDataset = async (
 
   // Leave reousrces to delete
   (await walk(datasetPath))
-    .filter((p: string) => p.endsWith('sql'))
     .filter((p: string) => p.includes('@default'))
     .forEach((f) => {
       const bqId = path2bq(f, rootDir, defaultProjectId);
@@ -103,17 +101,18 @@ const cleanupBigQueryDataset = async (
   const isForce = options?.withoutConrimation ?? false;
 
   const tasks = [];
-  const nsProject = projectId != '@default' ? projectId : defaultProjectId;
   for (const kind of [tables, routines, models]) {
     if (kind.size == 0) {
       continue;
     }
+    const resourceType = kind.values().next().value.constructor.name;
 
     if (!isForce && !isDryRun) {
       const ans = await prompt(
         [
           `Found BigQuery reousrces with no local files. Do you delete these resources? (y/n)`,
-          `  ${[...kind.keys()].join('\n  ')}`,
+          `[${resourceType}s]`,
+          `  ${[...kind.keys()].join('\n  ')} `,
           'Ans>',
         ].join('\n'),
       ) as string;
@@ -123,9 +122,14 @@ const cleanupBigQueryDataset = async (
     }
 
     for (const [bqId, resource] of kind) {
-      const resourceType = resource.metadata.type;
       const task = new BigQueryJobTask(
-        [nsProject, datasetId, resourceType, bqId.split('.').pop()].join('/'),
+        [
+          nsProject,
+          datasetId,
+          resourceType.toLowerCase(),
+          bqId.split('.').pop(),
+        ]
+          .join('/'),
         async () => {
           try {
             console.error(`${isDryRun ? '(DRYRUN) ' : ''}Deleting ${bqId}`);

@@ -6,6 +6,7 @@ import { isatty } from 'node:tty';
 import type {
   BigQuery,
   Dataset,
+  DatasetOptions,
   GetJobsOptions,
   Job,
   JobMetadata,
@@ -193,9 +194,8 @@ const fetchBQJobResource = async (
     default:
       const stats = job.metadata.statistics;
       throw new Error(
-        `Not Supported: ${stats.query.statementType} (${job.id}, ${
-          JSON.stringify(stats)
-        })`,
+        `Not Supported: ${stats.query.statementType}`
+        + `(${job.id}, ${JSON.stringify(stats)})`,
       );
   }
 };
@@ -254,12 +254,22 @@ const deployBigQueryResouce = async (
       const api = schema.table(tableId);
       const [isExist] = await api.exists();
 
-      const [view] = await (
-        isExist ? api.get() : schema.createTable(tableId, {
+      if (isExist) {
+        // Retrieve existing view
+        // const [view] = await api.get();
+
+        // // Retrieve existing view metadata
+        // const [metadata] = await view.getMetadata();
+
+        // // Update view query
+        // metadata.view = query;
+        // await view.setMetadata(view)
+      } else {
+        await schema.createTable(tableId, {
           view: query,
         })
-      );
-      await syncMetadata(view, path.dirname(p), { push: true });
+      }
+
       return {};
 
     default:
@@ -293,11 +303,7 @@ const deployBigQueryResouce = async (
       }
 
       try {
-        const resource = await fetchBQJobResource(job);
-
-        if (resource !== undefined && resource.id == path.dirname(p)) {
-          await syncMetadata(resource, path.dirname(p), { push: true });
-        }
+        await fetchBQJobResource(job);
       } catch (e: unknown) {
         console.warn((e as Error).message);
       }
@@ -317,6 +323,11 @@ const extractBigQueryDependencies = async (
     rootPath,
     defaultProjectId,
   ).split('.');
+
+  if (!await fs.promises.lstat(fpath).then(s => s.isFile())) {
+    return [path2bq(fpath, rootPath, defaultProjectId)];
+  }
+
   const sql: string = await fs.promises.readFile(fpath)
     .then((s: any) => s.toString());
 
@@ -344,6 +355,10 @@ const extractBigQueryDestinations = async (
   const defaultProjectId = await bqClient.getProjectId();
   const bqID = path2bq(fpath, rootPath, defaultProjectId);
   const [projectID] = bqID.split('.');
+
+  if (!await fs.promises.lstat(fpath).then(s => s.isFile())) {
+    return [];
+  }
 
   if (fpath.endsWith(`${path.sep}view.sql`)) {
     return [bqID];
@@ -484,8 +499,9 @@ const buildTasks = (
   );
 
   for (const job of jobs) {
+    const taskName = job.file.endsWith('.sql') ? path.basename(job.file) : '(Metadata)';
     const task = new BigQueryJobTask(
-      `${job.namespace.replace(/\./g, path.sep)}/${path.basename(job.file)}`,
+      `${job.namespace.replace(/\./g, path.sep)}/${taskName}`,
       async () => {
         const deps: BigQueryJobTask[] = inquiryTasks(job);
         await Promise.all(
@@ -515,33 +531,95 @@ const createDeployTasks = async (
 ) => {
   const defaultProjectID = await ctx.BigQuery.client.getProjectId();
   const toBQID = (p: string) => path2bq(p, ctx.rootPath, defaultProjectID);
-  const targets: JobConfig[] = await Promise.all(
-    Array.from(new Set(ctxFiles.concat(files)))
-      .map(async (n: string) => ({
+  const targets: JobConfig[] = [
+    ...await Promise.all(
+      Array.from(new Set(ctxFiles.concat(files)))
+        .filter(p => p.endsWith('.sql'))
+        .map(async (n: string) => ({
+          namespace: toBQID(n),
+          shouldDeploy: files.includes(n),
+          file: n,
+          destinations: await extractBigQueryDestinations(
+            ctx.rootPath,
+            n,
+            ctx.BigQuery.client,
+          ),
+          dependencies: (await extractBigQueryDependencies(
+            ctx.rootPath,
+            n,
+            ctx.BigQuery.client,
+          ))
+            .filter(async (n) => n !== toBQID(n)),
+        })),
+    ),
+    // For Metadata Update
+    ...Array.from(new Set(files.map(f => f)))
+      .map((n) => ({
         namespace: toBQID(n),
         shouldDeploy: files.includes(n),
-        file: n,
-        destinations: await extractBigQueryDestinations(
-          ctx.rootPath,
-          n,
-          ctx.BigQuery.client,
-        ),
-        dependencies: (await extractBigQueryDependencies(
-          ctx.rootPath,
-          n,
-          ctx.BigQuery.client,
-        ))
-          .filter(async (n) => n !== toBQID(n)),
-      })),
-  );
+        file: path.join(path.dirname(n), 'metadata.json'),
+        destinations: [],
+        dependencies: [toBQID(n)],
+      }))
+  ];
+
 
   const [orderdJobs, jobDeps] = buildDAG(targets);
 
   return buildTasks(
     orderdJobs.filter((t) => t.shouldDeploy),
     jobDeps,
-    (file: string) =>
-      deployBigQueryResouce(ctx.BigQuery.client, ctx.rootPath, file, jobOption),
+    (file: string) => {
+      if (file.endsWith('.sql')) {
+        return deployBigQueryResouce(ctx.BigQuery.client, ctx.rootPath, file, jobOption);
+      }
+
+      const [projectId, dataset, tableOrRoutineOrModel] = toBQID(file).split('.');
+      const fileDir = path.dirname(file);
+      if (dataset === undefined) {
+        throw Error("Unreachable code");
+      }
+
+      if (tableOrRoutineOrModel === undefined) {
+        // Dataset
+        return (async () => {
+          const [model] = await ctx.BigQuery.client
+            .dataset(dataset, { projectId } as DatasetOptions)
+            .get();
+          await syncMetadata(model, fileDir, { push: true })
+          return {} as BQJob
+        })();
+      }
+      else if (file.match('@routine')) {
+        return (async () => {
+          const [routine] = await ctx.BigQuery.client
+            .dataset(dataset, { projectId } as DatasetOptions)
+            .routine(tableOrRoutineOrModel)
+            .get();
+          await syncMetadata(routine, fileDir, { push: true })
+          return {} as BQJob
+        })();
+      } else if (file.match('@model')) {
+        return (async () => {
+          const [model] = await ctx.BigQuery.client
+            .dataset(dataset, { projectId } as DatasetOptions)
+            .model(tableOrRoutineOrModel)
+            .get();
+          await syncMetadata(model, fileDir, { push: true })
+          return {} as BQJob
+        })();
+      } else {
+        // Table
+        return (async () => {
+          const [table] = await ctx.BigQuery.client
+            .dataset(dataset, { projectId } as DatasetOptions)
+            .table(tableOrRoutineOrModel)
+            .get();
+          await syncMetadata(table, fileDir, { push: true })
+          return {} as BQJob
+        })();
+      }
+    }
   );
 };
 
@@ -627,7 +705,7 @@ export async function pushLocalFilesToBigQuery(
   const predFilter = (p: string) =>
     p.endsWith('.sql') && p.includes(ctx.BigQuery.projectId ?? '@default');
   const ctxFiles = (await walk(rootDir)).filter(predFilter);
-  const inputFiles: string[] = (await getTargetFiles()) ?? ctxFiles;
+  const inputFiles: string[] = ((await getTargetFiles()) ?? ctxFiles).filter(predFilter);
 
   const tasks: BigQueryJobTask[] = [
     // Deletion tasks
@@ -637,7 +715,6 @@ export async function pushLocalFilesToBigQuery(
   ];
 
   // Task Execution
-
   const reporter: Reporter<BQJob> = new ReporterMap[reporterType]();
   try {
     reporter.onInit(tasks);
@@ -647,7 +724,10 @@ export async function pushLocalFilesToBigQuery(
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
     reporter.onUpdate();
+  } catch (e) {
+    console.error(e)
   } finally {
     reporter.onFinished();
+    console.log('hoge')
   }
 }
