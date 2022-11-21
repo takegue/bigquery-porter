@@ -533,12 +533,18 @@ const createDeployTasks = async (
 ) => {
   const defaultProjectID = await ctx.BigQuery.client.getProjectId();
   const toBQID = (p: string) => path2bq(p, ctx.rootPath, defaultProjectID);
+  const toBQNS = (p: string) =>
+    path.dirname(
+      p
+        .replace(/@default/, defaultProjectID)
+        .replace(/@\w+/, (s) => s.toUpperCase()),
+    );
   const targets: JobConfig[] = [
     ...await Promise.all(
       Array.from(new Set(ctxFiles.concat(files)))
         .filter((p) => p.endsWith('.sql'))
         .map(async (n: string) => ({
-          namespace: toBQID(n),
+          namespace: toBQNS(n),
           shouldDeploy: files.includes(n),
           file: path.normalize(n),
           destinations: await extractBigQueryDestinations(
@@ -557,7 +563,7 @@ const createDeployTasks = async (
     // For Metadata Update
     ...Array.from(new Set(files.map((f) => f)))
       .map((n) => ({
-        namespace: toBQID(n),
+        namespace: toBQNS(n),
         shouldDeploy: files.includes(n),
         file: path.normalize(path.join(path.dirname(n), 'metadata.json')),
         destinations: [],
