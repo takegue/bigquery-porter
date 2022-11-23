@@ -468,9 +468,10 @@ const buildDAG = (
       console.warn(`Warning: No deployment files for ${job.file}`);
     }
 
+    const ns = job.namespace.replace(/@[A-Za-z]+\./, '');
     if (
-      !job.destinations.includes(job.namespace) &&
-      !job.dependencies.includes(job.namespace)
+      !job.destinations.includes(ns) &&
+      !job.dependencies.includes(ns)
     ) {
       console.error(
         `Warning: Irrelevant SQL file located in ${job.file} for ${job.namespace}`,
@@ -534,11 +535,15 @@ const createDeployTasks = async (
   const defaultProjectID = await ctx.BigQuery.client.getProjectId();
   const toBQID = (p: string) => path2bq(p, ctx.rootPath, defaultProjectID);
   const toBQNS = (p: string) =>
-    path.dirname(
-      p
-        .replace(/@default/, defaultProjectID)
-        .replace(/@\w+/, (s) => s.toUpperCase()),
-    );
+    path.relative(
+      ctx.rootPath,
+      path.dirname(
+        p
+          .replace(/@default/, defaultProjectID)
+          .replace(/@\w+/, (s) => s.toUpperCase()),
+      ),
+    ).replaceAll('/', '.');
+
   const targets: JobConfig[] = [
     ...await Promise.all(
       Array.from(new Set(ctxFiles.concat(files)))
@@ -563,7 +568,7 @@ const createDeployTasks = async (
     // For Metadata Update
     ...Array.from(new Set(files.map((f) => f)))
       .map((n) => ({
-        namespace: toBQNS(n),
+        namespace: toBQID(n),
         shouldDeploy: files.includes(n),
         file: path.normalize(path.join(path.dirname(n), 'metadata.json')),
         destinations: [],
@@ -718,9 +723,7 @@ export async function pushLocalFilesToBigQuery(
   const predFilter = (p: string) =>
     p.endsWith('.sql') && p.includes(ctx.BigQuery.projectId ?? '@default');
   const ctxFiles = (await walk(rootDir)).filter(predFilter);
-  const inputFiles: string[] = ((await getTargetFiles()) ?? ctxFiles).filter(
-    predFilter,
-  );
+  const inputFiles: string[] = ((await getTargetFiles()) ?? ctxFiles);
 
   const tasks: BigQueryJobTask[] = [
     // Deletion tasks
