@@ -97,3 +97,35 @@ For example, a diff execution by git.
 ```
 find ./bigquery -name '*.sql' | npx bqport push
 ```
+
+
+## Tips
+
+### Vendoring BigQuery Datasets
+
+For Example, Let's copy public datasets in `bqutil` project .
+
+1. Fetch Dataset Metadata and DDL SQL file
+
+```
+npx bqport pull bqutil --all --with-ddl
+```
+
+2. Make your new destination project directory and copy files
+
+```
+mkdir -p bigquery/@default
+cp -av bigquery/bqutil/fn bigquery/@default/fn
+```
+
+3. Fix old destination in SQL files to new one
+
+```
+npx bqport format
+```
+
+4. Deploy
+
+```
+npx bqport push @default
+```
