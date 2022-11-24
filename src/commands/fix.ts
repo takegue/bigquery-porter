@@ -12,7 +12,6 @@ const formatLocalfiles = async (
 ) => {
   const files = (await walk(rootPath))
     .filter((p: string) => p.endsWith('ddl.sql'))
-    .filter((p: string) => p.includes('@default'))
     .filter(async (p: string) => {
       const sql: string = await fs.promises.readFile(p)
         .then((s: any) => s.toString());
@@ -25,6 +24,7 @@ const formatLocalfiles = async (
   parser.setLanguage(Language);
 
   const defaultProjectId = await bqClient.getProjectId();
+  console.log(files);
   for (const file of files) {
     const sql: string = await fs.promises.readFile(file)
       .then((s: any) => s.toString());
@@ -187,9 +187,4 @@ function fixDestinationSQL(
   return newSQL;
 }
 
-export {
-  formatLocalfiles
-  , fixDestinationSQL
-}
-
-
+export { fixDestinationSQL, formatLocalfiles };
