@@ -42,6 +42,10 @@ class BaseTask<T> implements ReporterTask<T> {
             this._result.result = e.cause as unknown as T;
           }
         } else {
+          this._result = {
+            status: 'failed',
+            error: e,
+          } as Failed<T>;
           throw e;
         }
       });
@@ -61,6 +65,9 @@ class Task extends BaseTask<string> {
     const result = this.result();
     if (result.status === 'success') {
       return result.result;
+    }
+    if (result.status === 'failed') {
+      return `${result.status}: ${result.error}`;
     }
     return result.status;
   }
