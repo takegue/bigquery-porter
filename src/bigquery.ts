@@ -60,6 +60,8 @@ const bq2path = (bqObj: BigQueryResource, asDefaultProject: boolean) => {
 
   if (asDefaultProject) {
     tree.push('@default');
+  } else if (bqObj.metadata?.datasetReference?.projectId) {
+    tree.push(bqObj.metadata?.datasetReference.projectId);
   } else if (bqObj.projectId) {
     tree.push(bqObj.projectId);
   } else if (bqObj.parent?.projectId) {
