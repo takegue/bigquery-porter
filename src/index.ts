@@ -113,10 +113,6 @@ function createCLI() {
     .argument('[projects...]')
     .option('--all', 'Pulling All BugQuery Datasets', false)
     .option('--with-ddl', 'Pulling BigQuery Resources with DDL SQL', false)
-    // .option('--ddl-useful-rewrite', "Rewrite DDL in useful", {
-    //   default: true,
-    //   type: [Boolean],
-    // })
     .action(async (cmdProjects: string[] | undefined, _, cmd) => {
       const cmdOptions = cmd.optsWithGlobals();
       const projects = cmdProjects ?? [];
