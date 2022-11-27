@@ -170,20 +170,25 @@ const syncMetadata = async (
   }
 
   // schema.json: local file <---> BigQuery Table
-  let newSchema = await mergeSchema(
-    fieldsPath,
-    metadata.schema,
-    options?.push ?? false,
-  ).catch((e) => {
-    console.warn(`Warning: ${e.message}`);
-  });
-  if (newSchema) {
-    jobs.push(
-      fs.promises.writeFile(
-        fieldsPath,
-        jsonSerializer(newSchema.fields),
-      ).then(() => fieldsPath),
-    );
+  let newSchema = undefined;
+  if (metadata.schema) {
+    newSchema = await mergeSchema(
+      fieldsPath,
+      metadata.schema,
+      options?.push ?? false,
+    ).catch((e) => {
+      console.warn(`Warning:  ${e.message} on ${bqObject.id}`);
+    });
+    if (newSchema?.fields) {
+      jobs.push(
+        fs.promises.writeFile(
+          fieldsPath,
+          jsonSerializer(newSchema.fields),
+        )
+          .then(() => fieldsPath)
+          .catch((e) => console.error(e)),
+      );
+    }
   }
 
   let newDescription = await mergeDescription(
