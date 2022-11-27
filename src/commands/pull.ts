@@ -1,4 +1,4 @@
-import {
+import type {
   Dataset,
   GetDatasetsOptions,
   Model,
@@ -91,28 +91,19 @@ async function pullBigQueryResources({
   ) => {
     const fsPath = bq2path(bqObj as BigQueryResource, projectId === undefined);
     const pathDir = `${rootDir}/${fsPath}`;
-    const catalogId = (
-      bqObj.metadata?.datasetReference?.projectId ??
-        (bqObj.parent as Dataset).metadata.datasetReference.projectId ??
-        defaultProjectId
-    ) as string;
-    bqObj['projectId'] = catalogId;
     const retFiles: string[] = [];
 
     if (!fs.existsSync(pathDir)) {
       await fs.promises.mkdir(pathDir, { recursive: true });
     }
+
     const modified = await syncMetadata(bqObj, pathDir, { push: false })
       .catch((e) => {
-        console.log('syncerror', e, bqObj);
+        console.error('syncerror', e, bqObj);
         throw e;
       });
 
     retFiles.push(...modified.map((m) => path.basename(m)));
-
-    if (bqObj instanceof Table) {
-      retFiles.push('schema.json');
-    }
 
     if (bqObj.metadata.type == 'VIEW') {
       let [metadata] = await bqObj.getMetadata();
@@ -166,7 +157,7 @@ async function pullBigQueryResources({
   const [datasets] = await bqClient
     .getDatasets({ projectId } as GetDatasetsOptions);
 
-  const projectDir = `${rootDir}/${bq2path(bqClient, projectId === undefined)}`;
+  const projectDir = `${rootDir}/${projectId ?? '@default'}`;
   if (!fs.existsSync(projectDir)) {
     await fs.promises.mkdir(projectDir, { recursive: true });
   }
@@ -174,6 +165,7 @@ async function pullBigQueryResources({
   const fsDatasets = forceAll
     ? undefined
     : await fs.promises.readdir(projectDir);
+
   if (withDDL) {
     const ddlFetcher = async (
       sql: string,
@@ -216,7 +208,7 @@ async function pullBigQueryResources({
   const tasks: Task[] = [];
   const registerTask = (bqObj: Dataset | Table | Routine | Model) => {
     const parent = (bqObj.parent as ServiceObject);
-    const projectId = bqObj.projectId ?? parent.projectId;
+    const projectId = bqObj?.projectId ?? parent?.projectId;
     const bqId = bqObj.metadata.id ?? `${projectId}:${parent.id}.${bqObj.id}`;
     const task = new Task(
       bqId.replace(/:|\./g, '/') + '/fetch metadata',
@@ -232,29 +224,41 @@ async function pullBigQueryResources({
   const allowedDatasets = datasets
     .filter((d) => forceAll || (d.id && fsDatasets?.includes(d.id)));
 
-  const task = new Task('# Check All Dataset and Resources', async () => {
-    let cnt = 0;
-    await Promise.allSettled(allowedDatasets
-      .map(async (dataset: Dataset) => {
-        registerTask(dataset);
-        cnt++;
-        return await Promise.allSettled([
-          await dataset.getTables().then(([rets]) => {
-            cnt += rets.length;
-            rets.forEach(registerTask);
-          }),
-          await dataset.getRoutines().then(([rets]) => {
-            cnt += rets.length;
-            rets.forEach(registerTask);
-          }),
-          await dataset.getModels().then(([rets]) => {
-            cnt += rets.length;
-            rets.forEach(registerTask);
-          }),
-        ]);
-      }));
-    return `Total ${cnt}`;
-  });
+  const task = new Task(
+    '# Check All Dataset and Resources',
+    async () => {
+      let cnt = 0;
+      await Promise.allSettled(allowedDatasets
+        .map(async (dataset: Dataset) => {
+          cnt++;
+          registerTask(dataset);
+          dataset['projectId'] = projectId ?? defaultProjectId;
+          return await Promise.allSettled([
+            await dataset.getTables()
+              .then(([rets]) => {
+                cnt += rets.length;
+                rets.forEach(registerTask);
+              })
+              .catch((e) => console.log(e)),
+            await dataset.getRoutines()
+              .then(([rets]) => {
+                cnt += rets.length;
+                rets.forEach(registerTask);
+              })
+              .catch((e) => console.log(e)),
+            ,
+            await dataset.getModels()
+              .then(([rets]) => {
+                cnt += rets.length;
+                rets.forEach(registerTask);
+              })
+              .catch((e) => console.log(e)),
+            ,
+          ]);
+        }));
+      return `Total ${cnt}`;
+    },
+  );
 
   tasks.push(task);
   task.run();
