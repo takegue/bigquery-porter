@@ -568,7 +568,7 @@ const createDeployTasks = async (
     // For Metadata Update
     ...Array.from(new Set(files.map((f) => f)))
       .map((n) => ({
-        namespace: toBQID(n),
+        namespace: toBQNS(n),
         shouldDeploy: files.includes(n),
         file: path.normalize(path.join(path.dirname(n), 'metadata.json')),
         destinations: [],
