@@ -42,7 +42,7 @@ function createCLI() {
       'A label to set on a query job. The format is "key:value"; repeat this option to specify a list of values',
     )
     .option(
-      '--parameter <key:value>',
+      '-p, --parameter <key:value...>',
       `Either a file containing a JSON list of query parameters, or a query parameter in the form "name:type:value".` +
         `An empty name produces a positional parameter. The type may be omitted to assume STRING: name::value or ::value.` +
         `The value "NULL" produces a null value. repeat this option to specify a list of values`,
@@ -78,12 +78,25 @@ function createCLI() {
       }
 
       if (cmdOptions.parameter) {
-        jobOption.params = cmdOptions.parameter = Object.fromEntries(
+        jobOption.params = Object.fromEntries(
           (cmdOptions.parameter as string[])
             .map((s) => {
               const elms = s.split(':');
               const rawValue = elms[2];
-              return [elms[0], rawValue];
+
+              if (!rawValue) {
+                console.error('CLI Error');
+                process.exit(1);
+              }
+
+              const parsed = (() => {
+                if (elms[1] === 'integers') {
+                  return parseInt(rawValue);
+                }
+
+                return rawValue;
+              })();
+              return [elms[0], parsed];
             }),
         );
       }
