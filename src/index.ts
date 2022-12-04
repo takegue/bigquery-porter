@@ -38,7 +38,7 @@ function createCLI() {
       false,
     )
     .option(
-      '--label <key:value>',
+      '--label <key:value...>',
       'A label to set on a query job. The format is "key:value"; repeat this option to specify a list of values',
     )
     .option(
@@ -70,9 +70,11 @@ function createCLI() {
         jobOption.maximumBytesBilled = cmdOptions.maximumBytesBilled;
       }
 
-      if (cmdOptions.labels) {
+      if (cmdOptions.label) {
         jobOption.labels = {
-          ...(cmdOptions.labels ?? []),
+          ...Object.fromEntries(
+            (cmdOptions.label as string[]).map((l) => l.split(':')),
+          ),
           'bqporter-enable': 'true',
         };
       }
