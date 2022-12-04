@@ -24,7 +24,6 @@ const formatLocalfiles = async (
   parser.setLanguage(Language);
 
   const defaultProjectId = await bqClient.getProjectId();
-  console.log(files);
   for (const file of files) {
     const sql: string = await fs.promises.readFile(file)
       .then((s: any) => s.toString());
