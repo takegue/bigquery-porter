@@ -195,7 +195,7 @@ const fetchBQJobResource = async (
       const stats = job.metadata.statistics;
       throw new Error(
         `Not Supported: ${stats.query.statementType}` +
-          `(${job.id}, ${JSON.stringify(stats)})`,
+        `(${job.id}, ${JSON.stringify(stats)})`,
       );
   }
 };
@@ -582,6 +582,7 @@ const createDeployTasks = async (
     orderdJobs.filter((t) => t.shouldDeploy),
     jobDeps,
     (file: string) => {
+      // Deployment for SQL files
       if (file.endsWith('.sql')) {
         return deployBigQueryResouce(
           ctx.BigQuery.client,
@@ -591,6 +592,7 @@ const createDeployTasks = async (
         );
       }
 
+      // Deployment for metadata files
       const [projectId, dataset, tableOrRoutineOrModel] = toBQID(file).split(
         '.',
       );
