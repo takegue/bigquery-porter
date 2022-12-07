@@ -3,7 +3,7 @@ import { DefaultReporter } from '../src/reporter/default.js';
 import { Task } from '../src/tasks/base.js';
 
 describe('Reporter: Default Reporter', () => {
-  it('Should test', async () => {
+  it.concurrent('Should test', async () => {
     const reporter = new DefaultReporter();
     const tasks = [
       new Task(

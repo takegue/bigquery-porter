@@ -59,7 +59,7 @@ describe('Command test: format command', async () => {
       expected: fs.readFileSync('tests/__sql__/example1/expected.sql', 'utf8'),
     },
   ];
-  it.each(cases)('Example SQL %#', async (args) => {
+  it.concurrent.each(cases)('Example SQL %#', async (args) => {
     const { input, expected } = args;
     const parser = new Parser();
     parser.setLanguage(Language);
