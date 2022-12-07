@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import * as fs from 'node:fs';
 
 import { formatLocalfiles } from '../src/commands/fix.js';
 import {
@@ -44,8 +45,8 @@ function createCLI() {
     .option(
       '-p, --parameter <key:value...>',
       `Either a file containing a JSON list of query parameters, or a query parameter in the form "name:type:value".` +
-        `An empty name produces a positional parameter. The type may be omitted to assume STRING: name::value or ::value.` +
-        `The value "NULL" produces a null value. repeat this option to specify a list of values`,
+      `An empty name produces a positional parameter. The type may be omitted to assume STRING: name::value or ::value.` +
+      `The value "NULL" produces a null value. repeat this option to specify a list of values`,
     )
     .option(
       '--maximum_bytes_billed <number of bytes>',
@@ -80,27 +81,62 @@ function createCLI() {
       }
 
       if (cmdOptions.parameter) {
-        jobOption.params = Object.fromEntries(
-          (cmdOptions.parameter as string[])
-            .map((s) => {
-              const elms = s.split(':');
-              const rawValue = elms[2];
+        jobOption.params = {} as { [param: string]: any };
+        for (const param of cmdOptions.parameter as string[]) {
+          if (fs.existsSync(param) && fs.lstatSync(param).isFile()) {
+            jobOption.params = {
+              ...jobOption.params,
+              ...JSON.parse(fs.readFileSync(param, 'utf8')),
+            };
+            continue;
+          }
 
-              if (!rawValue) {
-                console.error('CLI Error');
-                process.exit(1);
+          const elms = param.split(':');
+          const name = elms[0];
+          if (name === undefined) {
+            console.error(`Invalid Parameter: ${param}`);
+            return;
+          }
+          const rawValue = elms[2];
+          if (rawValue === undefined) {
+            console.error(`Invalid Parameter: ${param}`);
+            return;
+          }
+
+          (jobOption.params as { [param: string]: any })[name] = (() => {
+            if (!elms[1]) {
+              return rawValue;
+            }
+
+            if (elms[1]?.toUpperCase() === 'STRING') {
+              return rawValue;
+            }
+
+            if (elms[1]?.toUpperCase() === 'INTGER') {
+              return parseInt(rawValue);
+            }
+
+            if (elms[1]?.toUpperCase() === 'BOOL') {
+              return rawValue.toLowerCase() == 'true';
+            }
+
+            if (elms[1]?.toUpperCase() === 'TIMESTAMP') {
+              const p = new Date(Date.parse(rawValue));
+              if (!isNaN(p.valueOf())) {
+                return p;
               }
+            }
 
-              const parsed = (() => {
-                if (elms[1] === 'integers') {
-                  return parseInt(rawValue);
-                }
-
+            if (elms[1]) {
+              try {
+                return JSON.parse(rawValue);
+              } catch (e) {
                 return rawValue;
-              })();
-              return [elms[0], parsed];
-            }),
-        );
+              }
+            }
+            return rawValue;
+          })();
+        }
       }
 
       const bqClient = buildThrottledBigQueryClient(
