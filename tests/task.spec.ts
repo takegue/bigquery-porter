@@ -143,7 +143,7 @@ describe('Task: Cleanup tasks', () => {
 
       expect(tasks.length).toBe(1);
       expect(tasks[0]?.name).toBe(
-        'bigquery-public-data/austin_311/TABLE/311_service_requests',
+        'bigquery-public-data/austin_311/(DELETE)/TABLE/311_service_requests',
       );
     });
 
@@ -164,7 +164,7 @@ describe('Task: Cleanup tasks', () => {
 
       expect(tasks.length).toBe(1);
       expect(tasks[0]?.name).toBe(
-        'bigquery-public-data/austin_311/TABLE/311_service_requests',
+        'bigquery-public-data/austin_311/(DELETE)/TABLE/311_service_requests',
       );
     });
   });
