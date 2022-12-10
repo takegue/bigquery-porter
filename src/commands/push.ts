@@ -207,13 +207,13 @@ const deployBigQueryResouce = async (
   BigQueryJobOptions?: Query,
 ): Promise<BQJob> => {
   const msgWithPath = (msg: string) => `${path.dirname(p)}: ${msg}`;
-  const defaultProjectId = await bqClient.getProjectId();
+  const executionProject = await bqClient.getProjectId();
 
   if (p && !p.endsWith('sql')) {
     throw new Error(`Invalid file: ${p}`);
   }
 
-  const [_, datasetId, name] = path2bq(p, rootPath, defaultProjectId)
+  const [project, datasetId, name] = path2bq(p, rootPath, executionProject)
     .split('.');
   const query = await fs.promises.readFile(p)
     .then((s: any) => s.toString())
@@ -274,9 +274,18 @@ const deployBigQueryResouce = async (
 
     default:
       // https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#jobconfiguration
+      const modifiedQuery: string = (() => {
+        if (project == executionProject) {
+          return query;
+        }
+        return [
+          `set @@dataset_project_id = "${project}";`,
+          query,
+        ].join('\n');
+      })();
       const [job, ijob] = await bqClient.createQueryJob({
         ...BigQueryJobOptions,
-        query,
+        query: modifiedQuery,
         priority: 'BATCH',
         jobPrefix,
       });
