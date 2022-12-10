@@ -1,5 +1,5 @@
 import type { Metadata } from '@google-cloud/common';
-import { BigQuery } from '@google-cloud/bigquery';
+import { BigQuery, BigQueryOptions } from '@google-cloud/bigquery';
 import pThrottle from 'p-throttle';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
@@ -15,6 +15,7 @@ interface BigQueryResource {
 const buildThrottledBigQueryClient = (
   concurrency: number,
   interval_limit: number,
+  bigqueryOptions?: BigQueryOptions,
 ) => {
   const throttle = pThrottle({
     limit: concurrency,
@@ -22,7 +23,7 @@ const buildThrottledBigQueryClient = (
   });
 
   return new Proxy<BigQuery>(
-    new BigQuery(),
+    new BigQuery(bigqueryOptions),
     {
       get: (obj: BigQuery, sKey: string | symbol) => {
         const member = (obj as any)[sKey];
@@ -119,10 +120,11 @@ const path2bq = (
       return ordinalName;
     }
 
-    if (fs.existsSync(path.join(fpath, 'sharding.json'))) {
+    const shardingPath = path.join(path.dirname(fpath), 'shardings.json');
+    if (fs.existsSync(shardingPath)) {
       try {
         const sharding = JSON.parse(
-          fs.readFileSync(path.join(fpath, 'sharding.json'), 'utf-8'),
+          fs.readFileSync(shardingPath, 'utf-8'),
         );
         return ordinalName.replace('@', sharding.tableSuffix);
       } catch {
@@ -130,7 +132,7 @@ const path2bq = (
     }
 
     throw new Error(
-      'Sharding table information is not found. Please create \'sharding.json\' file.',
+      'Sharding table information is not found. Please create \'shardings.json\' file.',
     );
   })();
   return [catalogId, schemaId, name].filter((n) => n).join('.');
