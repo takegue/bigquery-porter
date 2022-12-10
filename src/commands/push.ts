@@ -599,8 +599,6 @@ const createDeployTasks = async (
 
   const [orderdJobs, jobDeps] = buildDAG(targets);
 
-  console.log(files, targets, orderdJobs);
-
   return buildTasks(
     orderdJobs.filter((t) => t.shouldDeploy),
     jobDeps,
