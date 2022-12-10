@@ -2,6 +2,7 @@ import type { Metadata } from '@google-cloud/common';
 import { BigQuery } from '@google-cloud/bigquery';
 import pThrottle from 'p-throttle';
 import * as path from 'node:path';
+import * as fs from 'node:fs';
 
 interface BigQueryResource {
   id?: string;
@@ -112,7 +113,26 @@ const path2bq = (
     .dirname(
       path.relative(rootDir, fpath.replace('@default', defaultProjectId)),
     ).split('/');
-  const name = name_or_missing ?? namespace_or_name;
+  const name = (() => {
+    const ordinalName = name_or_missing ?? namespace_or_name;
+    if (!ordinalName?.endsWith('@')) {
+      return ordinalName;
+    }
+
+    if (fs.existsSync(path.join(fpath, 'sharding.json'))) {
+      try {
+        const sharding = JSON.parse(
+          fs.readFileSync(path.join(fpath, 'sharding.json'), 'utf-8'),
+        );
+        return ordinalName.replace('@', sharding.tableSuffix);
+      } catch {
+      }
+    }
+
+    throw new Error(
+      'Sharding table information is not found. Please create \'sharding.json\' file.',
+    );
+  })();
   return [catalogId, schemaId, name].filter((n) => n).join('.');
 };
 
