@@ -4,6 +4,8 @@ import * as path from 'node:path';
 import Parser from 'tree-sitter';
 import Language from 'tree-sitter-sql-bigquery';
 
+import { normalizeShardingTableId } from './bigquery.js';
+
 async function walk(dir: string): Promise<string[]> {
   const fs_files = await fs.promises.readdir(dir);
   const files: string[][] = await Promise.all(fs_files.map(async (file) => {
@@ -72,7 +74,7 @@ function topologicalSort(relations: Relation[]) {
 const parser = new Parser();
 parser.setLanguage(Language);
 
-const findBigQueryResourceIdentifier = function* (node: any): any {
+const findBigQueryResourceIdentifier = function*(node: any): any {
   const resource_name = _extractBigQueryResourceIdentifier(node);
   if (resource_name != null) {
     yield resource_name;
@@ -116,6 +118,15 @@ const _extractBigQueryResourceIdentifier = (node: any) => {
   return null;
 };
 
+function _replaceWildcard(table: string): string {
+  if (table.startsWith('`') && table.endsWith('`')) {
+    const trimmed = table.replace(/^`/, '').replace(/`$/, '');
+    return `\`${normalizeShardingTableId(trimmed)}\``.replace('@', '*');
+  }
+
+  return normalizeShardingTableId(table).replace('@', '*');
+}
+
 function extractDestinations(sql: string): [string, string][] {
   const tree = parser.parse(sql);
   let ret: [string, string][] = [];
@@ -126,14 +137,14 @@ function extractDestinations(sql: string): [string, string][] {
     } else if (n.parent.type.match(/procedure_statement|function_statement/)) {
       ret.push([n.text, 'ROUTINE']);
     } else if (n.parent.type.match(/table_statement/)) {
-      ret.push([n.text, 'TABLE']);
+      ret.push([_replaceWildcard(n.text), 'TABLE']);
     } else if (n.parent.type.match(/create_model_statement/)) {
       ret.push([n.text, 'MODEL']);
     } else if (
       n.parent.type.match(/statement/) &&
       !n.parent.type.match(/call_statement/)
     ) {
-      ret.push([n.text, 'TABLE']);
+      ret.push([_replaceWildcard(n.text), 'TABLE']);
       continue;
     }
   }
@@ -151,7 +162,7 @@ function extractRefenrences(sql: string): string[] {
     }
 
     if (n.parent.type.match(/from_item/)) {
-      ret.push(n.text);
+      ret.push(_replaceWildcard(n.text));
     }
 
     if (n.parent.type.match(/function_call/)) {
@@ -182,9 +193,8 @@ function msToTime(ms: number): string {
   const hours = minutes / 60;
 
   if (hours >= 1) {
-    return `${pad(Math.floor(hours))}h${pad(Math.floor(minutes % 60))}m${
-      pad(Math.floor(seconds % 60))
-    }s`;
+    return `${pad(Math.floor(hours))}h${pad(Math.floor(minutes % 60))}m${pad(Math.floor(seconds % 60))
+      }s`;
   }
 
   if (minutes >= 1) {
