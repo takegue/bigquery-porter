@@ -126,6 +126,7 @@ const cleanupBigQueryDataset = async (
         [
           nsProject,
           datasetId,
+          '(DELETE)',
           resourceType.toUpperCase(),
           bqId.split('.').pop(),
         ]
