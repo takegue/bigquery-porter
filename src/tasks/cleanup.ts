@@ -4,7 +4,7 @@ import type { BigQuery, Dataset } from '@google-cloud/bigquery';
 
 import { BigQueryJobTask } from '../../src/tasks/base.js';
 
-import { path2bq } from '../../src/bigquery.js';
+import { normalizeShardingTableId, path2bq } from '../../src/bigquery.js';
 import { walk } from '../../src/util.js';
 import { prompt } from '../../src/prompt.js';
 
@@ -70,8 +70,10 @@ const cleanupBigQueryDataset = async (
       .then(([rr]) =>
         new Map(
           rr.map((r) => [
-            (({ metadata: { tableReference: r } }) =>
-              `${r.projectId}.${r.datasetId}.${r.tableId}`)(r),
+            (({ metadata: { tableReference: r } }) => {
+              const normalizedTableName = normalizeShardingTableId(r.tableId);
+              return `${r.projectId}.${r.datasetId}.${normalizedTableName}`;
+            })(r),
             r,
           ]),
         )
@@ -80,7 +82,7 @@ const cleanupBigQueryDataset = async (
 
   // Leave reousrces to delete
   (await walk(datasetPath))
-    .filter((p: string) => p.includes('@default'))
+    .filter((p: string) => p.includes(nsProject))
     .forEach((f) => {
       const bqId = path2bq(f, rootDir, defaultProjectId);
       if (f.match(/@routine/) && routines.has(bqId)) {
@@ -90,9 +92,16 @@ const cleanupBigQueryDataset = async (
         // Check Model
         models.delete(bqId);
       } else {
-        if (tables.has(bqId)) {
+        const [projectId, datasetId, tableId] = bqId.split('.');
+        if (!tableId) {
+          return;
+        }
+        const normalizedTableName = normalizeShardingTableId(tableId);
+        const normalizedBqId =
+          `${projectId}.${datasetId}.${normalizedTableName}`;
+        if (tables.has(normalizedBqId)) {
           // Check Table or Dataset
-          tables.delete(bqId);
+          tables.delete(normalizedBqId);
         }
       }
     });
