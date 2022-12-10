@@ -128,12 +128,13 @@ const path2bq = (
         );
         return ordinalName.replace('@', sharding.tableSuffix);
       } catch {
+        throw new Error(
+          'Invalid shardings.json format. Please check the file.',
+        );
       }
     }
 
-    throw new Error(
-      'Sharding table information is not found. Please create \'shardings.json\' file.',
-    );
+    return ordinalName.replace('@', '20010101');
   })();
   return [catalogId, schemaId, name].filter((n) => n).join('.');
 };

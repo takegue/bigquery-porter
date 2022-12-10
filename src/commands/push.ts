@@ -27,7 +27,11 @@ import {
   walk,
 } from '../../src/util.js';
 
-import { normalizedBQPath, path2bq } from '../../src/bigquery.js';
+import {
+  normalizedBQPath,
+  normalizeShardingTableId,
+  path2bq,
+} from '../../src/bigquery.js';
 import { createCleanupTasks } from '../../src/tasks/cleanup.js';
 
 type JobConfig = {
@@ -589,11 +593,13 @@ const createDeployTasks = async (
         shouldDeploy: files.includes(n),
         file: path.normalize(path.join(path.dirname(n), 'metadata.json')),
         destinations: [],
-        dependencies: [toBQID(n)],
+        dependencies: [normalizeShardingTableId(toBQID(n)).replace(/@$/, '*')],
       })),
   ];
 
   const [orderdJobs, jobDeps] = buildDAG(targets);
+
+  console.log(files, targets, orderdJobs);
 
   return buildTasks(
     orderdJobs.filter((t) => t.shouldDeploy),
