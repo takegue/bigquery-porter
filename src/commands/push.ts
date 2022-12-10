@@ -438,7 +438,15 @@ const buildDAG = (
     for (const dst of dsts) {
       relations.add(JSON.stringify([dst, '#root']));
       for (const src of srcs) {
-        relations.add(JSON.stringify(['#leaf', dst]));
+        relations.add(JSON.stringify(['#leaf', src]));
+        relations.add(JSON.stringify([src, dst]));
+      }
+    }
+
+    for (const src of srcs) {
+      relations.add(JSON.stringify(['#leaf', src]));
+      for (const dst of dsts) {
+        relations.add(JSON.stringify([dst, '#root']));
         relations.add(JSON.stringify([src, dst]));
       }
     }
@@ -719,12 +727,14 @@ export async function pushLocalFilesToBigQuery(
   ctx: PushContext,
   jobOption: Query,
 ) {
-  const rootDir = ctx.rootPath;
+  const targetProject = ctx.BigQuery.projectId ?? '@default';
+  const findDir = path.join(ctx.rootPath, targetProject);
   const reporterType: BuiltInReporters = ctx.reporter;
 
   const predFilter = (p: string) =>
-    p.endsWith('.sql') && p.includes(ctx.BigQuery.projectId ?? '@default');
-  const ctxFiles = (await walk(rootDir)).filter(predFilter);
+    (p.endsWith('.sql') || p.endsWith('metadata.json')) &&
+    p.includes(targetProject);
+  const ctxFiles = (await walk(findDir)).filter(predFilter);
   const inputFiles: string[] = ((await getTargetFiles()) ?? ctxFiles);
 
   const tasks: BigQueryJobTask[] = [
