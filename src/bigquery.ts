@@ -41,6 +41,25 @@ const buildThrottledBigQueryClient = (
   );
 };
 
+const normalizeShardingTableId = (tableId: string) => {
+  const regexTableSuffix = /\d+$/;
+  const maybe_tableSuffix = tableId.match(regexTableSuffix);
+  if (
+    maybe_tableSuffix && maybe_tableSuffix[0] &&
+    !isNaN(
+      new Date(
+        parseInt(maybe_tableSuffix[0].substring(0, 4)),
+        parseInt(maybe_tableSuffix[0].substring(4, 2)),
+        parseInt(maybe_tableSuffix[0].substring(6, 2)),
+      )
+        .getTime(),
+    )
+  ) {
+    return tableId.replace(regexTableSuffix, '@');
+  }
+  return tableId;
+};
+
 const bq2path = (bqObj: BigQueryResource, asDefaultProject: boolean) => {
   let tree: string[] = [];
   let it: BigQueryResource = bqObj;
@@ -49,7 +68,14 @@ const bq2path = (bqObj: BigQueryResource, asDefaultProject: boolean) => {
   while (true) {
     depth += 1;
     if (it.id) {
-      tree.push(it.id);
+      const shardName = normalizeShardingTableId(it.id);
+      // Check BigQuery sharding table format
+      if (depth == 1 && it.id != shardName) {
+        tree.push(shardName);
+      } else {
+        // Ordinal id
+        tree.push(it.id);
+      }
     }
 
     if (!it.parent) {
@@ -69,6 +95,7 @@ const bq2path = (bqObj: BigQueryResource, asDefaultProject: boolean) => {
   }
 
   const ns = bqObj.baseUrl?.replace('/', '@');
+  // @routines or @modeles
   if (ns && depth == 3 && !['/tables'].includes(bqObj.baseUrl as string)) {
     tree.splice(1, 0, ns);
   }
@@ -122,5 +149,6 @@ export {
   bq2path,
   buildThrottledBigQueryClient,
   normalizedBQPath,
+  normalizeShardingTableId,
   path2bq,
 };

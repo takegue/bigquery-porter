@@ -230,6 +230,15 @@ describe('biquery: bq2path', () => {
     },
     {
       input: [{
+        baseUrl: '/tables',
+        projectId: 'awesome-project',
+        id: 'table_200221210',
+        parent: dataset,
+      }, true],
+      expected: '@default/sandbox/table_@',
+    },
+    {
+      input: [{
         baseUrl: '/routines',
         id: 'routine_id',
         parent: dataset,

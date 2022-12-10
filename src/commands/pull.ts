@@ -13,6 +13,7 @@ import {
   BigQueryResource,
   bq2path,
   buildThrottledBigQueryClient,
+  normalizeShardingTableId,
 } from '../..//src/bigquery.js';
 
 import { ReporterMap } from '../../src/reporter/index.js';
@@ -206,10 +207,16 @@ async function pullBigQueryResources({
   }
 
   const tasks: Task[] = [];
+  const delayedTasks = new Map<string, Task[]>();
   const registerTask = (bqObj: Dataset | Table | Routine | Model) => {
     const parent = (bqObj.parent as ServiceObject);
     const projectId = bqObj?.projectId ?? parent?.projectId;
-    const bqId = bqObj.metadata.id ?? `${projectId}:${parent.id}.${bqObj.id}`;
+    const bqId = bq2path(bqObj as BigQueryResource, projectId === undefined);
+    if (!bqObj.id) {
+      return;
+    }
+
+    const sharedName = normalizeShardingTableId(bqObj.id);
     const task = new Task(
       bqId.replace(/:|\./g, '/') + '/fetch metadata',
       async () => {
@@ -217,6 +224,28 @@ async function pullBigQueryResources({
         return `Updated: ${updated.join(', ')}`;
       },
     );
+
+    // NOTE: Fetching BigQuery sharding tables once.
+    if (bqObj.id !== sharedName) {
+      if (!delayedTasks.has(sharedName)) {
+        delayedTasks.set(sharedName, []);
+      }
+      delayedTasks.get(sharedName)?.push(task);
+      return;
+    } else {
+      // After all sharding tables are scaned
+      for (const k of delayedTasks.keys()) {
+        const t = delayedTasks.get(k);
+        if (!t) continue;
+        const lastestShard = t[t.length - 1];
+        if (lastestShard) {
+          tasks.push(lastestShard);
+          lastestShard.run();
+        }
+        delayedTasks.delete(k);
+      }
+    }
+
     tasks.push(task);
     task.run();
   };
@@ -234,12 +263,6 @@ async function pullBigQueryResources({
           registerTask(dataset);
           dataset['projectId'] = projectId ?? defaultProjectId;
           return await Promise.allSettled([
-            await dataset.getTables()
-              .then(([rets]) => {
-                cnt += rets.length;
-                rets.forEach(registerTask);
-              })
-              .catch((e) => console.log(e)),
             await dataset.getRoutines()
               .then(([rets]) => {
                 cnt += rets.length;
@@ -253,7 +276,15 @@ async function pullBigQueryResources({
                 rets.forEach(registerTask);
               })
               .catch((e) => console.log(e)),
-            ,
+            await (async () => {
+              for await (
+                const table of dataset.getTablesStream()
+                  .on('error', console.error)
+              ) {
+                cnt += 1;
+                registerTask(table);
+              }
+            })(),
           ]);
         }));
       return `Total ${cnt}`;
