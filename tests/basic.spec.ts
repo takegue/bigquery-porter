@@ -73,6 +73,11 @@ describe('util test: sql extraction ', () => {
       expectedReferences: [],
     },
     {
+      input: `select * from \`dataset.table_*\``,
+      expectedDestinations: [],
+      expectedReferences: ['`dataset.table_*`'],
+    },
+    {
       input:
         `create or replace procedure \`sandbox.sample_proc\`(in argument int64)
             options(description="test")
@@ -113,8 +118,7 @@ describe('util test: sql extraction ', () => {
     'identifier extraction: references (%#)',
     async (args) => {
       const { input, expectedReferences: expected } = args;
-      expect(extractRefenrences(input))
-        .toMatchObject(expected);
+      expect(extractRefenrences(input)).toMatchObject(expected);
     },
   );
 });
