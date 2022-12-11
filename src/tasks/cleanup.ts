@@ -71,8 +71,7 @@ const cleanupBigQueryDataset = async (
         new Map(
           rr.map((r) => [
             (({ metadata: { tableReference: r } }) => {
-              const normalizedTableName = normalizeShardingTableId(r.tableId);
-              return `${r.projectId}.${r.datasetId}.${normalizedTableName}`;
+              return `${r.projectId}.${r.datasetId}.${r.tableId}`;
             })(r),
             r,
           ]),
@@ -92,16 +91,11 @@ const cleanupBigQueryDataset = async (
         // Check Model
         models.delete(bqId);
       } else {
-        const [projectId, datasetId, tableId] = bqId.split('.');
-        if (!tableId) {
-          return;
-        }
-        const normalizedTableName = normalizeShardingTableId(tableId);
-        const normalizedBqId =
-          `${projectId}.${datasetId}.${normalizedTableName}`;
-        if (tables.has(normalizedBqId)) {
-          // Check Table or Dataset
-          tables.delete(normalizedBqId);
+        const targetTables = Array.from(tables.keys()).filter(
+          (k) => bqId === normalizeShardingTableId(k),
+        );
+        for (const table of targetTables) {
+          tables.delete(table);
         }
       }
     });
