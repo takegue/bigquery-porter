@@ -29,7 +29,7 @@ describe('Task: Cleanup tasks', () => {
       fs.rmSync(_root, { recursive: true });
     });
 
-    it('No dataset files', async () => {
+    it('Not found local files in local', async () => {
       const tasks = await cleanupBigQueryDataset(
         bqClient,
         _root,
@@ -44,7 +44,7 @@ describe('Task: Cleanup tasks', () => {
       expect(tasks.length).toBe(0);
     });
 
-    it('Not found BigQuery', async () => {
+    it('Not found Dataset on BigQuery', async () => {
       fs.mkdirSync(path.join(dPath, 'missing_dataset'), { recursive: true });
       const tasks = await cleanupBigQueryDataset(
         bqClient,
@@ -61,12 +61,12 @@ describe('Task: Cleanup tasks', () => {
     });
   });
 
-  describe('cleanupBigQueryDataset', () => {
+  describe('bigquery-public-data.austin_311', () => {
     beforeEach(async (ctx: any) => {
       ctx['settings'] = {
         _root: fs.mkdtempSync(`${tmpdir()}${path.sep}`),
         _project: 'bigquery-public-data',
-        _dataset: 'austin_311',
+        _dataset: 'austin_bikeshare',
       };
       const dPath = path.join(
         ctx.settings._root,
@@ -74,6 +74,10 @@ describe('Task: Cleanup tasks', () => {
         ctx.settings._dataset,
       );
       fs.mkdirSync(dPath, { recursive: true });
+      fs.mkdirSync(path.join(dPath, 'bikeshare_trips'));
+      fs.closeSync(
+        fs.openSync(path.join(dPath, 'bikeshare_trips', 'metadata.json'), 'w'),
+      );
 
       // Mocking 'prompt'
       vi.mock('../src/prompt.js', async () => {
@@ -109,7 +113,7 @@ describe('Task: Cleanup tasks', () => {
 
       expect(tasks.length).toBe(1);
       expect(tasks[0]?.name).toBe(
-        'bigquery-public-data/austin_311/(DELETE)/TABLE/311_service_requests',
+        'bigquery-public-data/austin_bikeshare/(DELETE)/TABLE/bikeshare_stations',
       );
     });
 
@@ -130,7 +134,7 @@ describe('Task: Cleanup tasks', () => {
 
       expect(tasks.length).toBe(1);
       expect(tasks[0]?.name).toBe(
-        'bigquery-public-data/austin_311/(DELETE)/TABLE/311_service_requests',
+        'bigquery-public-data/austin_bikeshare/(DELETE)/TABLE/bikeshare_stations',
       );
     });
   });
