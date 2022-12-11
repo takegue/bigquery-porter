@@ -81,7 +81,7 @@ const cleanupBigQueryDataset = async (
 
   // Leave reousrces to delete
   (await walk(datasetPath))
-    .filter((p: string) => p.includes(nsProject))
+    .filter((p: string) => p.includes(projectId))
     .forEach((f) => {
       const bqId = path2bq(f, rootDir, defaultProjectId);
       if (f.match(/@routine/) && routines.has(bqId)) {
