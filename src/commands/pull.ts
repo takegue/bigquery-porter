@@ -74,7 +74,7 @@ async function pullBigQueryResources({
   rootDir: string;
   withDDL?: boolean;
   forceAll?: boolean;
-}) {
+}): Promise<number> {
   type ResultBQResource = {
     type: string;
     path: string;
@@ -299,6 +299,10 @@ async function pullBigQueryResources({
   } finally {
     reporter.onFinished();
   }
+
+  const failedTasks =
+    tasks.filter((t) => t.result().status !== 'success').length;
+  return failedTasks;
 }
 
 export { pullBigQueryResources };

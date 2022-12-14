@@ -156,7 +156,12 @@ function createCLI() {
           reporter: cmdOptions.format ?? 'console',
         };
 
-        await pushLocalFilesToBigQuery(ctx, jobOption);
+        const failed = await pushLocalFilesToBigQuery(ctx, jobOption);
+        if (failed > 0) {
+          program.error(`Some tasks are failed(Failed: ${failed})`, {
+            exitCode: 1,
+          });
+        }
       }
     });
 
@@ -175,16 +180,28 @@ function createCLI() {
         forceAll: cmdOptions.all,
         concurrency: cmdOptions.concurrency,
       };
-      if (projects.length > 0) {
-        await Promise.allSettled(
-          projects.map(async (p) =>
-            p == '@default'
-              ? await pullBigQueryResources({ ...options })
-              : await pullBigQueryResources({ projectId: p, ...options })
-          ),
-        );
-      } else {
-        await pullBigQueryResources(options);
+
+      const failed = await (async () => {
+        if (projects.length > 0) {
+          return await Promise.allSettled(
+            projects.map(async (p) =>
+              p == '@default'
+                ? await pullBigQueryResources({ ...options })
+                : await pullBigQueryResources({ projectId: p, ...options })
+            ),
+          ).then((results) =>
+            results.filter((r) => r.status !== 'fulfilled' || r.value > 0)
+              .length
+          );
+        } else {
+          return await pullBigQueryResources(options);
+        }
+      })();
+
+      if (failed > 0) {
+        program.error(`Some tasks are failed(Failed: ${failed})`, {
+          exitCode: 1,
+        });
       }
     });
 
