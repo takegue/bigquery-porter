@@ -199,7 +199,7 @@ const fetchBQJobResource = async (
       const stats = job.metadata.statistics;
       throw new Error(
         `Not Supported: ${stats.query.statementType}` +
-        `(${job.id}, ${JSON.stringify(stats)})`,
+          `(${job.id}, ${JSON.stringify(stats)})`,
       );
   }
 };
@@ -231,7 +231,7 @@ const deployBigQueryResouce = async (
 
   const jobPrefix = (() => {
     if (name) {
-      return `bqporter-${datasetId}_${name}-`;
+      return `bqporter-${datasetId}_${name.replace('*', '')}-`;
     }
     return `bqporter-${datasetId}-`;
   })();
@@ -563,7 +563,7 @@ const createDeployTasks = async (
           .replace(/@default/, defaultProjectID)
           .replace(/@\w+/, (s) => s.toUpperCase()),
       ),
-    ).replaceAll('/', '.');
+    ).replaceAll('/', '.').replace(/@$/, '*');
 
   const targets: JobConfig[] = [
     ...await Promise.all(

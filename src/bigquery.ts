@@ -2,7 +2,7 @@ import type { Metadata } from '@google-cloud/common';
 import { BigQuery, BigQueryOptions } from '@google-cloud/bigquery';
 import pThrottle from 'p-throttle';
 import * as path from 'node:path';
-import * as fs from 'node:fs';
+// import * as fs from 'node:fs';
 
 interface BigQueryResource {
   id?: string;
@@ -57,7 +57,7 @@ const normalizeShardingTableId = (tableId: string) => {
         .getTime(),
     )
   ) {
-    return tableId.replace(regexTableSuffix, '@');
+    return tableId.replace(regexTableSuffix, '*');
   }
   return tableId;
 };
@@ -70,7 +70,7 @@ const bq2path = (bqObj: BigQueryResource, asDefaultProject: boolean) => {
   while (true) {
     depth += 1;
     if (it.id) {
-      const shardName = normalizeShardingTableId(it.id);
+      const shardName = normalizeShardingTableId(it.id).replace('*', '@');
       // Check BigQuery sharding table format
       if (depth == 1 && it.id != shardName) {
         tree.push(shardName);
@@ -119,22 +119,7 @@ const path2bq = (
     if (!ordinalName?.endsWith('@')) {
       return ordinalName;
     }
-
-    const shardingPath = path.join(path.dirname(fpath), 'shardings.json');
-    if (fs.existsSync(shardingPath)) {
-      try {
-        const sharding = JSON.parse(
-          fs.readFileSync(shardingPath, 'utf-8'),
-        );
-        return ordinalName.replace('@', sharding.tableSuffix);
-      } catch {
-        throw new Error(
-          'Invalid shardings.json format. Please check the file.',
-        );
-      }
-    }
-
-    return ordinalName.replace('@', '20010101');
+    return ordinalName.replace(/@$/, '*');
   })();
   return [catalogId, schemaId, name].filter((n) => n).join('.');
 };

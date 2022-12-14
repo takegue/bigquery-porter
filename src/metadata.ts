@@ -86,7 +86,6 @@ const syncMetadata = async (
   };
 
   const metadataPath = path.join(dirPath, 'metadata.json');
-  const shardingMetadataPath = path.join(dirPath, 'shardings.json');
   const readmePath = path.join(dirPath, 'README.md');
   const fieldsPath = path.join(dirPath, 'schema.json');
   const syncLabels: systemDefinedLabels = {
@@ -219,25 +218,6 @@ const syncMetadata = async (
           console.warn('Warning: Failed to update metadata.' + e.message);
         }),
     );
-  }
-
-  // sharding.json
-  if (path.basename(dirPath).endsWith('@') && bqObject.id) {
-    const tableSuffix = bqObject.id.match(/\d+$/);
-    if (tableSuffix && tableSuffix[0]) {
-      if (options?.push) {
-      } else {
-        jobs.push(
-          fs.promises.writeFile(
-            shardingMetadataPath,
-            jsonSerializer({
-              tableSuffix: tableSuffix[0],
-            }),
-          )
-            .then(() => readmePath),
-        );
-      }
-    }
   }
 
   // metadata.json

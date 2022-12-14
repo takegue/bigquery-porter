@@ -15,4 +15,4 @@ FOR record in (
   ;
 end FOR;
 
-select * from `sandbox.demo_shardings_*`;
+select * from `sandbox.sample_sharding_*`;
