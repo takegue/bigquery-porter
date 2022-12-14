@@ -739,7 +739,7 @@ const getTargetFiles = async () => {
 export async function pushLocalFilesToBigQuery(
   ctx: PushContext,
   jobOption: Query,
-) {
+): Promise<number> {
   const targetProject = ctx.BigQuery.projectId ?? '@default';
   const findDir = path.join(ctx.rootPath, targetProject);
   const reporterType: BuiltInReporters = ctx.reporter;
@@ -769,7 +769,12 @@ export async function pushLocalFilesToBigQuery(
     reporter.onUpdate();
   } catch (e) {
     console.error(e);
+    return 1;
   } finally {
     reporter.onFinished();
   }
+
+  const failedTasks =
+    tasks.filter((t) => t.result().status !== 'success').length;
+  return failedTasks;
 }
