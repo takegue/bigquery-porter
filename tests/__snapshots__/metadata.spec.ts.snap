@@ -96,6 +96,24 @@ exports[`syncMetadata: Pull > for Table: bigquery-public-data:austin_bikeshare.b
 
 exports[`syncMetadata: Pull > for Table: bigquery-public-data:austin_bikeshare.bikeshare_stations 3`] = `"Austin Bikeshare Stations table"`;
 
+exports[`syncMetadata: Push > for Routine: sample_routine 1`] = `
+{
+  "arguments": [
+    {
+      "dataType": {
+        "typeKind": "STRING",
+      },
+      "name": "from",
+    },
+  ],
+  "language": "SQL",
+  "returnType": {
+    "typeKind": "STRING",
+  },
+  "routineType": "SCALAR_FUNCTION",
+}
+`;
+
 exports[`syncMetadata: Push > for Table: sample_table 1`] = `
 [
   {

@@ -105,10 +105,17 @@ describe('syncMetadata: Push', async () => {
   beforeAll(async () => {
     const [dataset] = await bqClient.createDataset(_dataset, {});
     // https://cloud.google.com/bigquery/docs/reference/v2/tables#resource
-    await dataset.createTable('sample_table', {
-      schema: 'id:integer, name:string',
-      description: 'sample table',
-    });
+    await Promise.all([
+      dataset.createTable('sample_table', {
+        schema: 'id:integer, name:string',
+        description: 'sample table',
+      }),
+      dataset.bigQuery.query(`
+        create or replace function ${_dataset}.sample_routine(\`from\` string)
+        returns string
+        as (\`from\`)
+        `),
+    ]);
   });
 
   afterAll(async () => {
@@ -153,6 +160,34 @@ describe('syncMetadata: Push', async () => {
     expect(JSON.parse(_load('schema.json')))
       .toMatchSnapshot();
     expect(metadata.schema.fields).toMatchObject(afterSchema);
+
+    expect(fs.existsSync(path.join(toPath('metadata.json')))).toBe(true);
+    expect(JSON.parse(_load('metadata.json')))
+      .toMatchSnapshot();
+  });
+
+  it('for Routine: sample_routine', async () => {
+    /* Known isssue:
+     * - BigQuery API `/routine` cause error when to use keyword term as argument
+     *   See https://issuetracker.google.com/issues/262784332
+     */
+    const routine = bqClient.dataset(_dataset).routine(
+      'sample_routine',
+    );
+    const afterDescription = 'Updated description';
+    // test
+    await Promise.all([
+      _write('README.md', afterDescription),
+    ]);
+
+    const modified = (await syncMetadata(routine, _fsResource, { push: true }))
+      .map((n) => path.basename(n));
+
+    expect(modified.length).toBe(2);
+
+    expect(fs.existsSync(toPath('README.md'))).toBe(true);
+    expect(_load('README.md'))
+      .toBe(afterDescription);
 
     expect(fs.existsSync(path.join(toPath('metadata.json')))).toBe(true);
     expect(JSON.parse(_load('metadata.json')))

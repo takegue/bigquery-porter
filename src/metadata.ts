@@ -160,7 +160,9 @@ const syncMetadata = async (
     if (options?.push) {
       // TODO: Add allowlist check to write
       Object.entries(newMetadata).forEach(([attr]) => {
-        newMetadata[attr] = local[attr];
+        if (bqObject instanceof Table) {
+          newMetadata[attr] = local[attr];
+        }
       });
     } else {
       Object.entries(newMetadata).forEach(([attr]) => {
@@ -204,6 +206,9 @@ const syncMetadata = async (
   }
 
   if (options?.push) {
+    /* Known isssue:
+     * - BigQuery API `/routine` cause error when to use keyword term as argument
+     */
     jobs.push(
       (bqObject as any)
         .setMetadata(
@@ -215,7 +220,9 @@ const syncMetadata = async (
         )
         .then(() => undefined)
         .catch((e: Error) => {
-          console.warn('Warning: Failed to update metadata.' + e.message);
+          console.warn(
+            `Warning:${dirPath}:metadata:Failed to update metadata. ${e.stack}`,
+          );
         }),
     );
   }
