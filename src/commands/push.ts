@@ -587,14 +587,14 @@ const createDeployTasks = async (
         })),
     ),
     // For Metadata Update
-    ...Array.from(new Set(files.map((f) => f)))
+    ...(ctx.dryRun ? [] : Array.from(new Set(files.map((f) => f)))
       .map((n) => ({
         namespace: toBQNS(n),
         shouldDeploy: files.includes(n),
         file: path.normalize(path.join(path.dirname(n), 'metadata.json')),
         destinations: [],
         dependencies: [normalizeShardingTableId(toBQID(n)).replace(/@$/, '*')],
-      })),
+      }))),
   ];
 
   const [orderdJobs, jobDeps] = buildDAG(targets);
@@ -614,6 +614,10 @@ const createDeployTasks = async (
       }
 
       // Deployment for metadata files
+      if (ctx.dryRun) {
+        throw Error('Metadata update is not supported in dry-run mode');
+      }
+
       const [projectId, dataset, tableOrRoutineOrModel] = toBQID(file).split(
         '.',
       );
