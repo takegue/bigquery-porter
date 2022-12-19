@@ -53,71 +53,81 @@ describe('util test: sql extraction ', () => {
     expectedDestinations: [string, string][];
     expectedReferences: string[];
   }> = [
-      {
-        input: `create table \`child_table\` as select *
+    {
+      input: `create table \`child_table\` as select *
           from \`dataset.parent1_table\`, \`dataset.parent2_table\``,
-        expectedDestinations: [['`child_table`', 'TABLE']],
-        expectedReferences: [
-          '`dataset.parent1_table`',
-          '`dataset.parent2_table`',
-        ],
-      },
-      {
-        input: `with cte as (select * from \`child_table\`) select * from cte`,
-        expectedDestinations: [],
-        expectedReferences: ['`child_table`'],
-      },
-      {
-        input: `select 1`,
-        expectedDestinations: [],
-        expectedReferences: [],
-      },
-      {
-        input: `select * from \`dataset.table_*\``,
-        expectedDestinations: [],
-        expectedReferences: ['`dataset.table_*`'],
-      },
-      {
-        input: `select * from \`dataset.table_20221210\``,
-        expectedDestinations: [],
-        expectedReferences: ['`dataset.table_*`'],
-      },
-      {
-        input: `create or replace table \`sandbox.sample_20221210\`
+      expectedDestinations: [['`child_table`', 'TABLE']],
+      expectedReferences: [
+        '`dataset.parent1_table`',
+        '`dataset.parent2_table`',
+      ],
+    },
+    {
+      input: `with cte as (select * from \`child_table\`) select * from cte`,
+      expectedDestinations: [],
+      expectedReferences: ['`child_table`'],
+    },
+    {
+      input: `select 1`,
+      expectedDestinations: [],
+      expectedReferences: [],
+    },
+    {
+      input: `select * from \`dataset.table_*\``,
+      expectedDestinations: [],
+      expectedReferences: ['`dataset.table_*`'],
+    },
+    {
+      input: `select * from \`dataset.table_20221210\``,
+      expectedDestinations: [],
+      expectedReferences: ['`dataset.table_*`'],
+    },
+    {
+      input: `create or replace table \`sandbox.sample_20221210\`
           as
           select 1 as a
           `,
-        expectedDestinations: [['`sandbox.sample_*`', 'TABLE']],
-        expectedReferences: [],
-      },
-      {
-        input:
-          `create or replace procedure \`sandbox.sample_proc\`(in argument int64)
+      expectedDestinations: [['`sandbox.sample_*`', 'TABLE']],
+      expectedReferences: [],
+    },
+    {
+      input:
+        `create or replace procedure \`sandbox.sample_proc\`(in argument int64)
             options(description="test")
             begin select 1; end`,
-        expectedDestinations: [['`sandbox.sample_proc`', 'ROUTINE']],
-        expectedReferences: [],
-      },
-      {
-        input:
-          `create or replace procedure \`sandbox.sample_proc\`(in argument int64)
+      expectedDestinations: [['`sandbox.sample_proc`', 'ROUTINE']],
+      expectedReferences: [],
+    },
+    {
+      input:
+        `create or replace procedure \`sandbox.sample_proc\`(in argument int64)
            begin
             call \`sandbox.reference_proc\`();
           end`,
-        expectedDestinations: [['`sandbox.sample_proc`', 'ROUTINE']],
-        expectedReferences: ['`sandbox.reference_proc`'],
-      },
-      {
-        input: 'create schema `awesome_dataset`;',
-        expectedDestinations: [['`awesome_dataset`', 'SCHEMA']],
-        expectedReferences: [],
-      },
-      {
-        input: 'CREATE MODEL `awesome_dataset.mymodel`',
-        expectedDestinations: [['`awesome_dataset.mymodel`', 'MODEL']],
-        expectedReferences: [],
-      },
-    ];
+      expectedDestinations: [['`sandbox.sample_proc`', 'ROUTINE']],
+      expectedReferences: ['`sandbox.reference_proc`'],
+    },
+    {
+      input: 'create schema `awesome_dataset`;',
+      expectedDestinations: [['`awesome_dataset`', 'SCHEMA']],
+      expectedReferences: [],
+    },
+    {
+      input: 'CREATE MODEL `awesome_dataset.mymodel`',
+      expectedDestinations: [['`awesome_dataset.mymodel`', 'MODEL']],
+      expectedReferences: [],
+    },
+    {
+      input: 'create temp table `tmp_table` as select 1;',
+      expectedDestinations: [['`tmp_table`', 'TEMPORARY_TABLE']],
+      expectedReferences: [],
+    },
+    {
+      input: `create temp function \`temp_function\`() as (1)`,
+      expectedDestinations: [['`temp_function`', 'TEMPORARY_ROUTINE']],
+      expectedReferences: [],
+    },
+  ];
   it.concurrent.each(cases)(
     'identifier extraction: destinations (%#)',
     async (args) => {

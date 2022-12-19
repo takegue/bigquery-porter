@@ -198,8 +198,10 @@ const fetchBQJobResource = async (
     default:
       const stats = job.metadata.statistics;
       throw new Error(
-        `Not Supported: ${stats.query.statementType}` +
+        [
+          `Not Supported: ${stats.query.statementType}`,
           `(${job.id}, ${JSON.stringify(stats)})`,
+        ].join(),
       );
   }
 };
@@ -381,6 +383,7 @@ const extractBigQueryDestinations = async (
   const refs = [
     ...new Set(
       extractDestinations(sql)
+        .filter(([_, type]) => !type.startsWith('TEMPORARY'))
         .map(([ref, type]) =>
           normalizedBQPath(ref, projectID, type == 'SCHEMA')
         ),

@@ -135,11 +135,20 @@ function extractDestinations(sql: string): [string, string][] {
     if (n.parent.type.match(/schema_statement/)) {
       ret.push([n.text, 'SCHEMA']);
     } else if (n.parent.type.match(/procedure_statement|function_statement/)) {
-      ret.push([n.text, 'ROUTINE']);
-    } else if (n.parent.type.match(/table_statement/)) {
-      ret.push([_replaceWildcard(n.text), 'TABLE']);
+      const is_temp = n.parent.children.some((c: any) =>
+        c.type == 'keyword_temporary'
+      );
+      ret.push([n.text, is_temp ? 'TEMPORARY_ROUTINE' : 'ROUTINE']);
     } else if (n.parent.type.match(/create_model_statement/)) {
       ret.push([n.text, 'MODEL']);
+    } else if (n.parent.type.match(/table_statement/)) {
+      const is_temp = n.parent.children.some((c: any) =>
+        c.type == 'keyword_temporary'
+      );
+      ret.push([
+        _replaceWildcard(n.text),
+        is_temp ? 'TEMPORARY_TABLE' : 'TABLE',
+      ]);
     } else if (
       n.parent.type.match(/statement/) &&
       !n.parent.type.match(/call_statement/)
