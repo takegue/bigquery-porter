@@ -18,28 +18,28 @@ describe('util test: toposort', () => {
     input: Relation[];
     expected: string[];
   }> = [
-      {
-        input: [
-          ['a', 'b'],
-          ['b', 'c'],
-        ],
-        expected: ['c', 'b', 'a'],
-      },
-      {
-        input: [
-          ['a', 'b'],
-          ['c', 'b'],
-        ],
-        expected: ['b', 'a', 'c'],
-      },
-      {
-        input: [
-          ['c', 'b'],
-          ['b', 'a'],
-        ],
-        expected: ['a', 'b', 'c'],
-      },
-    ];
+    {
+      input: [
+        ['a', 'b'],
+        ['b', 'c'],
+      ],
+      expected: ['c', 'b', 'a'],
+    },
+    {
+      input: [
+        ['a', 'b'],
+        ['c', 'b'],
+      ],
+      expected: ['b', 'a', 'c'],
+    },
+    {
+      input: [
+        ['c', 'b'],
+        ['b', 'a'],
+      ],
+      expected: ['a', 'b', 'c'],
+    },
+  ];
   it.concurrent.each(cases)('topological sort', async (args) => {
     const { input, expected } = args;
     expect(topologicalSort(input))
@@ -151,31 +151,31 @@ describe('biquery: path2bq', () => {
     input: [string, string, string];
     expected: string;
   }> = [
-      {
-        input: [
-          'bigquery-porter/bigquery/@default/v0/ddl.sql',
-          'bigquery-porter/bigquery',
-          'my-project',
-        ],
-        expected: 'my-project.v0',
-      },
-      {
-        input: [
-          'bigquery-porter/bigquery/@default/v0/@routine/some_routine/ddl.sql',
-          'bigquery-porter/bigquery',
-          'my-project',
-        ],
-        expected: 'my-project.v0.some_routine',
-      },
-      {
-        input: [
-          'bigquery-porter/bigquery/@default/v0/some_table/ddl.sql',
-          'bigquery-porter/bigquery',
-          'my-project',
-        ],
-        expected: 'my-project.v0.some_table',
-      },
-    ];
+    {
+      input: [
+        'bigquery-porter/bigquery/@default/v0/ddl.sql',
+        'bigquery-porter/bigquery',
+        'my-project',
+      ],
+      expected: 'my-project.v0',
+    },
+    {
+      input: [
+        'bigquery-porter/bigquery/@default/v0/@routine/some_routine/ddl.sql',
+        'bigquery-porter/bigquery',
+        'my-project',
+      ],
+      expected: 'my-project.v0.some_routine',
+    },
+    {
+      input: [
+        'bigquery-porter/bigquery/@default/v0/some_table/ddl.sql',
+        'bigquery-porter/bigquery',
+        'my-project',
+      ],
+      expected: 'my-project.v0.some_table',
+    },
+  ];
   it.concurrent.each(cases)('path2bq test', async (args) => {
     const { input, expected } = args;
     expect(path2bq(...input)).toMatchObject(expected);
@@ -199,80 +199,80 @@ describe('biquery: bq2path', () => {
     input: [BigQueryResource, boolean];
     expected: string;
   }> = [
-      {
-        input: [client, false],
-        expected: 'awesome-project',
-      },
-      {
-        input: [client, true],
-        expected: '@default',
-      },
-      {
-        input: [dataset, false],
-        expected: 'awesome-project/sandbox',
-      },
-      {
-        input: [{
-          baseUrl: '/tables',
-          projectId: 'awesome-project',
-          id: 'table_id',
-          parent: dataset,
-        }, false],
-        expected: 'awesome-project/sandbox/table_id',
-      },
-      {
-        input: [{
-          baseUrl: '/routines',
-          id: 'routine_id',
-          parent: dataset,
-        }, false],
-        expected: 'awesome-project/sandbox/@routines/routine_id',
-      },
-      {
-        input: [{
-          baseUrl: '/models',
-          projectId: 'awesome-project',
-          id: 'model_id',
-          parent: dataset,
-        }, false],
-        expected: 'awesome-project/sandbox/@models/model_id',
-      },
-      {
-        input: [{
-          baseUrl: '/unknown',
-          projectId: 'awesome-project',
-          id: 'unknown_id',
-          parent: dataset,
-        }, false],
-        expected: 'awesome-project/sandbox/@unknown/unknown_id',
-      },
-      {
-        input: [{
-          baseUrl: '/tables',
-          projectId: 'awesome-project',
-          id: 'table_id',
-          parent: dataset,
-        }, true],
-        expected: '@default/sandbox/table_id',
-      },
-      {
-        input: [{
-          baseUrl: '/tables',
-          projectId: 'awesome-project',
-          id: 'table_200221210',
-          parent: dataset,
-        }, true],
-        expected: '@default/sandbox/table_@',
-      },
-      {
-        input: [{
-          baseUrl: '/routines',
-          id: 'routine_id',
-          parent: dataset,
-        }, true],
-        expected: '@default/sandbox/@routines/routine_id',
-      },
-    ];
+    {
+      input: [client, false],
+      expected: 'awesome-project',
+    },
+    {
+      input: [client, true],
+      expected: '@default',
+    },
+    {
+      input: [dataset, false],
+      expected: 'awesome-project/sandbox',
+    },
+    {
+      input: [{
+        baseUrl: '/tables',
+        projectId: 'awesome-project',
+        id: 'table_id',
+        parent: dataset,
+      }, false],
+      expected: 'awesome-project/sandbox/table_id',
+    },
+    {
+      input: [{
+        baseUrl: '/routines',
+        id: 'routine_id',
+        parent: dataset,
+      }, false],
+      expected: 'awesome-project/sandbox/@routines/routine_id',
+    },
+    {
+      input: [{
+        baseUrl: '/models',
+        projectId: 'awesome-project',
+        id: 'model_id',
+        parent: dataset,
+      }, false],
+      expected: 'awesome-project/sandbox/@models/model_id',
+    },
+    {
+      input: [{
+        baseUrl: '/unknown',
+        projectId: 'awesome-project',
+        id: 'unknown_id',
+        parent: dataset,
+      }, false],
+      expected: 'awesome-project/sandbox/@unknown/unknown_id',
+    },
+    {
+      input: [{
+        baseUrl: '/tables',
+        projectId: 'awesome-project',
+        id: 'table_id',
+        parent: dataset,
+      }, true],
+      expected: '@default/sandbox/table_id',
+    },
+    {
+      input: [{
+        baseUrl: '/tables',
+        projectId: 'awesome-project',
+        id: 'table_200221210',
+        parent: dataset,
+      }, true],
+      expected: '@default/sandbox/table_@',
+    },
+    {
+      input: [{
+        baseUrl: '/routines',
+        id: 'routine_id',
+        parent: dataset,
+      }, true],
+      expected: '@default/sandbox/@routines/routine_id',
+    },
+  ];
   it.concurrent.each(cases)('bq2path', async (args) => {
     const { input, expected } = args;
     expect(bq2path(...input)).toMatchObject(expected);
@@ -284,31 +284,31 @@ describe('biquery: normalizedBQPath', () => {
     input: [string, string?, boolean?];
     expected: string;
   }> = [
-      {
-        input: ['`project_id.sbx.hoge`'],
-        expected: 'project_id.sbx.hoge',
-      },
-      {
-        input: ['project_id.sbx.hoge'],
-        expected: 'project_id.sbx.hoge',
-      },
-      {
-        input: ['project_id.sbx.hoge', '@default'],
-        expected: 'project_id.sbx.hoge',
-      },
-      {
-        input: ['sbx.hoge', '@default'],
-        expected: '@default.sbx.hoge',
-      },
-      {
-        input: ['sbx', '@default', true],
-        expected: '@default.sbx',
-      },
-      {
-        input: ['`sbx`', '@default', true],
-        expected: '@default.sbx',
-      },
-    ];
+    {
+      input: ['`project_id.sbx.hoge`'],
+      expected: 'project_id.sbx.hoge',
+    },
+    {
+      input: ['project_id.sbx.hoge'],
+      expected: 'project_id.sbx.hoge',
+    },
+    {
+      input: ['project_id.sbx.hoge', '@default'],
+      expected: 'project_id.sbx.hoge',
+    },
+    {
+      input: ['sbx.hoge', '@default'],
+      expected: '@default.sbx.hoge',
+    },
+    {
+      input: ['sbx', '@default', true],
+      expected: '@default.sbx',
+    },
+    {
+      input: ['`sbx`', '@default', true],
+      expected: '@default.sbx',
+    },
+  ];
   it.concurrent.each(cases)('normalized bigquery path', async (args) => {
     const { input, expected } = args;
     expect(normalizedBQPath(...input)).toMatchObject(expected);
