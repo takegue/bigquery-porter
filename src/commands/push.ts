@@ -400,19 +400,19 @@ const buildDAG = (
   const job2deps = new WeakMap<JobConfig, JobConfig[]>();
   const file2job = Object.fromEntries(jobs.map((j) => [j.file, j]));
 
-  const bq2files = new Map<string, { dsts: string[]; srcs: string[] }>();
+  const bq2files = new Map<string, { dsts: Set<string>; srcs: Set<string> }>();
   for (const { destinations, dependencies, file } of jobs) {
     for (const dst of destinations) {
       if (!bq2files.has(dst)) {
-        bq2files.set(dst, { dsts: [], srcs: [] });
+        bq2files.set(dst, { dsts: new Set(), srcs: new Set() });
       }
-      bq2files.get(dst)?.dsts.push(file);
+      bq2files.get(dst)?.dsts.add(file);
     }
     for (const dep of dependencies) {
       if (!bq2files.has(dep)) {
-        bq2files.set(dep, { dsts: [], srcs: [] });
+        bq2files.set(dep, { dsts: new Set(), srcs: new Set() });
       }
-      bq2files.get(dep)?.srcs.push(file);
+      bq2files.get(dep)?.srcs.add(file);
     }
   }
 
