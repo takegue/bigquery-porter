@@ -75,6 +75,7 @@ class Task extends BaseTask<string> {
 
 type BQJob = {
   jobID?: string;
+  file?: string;
   totalBytesProcessed?: number;
   totalSlotMs?: number;
   elapsedTimeMs?: number;
