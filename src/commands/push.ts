@@ -53,7 +53,7 @@ type PushContext = {
   reporter: BuiltInReporters;
 };
 
-const buildBQJobFromMetadata = (job: JobMetadata): BQJob => {
+let buildBQJobFromMetadata = (job: JobMetadata): BQJob => {
   const ret: BQJob = {};
   const stats = job.statistics;
   if (job.jobReference?.jobId) {
@@ -254,7 +254,7 @@ const deployBigQueryResouce = async (
           jobPrefix,
         });
 
-        return buildBQJobFromMetadata(ijob);
+        return { file: p, ...buildBQJobFromMetadata(ijob) };
       }
 
       const api = schema.table(tableId);
@@ -276,7 +276,7 @@ const deployBigQueryResouce = async (
         });
       }
 
-      return {};
+      return { file: p };
 
     default:
       // https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#jobconfiguration
@@ -297,7 +297,7 @@ const deployBigQueryResouce = async (
       });
 
       if (ijob.configuration?.dryRun) {
-        return buildBQJobFromMetadata(ijob);
+        return { file: p, ...buildBQJobFromMetadata(ijob) };
       }
 
       try {
@@ -311,6 +311,7 @@ const deployBigQueryResouce = async (
               cause: {
                 ...job.metadata.status.errorResult,
                 ...buildBQJobFromMetadata(ijob),
+                file: p,
               },
             },
           );
@@ -323,7 +324,7 @@ const deployBigQueryResouce = async (
         console.warn((e as Error).message);
       }
 
-      return buildBQJobFromMetadata(job.metadata);
+      return { file: p, ...buildBQJobFromMetadata(job.metadata) };
   }
 };
 
@@ -629,6 +630,7 @@ const createDeployTasks = async (
         throw Error('Unreachable code');
       }
 
+      const ret: BQJob = { file };
       if (tableOrRoutineOrModel === undefined) {
         // Dataset
         return (async () => {
@@ -636,7 +638,7 @@ const createDeployTasks = async (
             .dataset(dataset, { projectId } as DatasetOptions)
             .get();
           await syncMetadata(model, fileDir, { push: true });
-          return {} as BQJob;
+          return ret;
         })();
       } else if (file.match('@routine')) {
         return (async () => {
@@ -645,7 +647,7 @@ const createDeployTasks = async (
             .routine(tableOrRoutineOrModel)
             .get();
           await syncMetadata(routine, fileDir, { push: true });
-          return {} as BQJob;
+          return ret;
         })();
       } else if (file.match('@model')) {
         return (async () => {
@@ -654,7 +656,7 @@ const createDeployTasks = async (
             .model(tableOrRoutineOrModel)
             .get();
           await syncMetadata(model, fileDir, { push: true });
-          return {} as BQJob;
+          return ret;
         })();
       } else {
         // Table
@@ -664,7 +666,7 @@ const createDeployTasks = async (
             .table(tableOrRoutineOrModel)
             .get();
           await syncMetadata(table, fileDir, { push: true });
-          return {} as BQJob;
+          return ret;
         })();
       }
     },
