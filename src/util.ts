@@ -74,7 +74,7 @@ function topologicalSort(relations: Relation[]) {
 const parser = new Parser();
 parser.setLanguage(Language);
 
-const findBigQueryResourceIdentifier = function* (node: any): any {
+const findBigQueryResourceIdentifier = function*(node: any): any {
   const resource_name = _extractBigQueryResourceIdentifier(node);
   if (resource_name != null) {
     yield resource_name;
@@ -127,20 +127,54 @@ function _replaceWildcard(table: string): string {
   return normalizeShardingTableId(table).replace('@', '*');
 }
 
-function extractDestinations(sql: string): [string, string][] {
+type StatementType = 'DML' | 'DDL_DROP' | 'DDL_CREATE' | 'UNKNOWN';
+type ResourceType =
+  | 'SCHEMA'
+  | 'MODEL'
+  | 'TABLE'
+  | 'ROUTINE'
+  | 'TEMPORARY_TABLE'
+  | 'TEMPORARY_ROUTINE';
+
+function _categorizeDDL(
+  n: string,
+): StatementType {
+  if (n.startsWith('create')) {
+    return 'DDL_CREATE';
+  } else if (n.startsWith('insert')) {
+    return 'DML';
+  } else if (n.startsWith('merge')) {
+    return 'DML';
+  } else if (n.startsWith('truncate')) {
+    return 'DML';
+  } else if (n.startsWith('drop')) {
+    return 'DDL_DROP';
+  }
+  return 'UNKNOWN';
+}
+
+function extractDestinations(
+  sql: string,
+): [string, ResourceType, StatementType][] {
   const tree = parser.parse(sql);
-  let ret: [string, string][] = [];
+  let ret: [string, ResourceType, StatementType][] = [];
 
   for (let n of findBigQueryResourceIdentifier(tree.rootNode)) {
+    const statementType = _categorizeDDL(n.parent.type);
+
     if (n.parent.type.match(/schema_statement/)) {
-      ret.push([n.text, 'SCHEMA']);
+      ret.push([n.text, 'SCHEMA', statementType]);
     } else if (n.parent.type.match(/procedure_statement|function_statement/)) {
       const is_temp = n.parent.children.some((c: any) =>
         c.type == 'keyword_temporary'
       );
-      ret.push([n.text, is_temp ? 'TEMPORARY_ROUTINE' : 'ROUTINE']);
+      ret.push([
+        n.text,
+        is_temp ? 'TEMPORARY_ROUTINE' : 'ROUTINE',
+        statementType,
+      ]);
     } else if (n.parent.type.match(/create_model_statement/)) {
-      ret.push([n.text, 'MODEL']);
+      ret.push([n.text, 'MODEL', statementType]);
     } else if (n.parent.type.match(/table_statement/)) {
       const is_temp = n.parent.children.some((c: any) =>
         c.type == 'keyword_temporary'
@@ -148,12 +182,13 @@ function extractDestinations(sql: string): [string, string][] {
       ret.push([
         _replaceWildcard(n.text),
         is_temp ? 'TEMPORARY_TABLE' : 'TABLE',
+        statementType,
       ]);
     } else if (
       n.parent.type.match(/statement/) &&
       !n.parent.type.match(/call_statement/)
     ) {
-      ret.push([_replaceWildcard(n.text), 'TABLE']);
+      ret.push([_replaceWildcard(n.text), 'TABLE', statementType]);
       continue;
     }
   }

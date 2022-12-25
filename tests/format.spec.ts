@@ -1,52 +1,52 @@
-import { describe, expect, it } from "vitest";
-import Parser from "tree-sitter";
-import Language from "tree-sitter-sql-bigquery";
-import { fixDestinationSQL } from "../src/commands/fix.js";
-import * as fs from "fs";
+import { describe, expect, it } from 'vitest';
+import Parser from 'tree-sitter';
+import Language from 'tree-sitter-sql-bigquery';
+import { fixDestinationSQL } from '../src/commands/fix.js';
+import * as fs from 'fs';
 
-describe("Command test: format command", async () => {
+describe('Command test: format command', async () => {
   const cases: Array<{
-    input: ["table_or_routine" | "dataset" | "project", string, string];
+    input: ['table_or_routine' | 'dataset' | 'project', string, string];
     expected: string;
   }> = [
       {
         input: [
-          "table_or_routine",
-          "awesome-project.sandbox.hoge",
-          "create table\n`awesome-project.sandbox.wrong_name` as select 1",
+          'table_or_routine',
+          'awesome-project.sandbox.hoge',
+          'create table\n`awesome-project.sandbox.wrong_name` as select 1',
         ],
-        expected: "create table\n`awesome-project.sandbox.hoge` as select 1",
+        expected: 'create table\n`awesome-project.sandbox.hoge` as select 1',
       },
       {
         input: [
-          "dataset",
-          "awesome-project.sandbox",
-          "create schema `awesome-project.wrong_name`",
+          'dataset',
+          'awesome-project.sandbox',
+          'create schema `awesome-project.wrong_name`',
         ],
-        expected: "create schema `awesome-project.sandbox`",
+        expected: 'create schema `awesome-project.sandbox`',
       },
       {
         input: [
-          "table_or_routine",
-          "awesome-project.sandbox.hoge",
-          "create or replace function `sandbox.wrong_name`() as (1)",
-        ],
-        expected:
-          "create or replace function `awesome-project.sandbox.hoge`() as (1)",
-      },
-      {
-        input: [
-          "table_or_routine",
-          "awesome-project.sandbox.hoge",
-          "create or replace table function awesomeproject.wrong_name() as (select 1)",
+          'table_or_routine',
+          'awesome-project.sandbox.hoge',
+          'create or replace function `sandbox.wrong_name`() as (1)',
         ],
         expected:
-          "create or replace table function `awesome-project.sandbox.hoge`() as (select 1)",
+          'create or replace function `awesome-project.sandbox.hoge`() as (1)',
       },
       {
         input: [
-          "table_or_routine",
-          "awesome-project.sandbox.correct_name",
+          'table_or_routine',
+          'awesome-project.sandbox.hoge',
+          'create or replace table function awesomeproject.wrong_name() as (select 1)',
+        ],
+        expected:
+          'create or replace table function `awesome-project.sandbox.hoge`() as (select 1)',
+      },
+      {
+        input: [
+          'table_or_routine',
+          'awesome-project.sandbox.correct_name',
           `create or replace procedure sandbox.wrong_name(in argument int64)
             options(description="test")
             begin select 1; end`,
@@ -58,30 +58,38 @@ describe("Command test: format command", async () => {
       },
       {
         input: [
-          "table_or_routine",
-          "sandbox.correct_name",
-          fs.readFileSync("tests/__sql__/example1/input.sql", "utf8"),
+          'table_or_routine',
+          'sandbox.correct_name',
+          fs.readFileSync('tests/__sql__/example1/input.sql', 'utf8'),
         ],
-        expected: fs.readFileSync("tests/__sql__/example1/expected.sql", "utf8"),
+        expected: fs.readFileSync('tests/__sql__/example1/expected.sql', 'utf8'),
       },
       {
         input: [
-          "table_or_routine",
-          "replaced_schema.awesome_procedure",
-          fs.readFileSync("tests/__sql__/example2/input.sql", "utf8"),
+          'table_or_routine',
+          'replaced_schema.awesome_procedure',
+          fs.readFileSync('tests/__sql__/example2/input.sql', 'utf8'),
         ],
-        expected: fs.readFileSync("tests/__sql__/example2/expected.sql", "utf8"),
+        expected: fs.readFileSync('tests/__sql__/example2/expected.sql', 'utf8'),
       },
       {
         input: [
-          "table_or_routine",
-          "hogehoeg",
-          fs.readFileSync("tests/__sql__/example2/input.sql", "utf8"),
+          'dataset',
+          'replaced_schema',
+          fs.readFileSync('tests/__sql__/example2/input.sql', 'utf8'),
         ],
-        expected: fs.readFileSync("tests/__sql__/example2/input.sql", "utf8"),
+        expected: fs.readFileSync('tests/__sql__/example2/expected2.sql', 'utf8'),
+      },
+      {
+        input: [
+          'table_or_routine',
+          'missing_table',
+          fs.readFileSync('tests/__sql__/example2/input.sql', 'utf8'),
+        ],
+        expected: fs.readFileSync('tests/__sql__/example2/input.sql', 'utf8'),
       },
     ];
-  it.concurrent.each(cases)("Example SQL %#", async (args) => {
+  it.concurrent.each(cases)('Example SQL %#', async (args) => {
     const { input, expected } = args;
     const parser = new Parser();
     parser.setLanguage(Language);
@@ -89,4 +97,23 @@ describe("Command test: format command", async () => {
     expect(fixDestinationSQL(parser, ...input))
       .toMatchObject(expected);
   });
+
+  it.concurrent.each(cases)(
+    'Stablity check: multiple formatting %#',
+    async (args) => {
+      const { input } = args;
+      const parser = new Parser();
+      parser.setLanguage(Language);
+
+      expect(fixDestinationSQL(parser, ...input))
+        .toMatchObject(
+          fixDestinationSQL(
+            parser,
+            input[0],
+            input[1],
+            fixDestinationSQL(parser, ...input),
+          ),
+        );
+    },
+  );
 });

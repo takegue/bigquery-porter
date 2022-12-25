@@ -1,14 +1,14 @@
-import * as fs from "node:fs";
-import { BigQuery } from "@google-cloud/bigquery";
-import Parser from "tree-sitter";
-import Language from "tree-sitter-sql-bigquery";
+import * as fs from 'node:fs';
+import { BigQuery } from '@google-cloud/bigquery';
+import Parser from 'tree-sitter';
+import Language from 'tree-sitter-sql-bigquery';
 
-import { path2bq } from "../../src/bigquery.js";
+import { path2bq } from '../../src/bigquery.js';
 import {
   extractDestinations,
   extractRefenrences,
   walk,
-} from "../../src/util.js";
+} from '../../src/util.js';
 
 const formatLocalfiles = async (
   rootPath: string,
@@ -25,20 +25,20 @@ const formatLocalfiles = async (
     const sql: string = await fs.promises.readFile(file)
       .then((s: any) => s.toString());
     const bqId = path2bq(file, rootPath, defaultProjectId);
-    const ns = bqId.split(".").slice(1).join(".");
+    const ns = bqId.split('.').slice(1).join('.');
     const nsType = (() => {
-      const levels = bqId.split(".").length;
+      const levels = bqId.split('.').length;
       if (levels == 3) {
-        return "table_or_routine";
+        return 'table_or_routine';
       }
       if (levels == 2) {
-        return "dataset";
+        return 'dataset';
       }
       if (levels == 1) {
-        return "project";
+        return 'project';
       }
 
-      return "table_or_routine";
+      return 'table_or_routine';
     })();
     const newSQL = fixDestinationSQL(parser, nsType, ns, sql);
     if (newSQL !== sql) {
@@ -53,7 +53,7 @@ const formatLocalfiles = async (
 
 function fixDestinationSQL(
   parser: Parser,
-  namespaceType: "table_or_routine" | "dataset" | "project",
+  namespaceType: 'table_or_routine' | 'dataset' | 'project',
   namespace: string,
   sql: string,
 ): string {
@@ -69,81 +69,113 @@ function fixDestinationSQL(
     }
   };
 
-  const _detectDDLKind = function(node: any): any {
-    if (node.parent == null) {
-      return [false, undefined];
-    }
-
-    if (node.parent.type.match("create_table_statement")) {
-      return [true, "TABLE"];
-    }
-
-    if (node.parent.type.match("create_schema_statement")) {
-      return [true, "SCHEMA"];
-    }
-
-    if (node.parent.type.match("create_function_statement")) {
-      return [true, "ROTUINE"];
-    }
-
-    if (node.parent.type.match("create_table_function_statement")) {
-      return [true, "ROTUINE"];
-    }
-
-    if (node.parent.type.match("create_procedure_statement")) {
-      return [true, "ROTUINE"];
-    }
-
-    return [false, undefined];
-  };
-
-  const _cleanupIdentifier = (n: string) => n.trim().replace(/`/g, "");
+  const _cleanup = (n: string) => n.trim().replace(/`/g, '');
 
   let _iteration = 0;
   let _stop = false;
-  let replacedIdentifier: Set<string> = new Set();
 
-  // Pre-scan
-  const isQualifiedIdentifier = (type: string) => {
-    if (namespaceType == "dataset" && type == "SCHEMA") {
-      return true;
-    }
-
-    if (
-      namespaceType == "table_or_routine" && ["TABLE", "ROUTINE"].includes(type)
-    ) {
-      return true;
-    }
-
-    return false;
+  const dests = extractDestinations(sql);
+  type Flag = {
+    has_create: boolean;
+    has_drop: boolean;
+    has_dml: boolean;
+    has_create_after_drop: boolean;
+    has_drop_after_create: boolean;
   };
 
-  const hasDDL = extractDestinations(sql)
-    .filter(([_, type]) => isQualifiedIdentifier(type))
-    .length > 0;
-  const Refs = extractRefenrences(sql);
-  const namespaceMatchedIdentifier = (() => {
-    // Sort `Refs` elements by similarity calculated by text mateced to namespace
-    const tail = namespace.split(".").at(-1);
-    const qualified = Refs
-      // Filter out non-qualified identifiers
-      .filter((n) => {
-        if (!n) {
+  const checks = dests.reduce(
+    (acc, [n, _, stmtType]) => {
+      const d = acc.get(n) ?? {
+        has_create: false,
+        has_drop: false,
+        has_dml: false,
+        has_create_after_drop: false,
+        has_drop_after_create: false,
+      };
+
+      if (stmtType == 'DDL_CREATE') {
+        if (d.has_drop) {
+          d.has_create_after_drop = true;
+        }
+        d.has_create = true;
+      } else if (stmtType == 'DDL_DROP') {
+        if (d.has_create) {
+          d.has_drop_after_create = true;
+        }
+        d.has_drop = true;
+      } else if (stmtType == 'DML') {
+        d.has_dml = true;
+      }
+      acc.set(n, d);
+      return acc;
+    },
+    new Map<string, Flag>(),
+  );
+
+  const willReplaceIdentifier: Map<string, string> = new Map<string, string>(
+    (() => {
+      const qualifiedDDL = dests
+        .filter(([n]) => {
+          const flags = checks.get(n);
+          if (!flags) return false;
+          if (flags.has_drop_after_create) {
+            return false;
+          }
+          if (flags.has_create) {
+            return true;
+          }
           return false;
-        }
+        });
 
-        if (tail === _cleanupIdentifier(n).split(".").at(-1)) {
-          return true;
+      if (qualifiedDDL.length > 0) {
+        const [ddl] = qualifiedDDL.at(0) ?? [];
+        if (!ddl) {
+          return [];
         }
-        return false;
-      });
+        return [[_cleanup(ddl), `\`${namespace}\``]];
+      }
 
-    return qualified.at(0);
-  })();
+      const refs = extractRefenrences(sql);
+      const candidates = refs
+        .map((n) => {
+          if (!n) {
+            return undefined;
+          }
+
+          if (namespaceType == 'dataset') {
+            return _cleanup(n).split('.').at(-2);
+          }
+
+          if (
+            namespaceType == 'table_or_routine' &&
+            namespace.split('.').at(-1) ===
+            _cleanup(n).split('.').at(-1)
+          ) {
+            return _cleanup(n);
+          }
+
+          return undefined;
+        });
+
+      const candidate = candidates.filter((n) => n !== undefined)[0];
+
+      if (!candidate) {
+        return [];
+      }
+
+      return refs
+        .map((n) => ({
+          before: _cleanup(n),
+          after: _cleanup(n).replaceAll(_cleanup(candidate), namespace),
+        }))
+        .filter(({ before, after }) => before !== after)
+        .map(({ before, after }) => [before, after]);
+    })(),
+  );
 
   while (!_stop && _iteration < 100) {
     _stop = true;
-    const row2count = newSQL.split("\n").map((r) => r.length)
+    const row2count = newSQL.split('\n').map((r) => r.length)
       .reduce((ret, r) => {
         // Sum of ret;
         ret.push((ret[ret.length - 1] ?? 0) + r + 1);
@@ -151,85 +183,22 @@ function fixDestinationSQL(
       }, [0] as number[]);
 
     for (const n of _visit(tree.rootNode)) {
-      const desired = `\`${namespace}\``;
-      const [isDDL] = _detectDDLKind(n);
-
-      /*
-      * Rule #1: If the node is a destination in DDL, then replace it with a qualified name from namespace.
-      */
-      if (
-        n.type === "identifier" &&
-        replacedIdentifier.size == 0 &&
-        hasDDL && isDDL &&
-        // Matching BigQuery Level
-        (desired.split(".").length - n.text.split(".").length) ** 2 <= 1
-      ) {
-        // Memorize propagate modification
-        replacedIdentifier.add(_cleanupIdentifier(n.text));
-
-        if (n.text !== desired) {
-          const start = row2count[n.startPosition.row] + n.startPosition.column;
-          const end = row2count[n.endPosition.row] + n.endPosition.column;
-
-          newSQL = newSQL.substring(0, start) + desired + newSQL.substring(end);
-          tree.edit({
-            startIndex: start,
-            oldEndIndex: end,
-            newEndIndex: start + desired.length,
-            startPosition: n.startPosition,
-            oldEndPosition: n.endPosition,
-            newEndPosition: {
-              row: n.endPosition.row,
-              column: n.endPosition.column + desired.length,
-            },
-          });
-        }
-
-        _stop = false;
-        break;
+      if (n.type !== 'identifier') {
+        continue;
       }
 
       /*
-      * Rule #2: Replace identifier most close to namespace in fuzzy-match rules if and only if SQL has no DDL
-      */
+   * Rule #99: Replaced remaining identifer that replaced by other rules.
+   */
       if (
-        n.type === "identifier" &&
-        replacedIdentifier.size == 0 &&
-        !hasDDL && n.text == namespaceMatchedIdentifier &&
-        (desired.split(".").length - n.text.split(".").length) ** 2 <= 1
+        willReplaceIdentifier.has(_cleanup(n.text))
       ) {
-        // Memorize propagate modification
-        replacedIdentifier.add(_cleanupIdentifier(n.text));
+        const replacement = willReplaceIdentifier.get(
+          _cleanup(n.text),
+        );
+        if (!replacement) continue;
+        const desired = `\`${_cleanup(replacement)}\``;
 
-        if (n.text !== desired) {
-          const start = row2count[n.startPosition.row] + n.startPosition.column;
-          const end = row2count[n.endPosition.row] + n.endPosition.column;
-
-          newSQL = newSQL.substring(0, start) + desired + newSQL.substring(end);
-          tree.edit({
-            startIndex: start,
-            oldEndIndex: end,
-            newEndIndex: start + desired.length,
-            startPosition: n.startPosition,
-            oldEndPosition: n.endPosition,
-            newEndPosition: {
-              row: n.endPosition.row,
-              column: n.endPosition.column + desired.length,
-            },
-          });
-        }
-
-        _stop = false;
-        break;
-      }
-
-      /*
-      * Rule #99: Replaced remaining identifer that replaced by other rules.
-      */
-      if (
-        n.type === "identifier" &&
-        replacedIdentifier.has(_cleanupIdentifier(n.text))
-      ) {
         const start = row2count[n.startPosition.row] + n.startPosition.column;
         const end = row2count[n.endPosition.row] + n.endPosition.column;
         newSQL = newSQL.substring(0, start) + desired + newSQL.substring(end);
