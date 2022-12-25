@@ -493,6 +493,14 @@ const buildDAG = (
       console.warn(`Warning: No deployment files for ${job.file}`);
     }
 
+    const m = job.namespace.match(/@[0-9_A-Za-z]+/);
+    if (m) {
+      // Special namespace starts with @ is ignored except predefined resource @MODELS, @ROUTINES
+      if (!(['@MODELS', '@ROUTINES'].includes(m[0]))) {
+        continue;
+      }
+    }
+
     const ns = job.namespace.replace(/@[A-Za-z]+\./, '');
     if (
       !job.destinations.includes(ns) &&
