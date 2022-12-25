@@ -171,7 +171,7 @@ describe('util test: sql extraction ', () => {
   );
 });
 
-describe('biquery: path2bq', () => {
+describe('bigquery: path2bq', () => {
   const cases: Array<{
     input: [string, string, string];
     expected: string;
@@ -222,7 +222,7 @@ describe('biquery: path2bq', () => {
         'bigquery-porter/bigquery',
         'my-project',
       ],
-      expected: 'my-project.v0.some_table',
+      expected: 'my-project',
     },
   ];
   it.concurrent.each(cases)('path2bq test', async (args) => {

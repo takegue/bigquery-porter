@@ -116,12 +116,16 @@ const path2bq = (
     ).split('/');
   const name = (() => {
     const ordinalName = name_or_missing ?? namespace_or_name;
+    if (ordinalName?.startsWith('@')) {
+      return undefined;
+    }
     if (!ordinalName?.endsWith('@')) {
       return ordinalName;
     }
     return ordinalName.replace(/@$/, '*');
   })();
-  return [catalogId, schemaId, name].filter((n) => n).join('.');
+  return [catalogId, schemaId?.startsWith('@') ? undefined : schemaId, name]
+    .filter((n) => n).join('.');
 };
 
 const normalizedBQPath = (
