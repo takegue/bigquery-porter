@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { BigQuery } from '@google-cloud/bigquery';
-import { fetchRowAccessPolicy } from '../..//src/rowAccessPolicy.js';
+import { fetchRowAccessPolicy } from '../../src/rowAccessPolicy.js';
 
 const payload = [{
   rowAccessPolicyReference: {
@@ -18,7 +18,7 @@ const payload = [{
 describe('fetchRowAccessPolicy', () => {
   it('fetchRowAccessPolicy should call request', async () => {
     const bqClient = new BigQuery();
-    // mocking
+    // mocking BigQuery Request
     const mock = vi.fn().mockImplementation(bqClient.request);
     bqClient.request = mock;
     mock.mockImplementationOnce((_, cb) => {
