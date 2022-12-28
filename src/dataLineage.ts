@@ -52,7 +52,7 @@ export class DataLineage extends Service {
     });
   }
 
-  getSearchLinks(): unknown {
+  getSearchLinks(tableId: string): unknown {
     return new Promise((resolve, reject) => {
       this.request({
         method: 'POST',
@@ -60,8 +60,7 @@ export class DataLineage extends Service {
         useQuerystring: false,
         body: {
           target: {
-            fullyQualifiedName:
-              'bigquery:project-id-7288898082930342315.sandbox.sample_clone_table',
+            fullyQualifiedName: `bigquery:${tableId}`,
           },
         },
       }, (err, resp) => {
@@ -69,7 +68,7 @@ export class DataLineage extends Service {
           reject(err);
           return;
         }
-        resolve(resp);
+        return resolve(resp);
       });
     });
   }
