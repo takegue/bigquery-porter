@@ -1,0 +1,27 @@
+// Vitest Snapshot v1
+
+exports[`dataLineageAPI > When dissabled dataLineageAPI 1`] = `
+{
+  "body": {
+    "target": {
+      "fullyQualifiedName": "bigquery:any_table_id",
+    },
+  },
+  "method": "POST",
+  "uri": "/locations/us:searchLinks",
+  "useQuerystring": false,
+}
+`;
+
+exports[`dataLineageAPI > project-id-7288898082930342315.sandbox.sample_clone_table 1`] = `
+{
+  "body": {
+    "target": {
+      "fullyQualifiedName": "bigquery:project-id-7288898082930342315.sandbox.sample_clone_table",
+    },
+  },
+  "method": "POST",
+  "uri": "/locations/us:searchLinks",
+  "useQuerystring": false,
+}
+`;
