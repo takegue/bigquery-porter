@@ -467,7 +467,6 @@ const buildDAG = (
       }
     }
   }
-  console.log(relations, bq2files.keys());
 
   const orderdJobs = topologicalSort(
     Array.from(relations.values())
