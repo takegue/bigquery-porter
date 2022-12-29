@@ -448,7 +448,6 @@ const buildDAG = (
       }
     }
   }
-
   // ordered jobs
   const relations = new Set<string>();
   for (const { dsts, srcs } of bq2files.values()) {
@@ -468,6 +467,7 @@ const buildDAG = (
       }
     }
   }
+  console.log(relations, bq2files.keys());
 
   const orderdJobs = topologicalSort(
     Array.from(relations.values())
