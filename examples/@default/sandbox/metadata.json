@@ -12,6 +12,10 @@
     {
       "role": "READER",
       "specialGroup": "projectReaders"
+    },
+    {
+      "role": "READER",
+      "userByEmail": "github-action@bqmake.iam.gserviceaccount.com"
     }
   ],
   "location": "US"

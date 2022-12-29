@@ -1,0 +1,19 @@
+// Vitest Snapshot v1
+
+exports[`CLI: bundle > --help 1`] = `
+[
+  "Usage: program bundle [options] [projects...]
+
+Bundle SQLs into single execuatale BigQuery Script
+
+Options:
+  -h, --help  display help for command
+",
+]
+`;
+
+exports[`CLI: bundle > --help 2`] = `[]`;
+
+exports[`CLI: bundle > core 1`] = `[]`;
+
+exports[`CLI: bundle > core 2`] = `[]`;

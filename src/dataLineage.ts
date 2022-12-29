@@ -1,6 +1,6 @@
 import { Service } from '@google-cloud/common';
 
-export class DataLineage extends Service {
+class DataLineage extends Service {
   location?: string;
   constructor(options = {}) {
     let apiEndpoint = 'https://datalineage.googleapis.com';
@@ -73,6 +73,7 @@ export class DataLineage extends Service {
     });
   }
 
+  /*
   getProcessRuns(): unknown {
     return new Promise((resolve, reject) => {
       this.request({
@@ -104,4 +105,6 @@ export class DataLineage extends Service {
       });
     });
   }
+  */
 }
+export { DataLineage };
