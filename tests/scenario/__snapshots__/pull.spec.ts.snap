@@ -1,5 +1,9 @@
 // Vitest Snapshot v1
 
+exports[`CLI: pull > --dyr-run 1`] = `[]`;
+
+exports[`CLI: pull > --dyr-run 2`] = `[]`;
+
 exports[`CLI: pull > --help 1`] = `
 [
   "Usage: program pull [options] [projects...]
@@ -15,3 +19,7 @@ Options:
 `;
 
 exports[`CLI: pull > --help 2`] = `[]`;
+
+exports[`CLI: pull > core 1`] = `[]`;
+
+exports[`CLI: pull > core 2`] = `[]`;

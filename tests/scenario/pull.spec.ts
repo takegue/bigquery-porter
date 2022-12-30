@@ -32,7 +32,7 @@ describe('CLI: pull', () => {
     expect(err).toMatchSnapshot();
   });
 
-  it.skip('--dyr-run', async () => {
+  it('core', async () => {
     const out = [];
     const err = [];
 
