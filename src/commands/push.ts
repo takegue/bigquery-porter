@@ -397,7 +397,7 @@ const extractBigQueryDestinations = async (
 
 const buildDAG = async (
   jobs: JobConfig[],
-  enableDataLineage: boolean = true,
+  enableDataLineage: boolean = false,
 ): Promise<[JobConfig[], WeakMap<JobConfig, JobConfig[]>]> => {
   const job2deps = new WeakMap<JobConfig, JobConfig[]>();
   const file2job = Object.fromEntries(jobs.map((j) => [j.file, j]));
