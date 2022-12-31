@@ -17,7 +17,6 @@ describe('CLI: pull', () => {
   it('--help', async () => {
     const out = [];
     const err = [];
-
     expect(
       () => {
         const cli = createCLI();
@@ -32,7 +31,7 @@ describe('CLI: pull', () => {
     expect(err).toMatchSnapshot();
   });
 
-  it('core', async () => {
+  it('example', async () => {
     const out = [];
     const err = [];
 

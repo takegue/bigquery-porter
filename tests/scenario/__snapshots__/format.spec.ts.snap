@@ -4,6 +4,10 @@ exports[`CLI: format > --dyr-run 1`] = `[]`;
 
 exports[`CLI: format > --dyr-run 2`] = `[]`;
 
+exports[`CLI: format > --dyr-run 3`] = `[]`;
+
+exports[`CLI: format > --dyr-run 4`] = `[]`;
+
 exports[`CLI: format > --help 1`] = `
 [
   "Usage: program format [options]

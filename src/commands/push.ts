@@ -33,6 +33,7 @@ import {
   path2bq,
 } from '../../src/bigquery.js';
 import { createCleanupTasks } from '../../src/tasks/cleanup.js';
+import { DataLineage, Link } from '../../src/dataLineage.js';
 
 type JobConfig = {
   file: string;
@@ -394,30 +395,65 @@ const extractBigQueryDestinations = async (
   return refs;
 };
 
-const buildDAG = (
+const getDyanmicLineage = async (
+  bqIds: IterableIterator<string>,
+): Promise<Map<string, string[]>> => {
+  const client = new DataLineage();
+  const requests: [string, Promise<Link[]>][] = [];
+  const ret = new Map<string, string[]>();
+
+  const fmt = (s: { fullyQualifiedName: string }): string => {
+    const [_, id] = s.fullyQualifiedName.split(':');
+    if (!id) {
+      throw new Error(`Invalid fullyQualifiedName: ${s.fullyQualifiedName}`);
+    }
+    return id;
+  };
+
+  for (const bqId of bqIds) {
+    requests.push([
+      bqId,
+      client.getSearchLinks(bqId, 'target'),
+    ]);
+  }
+  await Promise.allSettled(requests.map(([, p]) => p));
+
+  for (const [bqId, r] of requests) {
+    const links = await r;
+    if (!bqId || !links) {
+      continue;
+    }
+
+    ret.set(bqId, links.map((l: Link) => fmt(l.source)));
+  }
+  return ret;
+};
+
+const buildDAG = async (
   jobs: JobConfig[],
-): [JobConfig[], WeakMap<JobConfig, JobConfig[]>] => {
+  enableDataLineage: boolean = true,
+): Promise<[JobConfig[], WeakMap<JobConfig, JobConfig[]>]> => {
   const job2deps = new WeakMap<JobConfig, JobConfig[]>();
   const file2job = Object.fromEntries(jobs.map((j) => [j.file, j]));
 
-  const bq2files = new Map<string, { dsts: Set<string>; srcs: Set<string> }>();
+  const bq2files = new Map<string, { dsts: Set<string>; refs: Set<string> }>();
   for (const { destinations, dependencies, file } of jobs) {
     for (const dst of destinations) {
       if (!bq2files.has(dst)) {
-        bq2files.set(dst, { dsts: new Set(), srcs: new Set() });
+        bq2files.set(dst, { dsts: new Set(), refs: new Set() });
       }
       bq2files.get(dst)?.dsts.add(file);
     }
     for (const dep of dependencies) {
       if (!bq2files.has(dep)) {
-        bq2files.set(dep, { dsts: new Set(), srcs: new Set() });
+        bq2files.set(dep, { dsts: new Set(), refs: new Set() });
       }
-      bq2files.get(dep)?.srcs.add(file);
+      bq2files.get(dep)?.refs.add(file);
     }
   }
 
   // job => deps
-  for (const { dsts, srcs } of bq2files.values()) {
+  for (const { dsts, refs } of bq2files.values()) {
     for (const dst of dsts) {
       const dstJob = file2job[dst];
       if (dstJob === undefined) {
@@ -429,10 +465,10 @@ const buildDAG = (
       }
     }
 
-    for (const src of srcs) {
-      const srcJob = file2job[src];
+    for (const ref of refs) {
+      const srcJob = file2job[ref];
       if (srcJob === undefined) {
-        throw new Error(`Job not found: ${src}`);
+        throw new Error(`Job not found: ${ref}`);
       }
       if (!job2deps.has(srcJob)) {
         job2deps.set(srcJob, []);
@@ -448,22 +484,38 @@ const buildDAG = (
       }
     }
   }
-  // ordered jobs
+  // ordered jobs: static relation
   const relations = new Set<string>();
-  for (const { dsts, srcs } of bq2files.values()) {
-    for (const dst of dsts) {
-      relations.add(JSON.stringify([dst, '#root']));
-      for (const src of srcs) {
-        relations.add(JSON.stringify(['#leaf', src]));
-        relations.add(JSON.stringify([src, dst]));
+  for (const { dsts, refs } of bq2files.values()) {
+    for (const ref of [...refs, '#leaf']) {
+      for (const dst of [...dsts, '#root']) {
+        relations.add(JSON.stringify([ref, dst]));
       }
     }
+  }
 
-    for (const src of srcs) {
-      relations.add(JSON.stringify(['#leaf', src]));
-      for (const dst of dsts) {
-        relations.add(JSON.stringify([dst, '#root']));
-        relations.add(JSON.stringify([src, dst]));
+  // ordered jobs: dynamic relation
+  if (enableDataLineage) {
+    const bqResources = bq2files.keys();
+    const lineage = await getDyanmicLineage(bqResources);
+    for (const [dst, srcs] of lineage) {
+      const dstFiles = bq2files.get(dst);
+      if (!dstFiles) {
+        continue;
+      }
+      for (const src of srcs) {
+        const srcFiles = bq2files.get(src);
+        if (!srcFiles || !dstFiles) {
+          continue;
+        }
+        const toFiles = (
+          r: { dsts: Set<string>; refs: Set<string> },
+        ) => [...r?.refs ?? [], ...r.dsts ?? []];
+        for (const src of toFiles(srcFiles)) {
+          for (const dst of toFiles(dstFiles)) {
+            relations.add(JSON.stringify([dst, src]));
+          }
+        }
       }
     }
   }
@@ -608,7 +660,7 @@ const createDeployTasks = async (
       }))),
   ];
 
-  const [orderdJobs, jobDeps] = buildDAG(targets);
+  const [orderdJobs, jobDeps] = await buildDAG(targets);
 
   return buildTasks(
     orderdJobs.filter((t) => t.shouldDeploy),
@@ -712,7 +764,7 @@ export const createBundleSQL = async (
       })),
   );
 
-  const [orderdJobs] = buildDAG(targets);
+  const [orderdJobs] = await buildDAG(targets);
 
   return orderdJobs
     .filter((t) => t.shouldDeploy)

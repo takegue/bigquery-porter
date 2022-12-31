@@ -23,3 +23,7 @@ exports[`CLI: pull > --help 2`] = `[]`;
 exports[`CLI: pull > core 1`] = `[]`;
 
 exports[`CLI: pull > core 2`] = `[]`;
+
+exports[`CLI: pull > example 1`] = `[]`;
+
+exports[`CLI: pull > example 2`] = `[]`;
