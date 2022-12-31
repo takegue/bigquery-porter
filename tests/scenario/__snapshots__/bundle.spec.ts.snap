@@ -96,13 +96,6 @@ exception when error then
 end
 
 begin
--- BQPORTER: project-id-7288898082930342315.sandbox.sample_clone_table from examples/@default/sandbox/sample_clone_table/ddl.sql
-CREATE TABLE IF NOT EXISTS \`sandbox.sample_clone_table\`
-CLONE \`sandbox.sample_table\`
-exception when error then
-end
-
-begin
 -- BQPORTER: project-id-7288898082930342315.sandbox.sample_partition_table from examples/@default/sandbox/sample_partition_table/ddl.sql
 CREATE TABLE IF NOT EXISTS \`sandbox.sample_partition_table\`
 PARTITION BY date_jst
@@ -176,6 +169,13 @@ begin
 -- BQPORTER: project-id-7288898082930342315.sandbox.sample_table from examples/@default/sandbox/sample_table/preview.sql
 select * from \`sandbox.sample_table\`
 
+exception when error then
+end
+
+begin
+-- BQPORTER: project-id-7288898082930342315.sandbox.sample_clone_table from examples/@default/sandbox/sample_clone_table/ddl.sql
+CREATE TABLE IF NOT EXISTS \`sandbox.sample_clone_table\`
+CLONE \`sandbox.sample_table\`
 exception when error then
 end",
 ]
