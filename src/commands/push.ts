@@ -1,4 +1,5 @@
 import * as fs from 'node:fs';
+push;
 import * as path from 'node:path';
 import readline from 'node:readline';
 import { ApiError } from '@google-cloud/common';
@@ -707,8 +708,6 @@ export const createBundleSQL = async (
     p.endsWith('.sql') && p.includes(ctx.BigQuery.projectId ?? '@default');
   const ctxFiles = (await walk(rootDir)).filter(predFilter);
   const inputFiles: string[] = (await getTargetFiles()) ?? ctxFiles;
-
-  console.log(ctxFiles, inputFiles, await getTargetFiles());
 
   const defaultProjectID = await ctx.BigQuery.client.getProjectId();
   const toBQID = (p: string) => path2bq(p, ctx.rootPath, defaultProjectID);
