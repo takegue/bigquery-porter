@@ -1,0 +1,8 @@
+// Vitest Snapshot v1
+
+exports[`Reporter: JSON Reporter > core 1`] = `
+[
+  "{\\"name\\":\\"success task\\",\\"result\\":\\"1\\"}",
+  "{\\"name\\":\\"failed task\\",\\"error\\":\\"error\\"}",
+]
+`;
