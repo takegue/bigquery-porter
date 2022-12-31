@@ -122,4 +122,46 @@ class DataLineage extends Service {
   }
   */
 }
-export { DataLineage, Link };
+
+const getDyanmicLineage = async (
+  bqIds: IterableIterator<string>,
+  client?: DataLineage,
+): Promise<Map<string, string[]>> => {
+  client = client ?? new DataLineage();
+
+  const requests: [string, Promise<Link[]>][] = [];
+  const ret = new Map<string, string[]>();
+
+  const fmt = (s: { fullyQualifiedName: string }): string => {
+    const [_, id] = s.fullyQualifiedName.split(':');
+    if (!id) {
+      throw new Error(`Invalid fullyQualifiedName: ${s.fullyQualifiedName}`);
+    }
+    return id;
+  };
+
+  for (const bqId of bqIds) {
+    requests.push([
+      bqId,
+      client.getSearchLinks(bqId, 'target'),
+    ]);
+  }
+  try {
+    await Promise.all(requests.map(([, p]) => p));
+  } catch (e: unknown) {
+    console.warn('WARNING: Failed to get lineage', e);
+    return ret;
+  }
+
+  for (const [bqId, r] of requests) {
+    const links = await r;
+    if (!bqId || !links) {
+      continue;
+    }
+
+    ret.set(bqId, links.map((l: Link) => fmt(l.source)));
+  }
+  return ret;
+};
+
+export { DataLineage, getDyanmicLineage, Link };
