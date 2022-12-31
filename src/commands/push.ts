@@ -1,5 +1,4 @@
 import * as fs from 'node:fs';
-push;
 import * as path from 'node:path';
 import readline from 'node:readline';
 import { ApiError } from '@google-cloud/common';
