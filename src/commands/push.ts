@@ -416,7 +416,12 @@ const getDyanmicLineage = async (
       client.getSearchLinks(bqId, 'target'),
     ]);
   }
-  await Promise.allSettled(requests.map(([, p]) => p));
+  try {
+    await Promise.all(requests.map(([, p]) => p));
+  } catch (e: unknown) {
+    console.warn('Failed to get lineage', e);
+    return ret;
+  }
 
   for (const [bqId, r] of requests) {
     const links = await r;
