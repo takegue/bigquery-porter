@@ -1,5 +1,16 @@
 import { Service } from '@google-cloud/common';
 
+type Link = {
+  name: string;
+  source: {
+    fullyQualifiedName: string;
+  };
+  target: {
+    fullyQualifiedName: string;
+  };
+  endTime: string;
+};
+
 class DataLineage extends Service {
   location?: string;
   constructor(options = {}) {
@@ -14,7 +25,7 @@ class DataLineage extends Service {
       scopes: [
         'https://www.googleapis.com/auth/cloud-platform',
       ],
-      packageJson: require('../package.json'),
+      packageJson: { name: 'bigquery-porter', version: 'xxxx' },
     };
     super(config, options);
     this.location = 'us';
@@ -52,14 +63,17 @@ class DataLineage extends Service {
     });
   }
 
-  getSearchLinks(tableId: string): unknown {
+  getSearchLinks(
+    tableId: string,
+    target: 'source' | 'target',
+  ): Promise<Link[]> {
     return new Promise((resolve, reject) => {
       this.request({
         method: 'POST',
         uri: `/locations/${this.location}:searchLinks`,
         useQuerystring: false,
         body: {
-          target: {
+          [target]: {
             fullyQualifiedName: `bigquery:${tableId}`,
           },
         },
@@ -68,7 +82,8 @@ class DataLineage extends Service {
           reject(err);
           return;
         }
-        return resolve(resp);
+        const links = resp['links'];
+        return resolve(links);
       });
     });
   }
@@ -107,4 +122,4 @@ class DataLineage extends Service {
   }
   */
 }
-export { DataLineage };
+export { DataLineage, Link };

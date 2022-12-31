@@ -24,7 +24,7 @@ describe('dataLineageAPI', () => {
         });
       });
 
-    await client.getSearchLinks(tgt);
+    await client.getSearchLinks(tgt, 'target');
   });
 
   it('When dissabled dataLineageAPI', async () => {
@@ -40,7 +40,7 @@ describe('dataLineageAPI', () => {
       });
 
     await expect(async () => {
-      await client.getSearchLinks('any_table_id');
+      await client.getSearchLinks('any_table_id', 'target');
     })
       .rejects
       .toThrowError(apiDisabledMsg);
@@ -76,23 +76,14 @@ describe('dataLineageAPI', () => {
         cb(null, idealResp);
       });
 
-    const ret = await client.getSearchLinks(tgt);
+    const ret = await client.getSearchLinks(tgt, 'target');
     expect(reqCaptured).toMatchSnapshot();
     expect(ret).not.toBeNull();
   });
 
   it('getProcesss: project-id-7288898082930342315.sandbox.sample_clone_table', async () => {
-    const tgt = 'project-id-7288898082930342315.sandbox.sample_clone_table';
     const client = new DataLineage();
-    // let reqCaptured: Object;
-    // vi.spyOn(client, 'request');
-    // .mockImplementation((req, cb) => {
-    //   reqCaptured = req;
-    //   cb(null, idealResp);
-    // });
-
     const ret = await client.getProcesses();
-    // expect(reqCaptured).toMatchSnapshot();
     expect(ret).not.toBeNull();
   });
 });
