@@ -14,6 +14,171 @@ Options:
 
 exports[`CLI: bundle > --help 2`] = `[]`;
 
-exports[`CLI: bundle > core 1`] = `[]`;
+exports[`CLI: bundle > core 1`] = `
+[
+  "begin
+-- BQPORTER: project-id-7288898082930342315.sandbox from examples/@default/sandbox/ddl.sql
+CREATE SCHEMA IF NOT EXISTS \`sandbox\`
+OPTIONS(
+  location=\\"us\\"
+)
+exception when error then
+end
+
+begin
+-- BQPORTER: project-id-7288898082930342315.sandbox.mymodel from examples/@default/sandbox/@models/mymodel/ddl.sql
+CREATE MODEL IF NOT EXISTS \`sandbox.mymodel\`
+OPTIONS
+  ( MODEL_TYPE='LINEAR_REG',
+    LS_INIT_LEARN_RATE=0.15,
+    L1_REG=1,
+    MAX_ITERATIONS=5 ) AS
+SELECT
+  c1 as column1,
+  c1 * 2 as column2,
+  c1 * 3 as column3,
+  c1 * 10 as label
+FROM
+  unnest(generate_array(1, 10)) c1
+
+exception when error then
+end
+
+begin
+-- BQPORTER: project-id-7288898082930342315.sandbox.sample_function from examples/@default/sandbox/@routines/sample_function/ddl.sql
+CREATE OR REPLACE FUNCTION \`sandbox.sample_function\`(argument INT64) RETURNS INT64
+OPTIONS(
+  description=\\"test\\")
+AS (
+1
+)
+exception when error then
+end
+
+begin
+-- BQPORTER: project-id-7288898082930342315.sandbox.sample_procedure from examples/@default/sandbox/@routines/sample_procedure/ddl.sql
+CREATE OR REPLACE PROCEDURE \`sandbox.sample_procedure\`(IN sample_argument INT64)
+begin 
+  select 1 as a;
+end
+exception when error then
+end
+
+begin
+-- BQPORTER: project-id-7288898082930342315.sandbox.sample_tvf from examples/@default/sandbox/@routines/sample_tvf/ddl.sql
+CREATE OR REPLACE TABLE FUNCTION \`sandbox.sample_tvf\`(argument INT64) RETURNS TABLE<a INT64>
+AS
+(
+select argument as a
+)
+exception when error then
+end
+
+begin
+-- BQPORTER: project-id-7288898082930342315.sandbox.error_sample from examples/@default/sandbox/error_sample/ddl.sql
+
+exception when error then
+end
+
+begin
+-- BQPORTER: project-id-7288898082930342315.sandbox.error_sample from examples/@default/sandbox/error_sample/test.sql
+
+select error('error message')
+exception when error then
+end
+
+begin
+-- BQPORTER: project-id-7288898082930342315.sandbox.error_sample from examples/@default/sandbox/error_sample/view.sql
+
+hoge
+
+exception when error then
+end
+
+begin
+-- BQPORTER: project-id-7288898082930342315.sandbox.sample_clone_table from examples/@default/sandbox/sample_clone_table/ddl.sql
+CREATE TABLE IF NOT EXISTS \`sandbox.sample_clone_table\`
+CLONE \`sandbox.sample_table\`
+exception when error then
+end
+
+begin
+-- BQPORTER: project-id-7288898082930342315.sandbox.sample_partition_table from examples/@default/sandbox/sample_partition_table/ddl.sql
+CREATE TABLE IF NOT EXISTS \`sandbox.sample_partition_table\`
+PARTITION BY date_jst
+AS
+select date '2022-01-01' as date_jst
+
+exception when error then
+end
+
+begin
+-- BQPORTER: project-id-7288898082930342315.sandbox.sample_sharding_* from examples/@default/sandbox/sample_sharding_@/ddl.sql
+create table if not exists sandbox.sample_sharding_20220101
+as
+select DATE '2022-01-01' as date_jst;
+
+FOR record in (
+  select * from unnest(generate_date_array('2022-01-01', '2022-01-07')) as d
+) do
+  execute immediate format(\\"\\"\\"
+    create table if not exists sandbox.sample_sharding_%s
+    as
+    select @date as date_jst
+  \\"\\"\\"
+  , format_date('%Y%m%d', record.d)
+  ) using record.d as date
+  ;
+end FOR;
+
+select * from \`sandbox.sample_sharding_*\`
+exception when error then
+end
+
+begin
+-- BQPORTER: project-id-7288898082930342315.sandbox.sample_snapshot_table from examples/@default/sandbox/sample_snapshot_table/ddl.sql
+CREATE SNAPSHOT TABLE IF NOT EXISTS \`sandbox.sample_snapshot_table\`
+CLONE \`sandbox.sample_table\`
+exception when error then
+end
+
+begin
+-- BQPORTER: project-id-7288898082930342315.sandbox.sample_table from examples/@default/sandbox/sample_table/ddl.sql
+CREATE TABLE IF NOT EXISTS \`sandbox.sample_table\`
+CLUSTER BY a
+AS
+select 1 as a
+exception when error then
+end
+
+begin
+-- BQPORTER: project-id-7288898082930342315.sandbox.sample_view from examples/@default/sandbox/sample_view/view.sql
+SELECT * FROM \`bigquery-public-data.austin_311.311_service_requests\` LIMIT 1000
+
+exception when error then
+end
+
+begin
+-- BQPORTER: project-id-7288898082930342315.sandbox from examples/@default/sandbox/@_queries/preview.sql
+select * from \`sandbox.sample_table\`
+
+exception when error then
+end
+
+begin
+-- BQPORTER: project-id-7288898082930342315.sandbox.sample_materialized_view from examples/@default/sandbox/sample_materialized_view/ddl.sql
+CREATE MATERIALIZED VIEW IF NOT EXISTS  \`sandbox.sample_materialized_view\`
+AS select 1 as a from \`sandbox.sample_table\`
+exception when error then
+end
+
+begin
+-- BQPORTER: project-id-7288898082930342315.sandbox.sample_table from examples/@default/sandbox/sample_table/preview.sql
+select * from \`sandbox.sample_table\`
+
+exception when error then
+end",
+]
+`;
 
 exports[`CLI: bundle > core 2`] = `[]`;

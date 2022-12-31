@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createCLI } from '../../src/commands/cli.js';
+// import { spyConsole } from '../../src/runtime/console.js';
 
 import { Command } from 'commander';
 
@@ -14,6 +15,10 @@ describe('CLI: bundle', () => {
         writeErr: (s) => err.push(s),
       });
   };
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
   it('--help', async () => {
     const out = [];
     const err = [];
@@ -41,6 +46,11 @@ describe('CLI: bundle', () => {
     for (const c of cli.commands) {
       setupCommanderForTest(c, out, err);
     }
+    vi.spyOn(console, 'log')
+      .mockImplementation((s: string) => {
+        out.push(s);
+      });
+
     await cli.parseAsync(
       'bundle -C ./examples'.split(' '),
       {
