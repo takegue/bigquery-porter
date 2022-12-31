@@ -140,7 +140,7 @@ describe('dataLineageAPI', () => {
     expect(ret).not.toBeNull();
   });
 
-  it('getProcesss: project-id-7288898082930342315.sandbox.sample_clone_table', async () => {
+  it.skip('getProcesss: project-id-7288898082930342315.sandbox.sample_clone_table', async () => {
     const client = new DataLineage();
     const ret = await client.getProcesses();
     expect(ret).not.toBeNull();

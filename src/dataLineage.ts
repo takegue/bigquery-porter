@@ -149,7 +149,9 @@ const getDyanmicLineage = async (
   try {
     await Promise.all(requests.map(([, p]) => p));
   } catch (e: unknown) {
-    console.warn('WARNING: Failed to get lineage', e);
+    if (e instanceof Error) {
+      console.warn(`WARNING: Failed to get lineage. ${e.message}`);
+    }
     return ret;
   }
 

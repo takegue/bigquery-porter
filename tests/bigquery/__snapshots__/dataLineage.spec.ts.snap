@@ -13,10 +13,6 @@ exports[`dataLineageAPI > When dissabled dataLineageAPI 1`] = `
 }
 `;
 
-exports[`dataLineageAPI > getProcesss: project-id-7288898082930342315.sandbox.sample_clone_table 1`] = `[]`;
-
-exports[`dataLineageAPI > getProcesss: project-id-7288898082930342315.sandbox.sample_clone_table 2`] = `[]`;
-
 exports[`dataLineageAPI > project-id-7288898082930342315.sandbox.sample_clone_table 1`] = `
 {
   "body": {
