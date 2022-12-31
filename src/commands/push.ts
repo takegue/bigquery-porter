@@ -708,6 +708,8 @@ export const createBundleSQL = async (
   const ctxFiles = (await walk(rootDir)).filter(predFilter);
   const inputFiles: string[] = (await getTargetFiles()) ?? ctxFiles;
 
+  console.log(ctxFiles, inputFiles, await getTargetFiles());
+
   const defaultProjectID = await ctx.BigQuery.client.getProjectId();
   const toBQID = (p: string) => path2bq(p, ctx.rootPath, defaultProjectID);
   const targets: JobConfig[] = await Promise.all(
