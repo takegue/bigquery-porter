@@ -28,7 +28,7 @@ class JSONReporter<T extends Object> implements Reporter<T> {
           }, null));
           break;
         default:
-          throw 'Unexpected task status: ${task} ${result.status}';
+          throw 'Unexpected task status: ${task} ${result}';
       }
     }
   }
