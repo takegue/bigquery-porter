@@ -98,6 +98,15 @@ For example, a diff execution by git.
 find ./bigquery -name '*.sql' | npx bqport push
 ```
 
+## Dependency Resolution Behavior
+
+`bigquery-porter` resolves dependencies in following order
+
+0. DDL(DROP): `DROP TABLE` statement 
+0. DDL(CREATE): `CREATE TABLE` statement
+0. DDL(ALTER): `ALTER TABLE` statement
+0. DML: `INSERT INTO`, `DELETE`,`TRUNCATE`, `MERGE` statements
+0. QUERY
 
 ## Tips
 

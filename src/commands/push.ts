@@ -408,11 +408,11 @@ const buildRelationsInDataOperation = (
   const key = ([f, id]: [string, string]) => JSON.stringify([f, id]);
   const priority = (s: StatementType): number => {
     switch (s) {
-      case 'DDL_CREATE':
-        return 3;
-      case 'DML':
-        return 2;
       case 'DDL_DROP':
+        return 3;
+      case 'DDL_CREATE':
+        return 2;
+      case 'DML':
         return 1;
       case 'UNKNOWN':
         return 0;
