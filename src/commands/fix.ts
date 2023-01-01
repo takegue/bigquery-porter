@@ -84,7 +84,7 @@ function fixDestinationSQL(
   };
 
   const checks = dests.reduce(
-    (acc, [n, _, stmtType]) => {
+    (acc, [n, resourceType, stmtType]) => {
       const d = acc.get(n) ?? {
         has_create: false,
         has_drop: false,
@@ -92,6 +92,10 @@ function fixDestinationSQL(
         has_create_after_drop: false,
         has_drop_after_create: false,
       };
+
+      if (resourceType.startsWith('TEMPORARY')) {
+        return acc;
+      }
 
       if (stmtType == 'DDL_CREATE') {
         if (d.has_drop) {
