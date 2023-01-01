@@ -1,7 +1,13 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createCLI } from '../../src/commands/cli.js';
 
 import { Command } from 'commander';
+
+interface CLITestContext {
+  cli: Command;
+  out: string[];
+  err: string[];
+}
 
 describe('CLI: push', () => {
   const setupCommanderForTest = (c: Command, out: string[], err: string[]) => {
@@ -14,33 +20,16 @@ describe('CLI: push', () => {
         writeErr: (s) => err.push(s),
       });
   };
-  it('--help', async () => {
-    const out = [];
-    const err = [];
 
-    expect(
-      () => {
-        const cli = createCLI();
-        setupCommanderForTest(cli, out, err);
-        for (const c of cli.commands) {
-          setupCommanderForTest(c, out, err);
-        }
-        cli.parse(['push', '--help'], { from: 'user' });
-      },
-    ).toThrow();
-    expect(out).toMatchSnapshot();
-    expect(err).toMatchSnapshot();
-  });
-
-  it('--dyr-run', async () => {
-    const out = [];
-    const err = [];
-
+  beforeEach<CLITestContext>(async (ctx) => {
+    const out: string[] = [];
+    const err: string[] = [];
     const cli = createCLI();
     setupCommanderForTest(cli, out, err);
     for (const c of cli.commands) {
       setupCommanderForTest(c, out, err);
     }
+
     vi.spyOn(console, 'log')
       .mockImplementation((s: string) => {
         out.push(s);
@@ -50,49 +39,70 @@ describe('CLI: push', () => {
         err.push(s);
       });
 
-    await expect(
-      async () => {
-        await cli.parseAsync(
-          'push --dry-run --format=json -C ./examples'.split(' '),
-          {
-            from: 'user',
-          },
-        );
-      },
-    ).rejects.toThrow();
-    expect(out).toMatchSnapshot();
-    expect(err).toMatchSnapshot();
+    ctx.cli = cli;
+    ctx.out = out;
+    ctx.err = err;
   });
 
-  it('run', async () => {
-    const out = [];
-    const err = [];
-
-    const cli = createCLI();
-    setupCommanderForTest(cli, out, err);
-    for (const c of cli.commands) {
-      setupCommanderForTest(c, out, err);
-    }
-    vi.spyOn(console, 'log')
-      .mockImplementation((s: string) => {
-        out.push(s);
-      });
-    vi.spyOn(console, 'error')
-      .mockImplementation((s: string) => {
-        err.push(s);
-      });
-
-    await expect(
-      async () => {
-        await cli.parseAsync(
-          'push --format=json -C ./examples'.split(' '),
-          {
-            from: 'user',
-          },
-        );
-      },
-    ).rejects.toThrow();
-    expect(out.length).toMatchInlineSnapshot(`31`);
-    expect(err).toMatchSnapshot();
+  afterEach(() => {
+    vi.resetAllMocks();
   });
+
+  const stableCases = [
+    [`push --help`],
+    [`push --format=json --dry-run -C ./examples`],
+    [`push --format=json --dry-run -C ./examples --parameter flag:bool:true --parameter num:INTGER:1`],
+  ];
+
+  it<CLITestContext>(
+    `push --help`,
+    async ({ meta, cli, out, err }) => {
+      await expect(
+        async () => {
+          await cli.parseAsync(meta.name.split(' '), { from: 'user' });
+        },
+      ).rejects.toThrow();
+      expect(out).toMatchSnapshot();
+      expect(err).toMatchSnapshot();
+    },
+  );
+
+  it<CLITestContext>(
+    `push --format=json --dry-run -C ./examples`,
+    async ({ meta, cli, out, err }) => {
+      await expect(
+        async () => {
+          await cli.parseAsync(meta.name.split(' '), { from: 'user' });
+        },
+      ).rejects.toThrow();
+      expect(out).toMatchSnapshot();
+      expect(err).toMatchSnapshot();
+    },
+  );
+
+  it<CLITestContext>(
+    `push --format=json --dry-run -C ./examples --parameter flag:bool:true --parameter num:INTGER:1`,
+    async ({ meta, cli, out, err }) => {
+      await expect(
+        async () => {
+          await cli.parseAsync(meta.name.split(' '), { from: 'user' });
+        },
+      ).rejects.toThrow();
+      expect(out).toMatchSnapshot();
+      expect(err).toMatchSnapshot();
+    },
+  );
+
+  it<CLITestContext>(
+    `push --format=json -C ./examples`,
+    async ({ meta, cli, out, err }) => {
+      await expect(
+        async () => {
+          await cli.parseAsync(meta.name.split(' '), { from: 'user' });
+        },
+      ).rejects.toThrow();
+      expect(out.length).toMatchSnapshot();
+      expect(err).toMatchSnapshot();
+    },
+  );
 });
