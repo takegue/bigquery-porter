@@ -1,7 +1,14 @@
+import * as fs from 'node:fs';
 import type { Metadata } from '@google-cloud/common';
 import { BigQuery, BigQueryOptions } from '@google-cloud/bigquery';
 import pThrottle from 'p-throttle';
 import * as path from 'node:path';
+import {
+  extractDestinations,
+  extractRefenrences,
+  StatementType,
+} from '../src/util.js';
+
 // import * as fs from 'node:fs';
 
 interface BigQueryResource {
@@ -156,10 +163,83 @@ const normalizedBQPath = (
   }
 };
 
+const extractBigQueryDependencies = async (
+  rootPath: string,
+  fpath: string,
+  bqClient: BigQuery,
+) => {
+  const defaultProjectId = await bqClient.getProjectId();
+  const [projectID, schema, resource] = path2bq(
+    fpath,
+    rootPath,
+    defaultProjectId,
+  ).split('.');
+
+  if (!await fs.promises.lstat(fpath).then((s) => s.isFile())) {
+    return [path2bq(fpath, rootPath, defaultProjectId)];
+  }
+
+  const sql: string = await fs.promises.readFile(fpath)
+    .then((s: any) => s.toString());
+
+  const refs = [
+    ...new Set(
+      extractRefenrences(sql)
+        .map((ref) => normalizedBQPath(ref, projectID)),
+    ),
+  ];
+  const refs_schemas = [...new Set(refs)].map((n) => n.replace(/\.[^.]+$/, ''));
+
+  // Add schema as explict dependencies without self
+  const additionals =
+    ((schema !== undefined && resource !== undefined)
+      ? [normalizedBQPath(schema, projectID, true)]
+      : []);
+  return [...new Set(refs_schemas.concat(refs).concat(additionals))];
+};
+
+const extractBigQueryDestinations = async (
+  rootPath: string,
+  fpath: string,
+  bqClient: BigQuery,
+): Promise<[string, StatementType][]> => {
+  const defaultProjectId = await bqClient.getProjectId();
+  const bqID = path2bq(fpath, rootPath, defaultProjectId);
+  const [projectID] = bqID.split('.');
+
+  if (!await fs.promises.lstat(fpath).then((s) => s.isFile())) {
+    return [];
+  }
+
+  if (fpath.endsWith(`${path.sep}view.sql`)) {
+    return [[bqID, 'DDL_CREATE']];
+  }
+
+  const sql: string = await fs.promises.readFile(fpath, 'utf-8');
+  const refs = [
+    ...new Set(
+      extractDestinations(sql)
+        .filter(([_, type]) => !type.startsWith('TEMPORARY'))
+        .map((
+          [ref, type],
+        ) =>
+          JSON.stringify([
+            normalizedBQPath(ref, projectID, type == 'SCHEMA'),
+            type,
+          ])
+        ),
+    ),
+  ];
+
+  return refs.map((r) => JSON.parse(r));
+};
+
 export {
   BigQueryResource,
   bq2path,
   buildThrottledBigQueryClient,
+  extractBigQueryDependencies,
+  extractBigQueryDestinations,
   normalizedBQPath,
   normalizeShardingTableId,
   path2bq,

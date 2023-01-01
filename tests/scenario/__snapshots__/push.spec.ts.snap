@@ -1,8 +1,35 @@
 // Vitest Snapshot v1
 
-exports[`CLI: push > --dyr-run 1`] = `[]`;
+exports[`CLI: push > --dyr-run 1`] = `
+[
+  "{\\"name\\":\\"takegue/sandbox/ddl.sql\\",\\"result\\":{\\"file\\":\\"examples/@default/sandbox/ddl.sql\\",\\"totalBytesProcessed\\":0,\\"isDryRun\\":true}}",
+  "{\\"name\\":\\"takegue/sandbox/@MODELS/mymodel/ddl.sql\\",\\"result\\":{\\"file\\":\\"examples/@default/sandbox/@models/mymodel/ddl.sql\\",\\"totalBytesProcessed\\":0,\\"isDryRun\\":true}}",
+  "{\\"name\\":\\"takegue/sandbox/@ROUTINES/sample_function/ddl.sql\\",\\"result\\":{\\"file\\":\\"examples/@default/sandbox/@routines/sample_function/ddl.sql\\",\\"totalBytesProcessed\\":0,\\"isDryRun\\":true}}",
+  "{\\"name\\":\\"takegue/sandbox/@ROUTINES/sample_procedure/ddl.sql\\",\\"result\\":{\\"file\\":\\"examples/@default/sandbox/@routines/sample_procedure/ddl.sql\\",\\"totalBytesProcessed\\":0,\\"isDryRun\\":true,\\"totalSlotMs\\":0}}",
+  "{\\"name\\":\\"takegue/sandbox/@ROUTINES/sample_tvf/ddl.sql\\",\\"result\\":{\\"file\\":\\"examples/@default/sandbox/@routines/sample_tvf/ddl.sql\\",\\"totalBytesProcessed\\":0,\\"isDryRun\\":true}}",
+  "{\\"name\\":\\"takegue/sandbox/error_sample/ddl.sql\\",\\"error\\":\\"A SQL query string is required.\\"}",
+  "{\\"name\\":\\"takegue/sandbox/error_sample/test.sql\\",\\"result\\":{\\"file\\":\\"examples/@default/sandbox/error_sample/test.sql\\",\\"totalBytesProcessed\\":0,\\"isDryRun\\":true}}",
+  "{\\"name\\":\\"takegue/sandbox/error_sample/view.sql\\",\\"error\\":\\"Syntax error: Expected \\\\\\"(\\\\\\" or keyword SELECT or keyword WITH but got identifier \\\\\\"hoge\\\\\\" at [3:1]\\"}",
+  "{\\"name\\":\\"takegue/sandbox/sample_clone_table/ddl.sql\\",\\"result\\":{\\"file\\":\\"examples/@default/sandbox/sample_clone_table/ddl.sql\\",\\"totalBytesProcessed\\":0,\\"isDryRun\\":true}}",
+  "{\\"name\\":\\"takegue/sandbox/sample_partition_table/ddl.sql\\",\\"result\\":{\\"file\\":\\"examples/@default/sandbox/sample_partition_table/ddl.sql\\",\\"totalBytesProcessed\\":0,\\"isDryRun\\":true}}",
+  "{\\"name\\":\\"takegue/sandbox/sample_sharding_*/ddl.sql\\",\\"result\\":{\\"file\\":\\"examples/@default/sandbox/sample_sharding_@/ddl.sql\\",\\"totalBytesProcessed\\":0,\\"isDryRun\\":true,\\"totalSlotMs\\":0}}",
+  "{\\"name\\":\\"takegue/sandbox/sample_snapshot_table/ddl.sql\\",\\"result\\":{\\"file\\":\\"examples/@default/sandbox/sample_snapshot_table/ddl.sql\\",\\"totalBytesProcessed\\":0,\\"isDryRun\\":true}}",
+  "{\\"name\\":\\"takegue/sandbox/sample_table/ddl.sql\\",\\"result\\":{\\"file\\":\\"examples/@default/sandbox/sample_table/ddl.sql\\",\\"totalBytesProcessed\\":0,\\"isDryRun\\":true}}",
+  "{\\"name\\":\\"takegue/sandbox/sample_view/view.sql\\",\\"result\\":{\\"file\\":\\"examples/@default/sandbox/sample_view/view.sql\\",\\"totalBytesProcessed\\":0,\\"isDryRun\\":true}}",
+  "{\\"name\\":\\"takegue/sandbox/@_QUERIES/preview.sql\\",\\"result\\":{\\"file\\":\\"examples/@default/sandbox/@_queries/preview.sql\\",\\"totalBytesProcessed\\":8,\\"isDryRun\\":true}}",
+  "{\\"name\\":\\"takegue/sandbox/sample_materialized_view/ddl.sql\\",\\"result\\":{\\"file\\":\\"examples/@default/sandbox/sample_materialized_view/ddl.sql\\",\\"totalBytesProcessed\\":0,\\"isDryRun\\":true}}",
+  "{\\"name\\":\\"takegue/sandbox/sample_table/preview.sql\\",\\"result\\":{\\"file\\":\\"examples/@default/sandbox/sample_table/preview.sql\\",\\"totalBytesProcessed\\":8,\\"isDryRun\\":true}}",
+]
+`;
 
-exports[`CLI: push > --dyr-run 2`] = `[]`;
+exports[`CLI: push > --dyr-run 2`] = `
+[
+  "Warning: Irrelevant SQL file located in examples/@default/sandbox/error_sample/ddl.sql for takegue.sandbox.error_sample",
+  "Warning: Irrelevant SQL file located in examples/@default/sandbox/error_sample/test.sql for takegue.sandbox.error_sample",
+  "Some tasks are failed(Failed: 2)
+",
+]
+`;
 
 exports[`CLI: push > --help 1`] = `
 [
@@ -22,3 +49,12 @@ Options:
 `;
 
 exports[`CLI: push > --help 2`] = `[]`;
+
+exports[`CLI: push > run 2`] = `
+[
+  "Warning: Irrelevant SQL file located in examples/@default/sandbox/error_sample/ddl.sql for takegue.sandbox.error_sample",
+  "Warning: Irrelevant SQL file located in examples/@default/sandbox/error_sample/test.sql for takegue.sandbox.error_sample",
+  "Some tasks are failed(Failed: 4)
+",
+]
+`;

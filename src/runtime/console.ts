@@ -1,9 +1,35 @@
+import readline from 'node:readline';
+import { isatty } from 'node:tty';
+
 import { Console } from 'node:console';
 import { Writable } from 'node:stream';
 
 const unknownTestId = 'unknown';
 
-export function spyConsole(whoami: () => string) {
+async function* fromStdin(): AsyncGenerator<string> {
+  const rl = readline.createInterface({
+    input: process.stdin,
+  });
+
+  for await (const line of rl) {
+    yield line;
+  }
+  rl.close();
+}
+
+const getTargetFiles = async () => {
+  if (isatty(0)) {
+    return undefined;
+  }
+
+  const inputFiles: string[] = [];
+  for await (const line of fromStdin()) {
+    inputFiles.push(line);
+  }
+  return inputFiles;
+};
+
+function spyConsole(whoami: () => string) {
   const stdoutBuffer = new Map<string, any[]>();
   const stderrBuffer = new Map<string, any[]>();
 
@@ -53,3 +79,5 @@ export function spyConsole(whoami: () => string) {
     },
   };
 }
+
+export { getTargetFiles, spyConsole };

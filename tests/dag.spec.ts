@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildDAG, JobConfig } from '../src/commands/push.js';
+import { JobConfig } from '../src/commands/push.js';
+import { buildDAG } from '../src/tasks/dag.js';
 
 describe('unit test: dag', () => {
   const cases: Array<{

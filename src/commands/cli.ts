@@ -1,10 +1,8 @@
 import * as fs from 'node:fs';
 
 import { formatLocalfiles } from '../../src/commands/fix.js';
-import {
-  createBundleSQL,
-  pushLocalFilesToBigQuery,
-} from '../../src/commands/push.js';
+import { pushLocalFilesToBigQuery } from '../../src/commands/push.js';
+import { createBundleSQL } from '../../src/commands/bundle.js';
 import { pullBigQueryResources } from '../../src/commands/pull.js';
 
 import { buildThrottledBigQueryClient } from '../../src/bigquery.js';
@@ -44,8 +42,8 @@ export function createCLI() {
     .option(
       '-p, --parameter <key:value...>',
       `Either a file containing a JSON list of query parameters, or a query parameter in the form "name:type:value".` +
-        `An empty name produces a positional parameter. The type may be omitted to assume STRING: name::value or ::value.` +
-        `The value "NULL" produces a null value. repeat this option to specify a list of values`,
+      `An empty name produces a positional parameter. The type may be omitted to assume STRING: name::value or ::value.` +
+      `The value "NULL" produces a null value. repeat this option to specify a list of values`,
     )
     .option(
       '--maximum_bytes_billed <number of bytes>',

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createCLI } from '../../src/commands/cli.js';
 
 import { Command } from 'commander';
@@ -41,7 +41,16 @@ describe('CLI: push', () => {
     for (const c of cli.commands) {
       setupCommanderForTest(c, out, err);
     }
-    expect(
+    vi.spyOn(console, 'log')
+      .mockImplementation((s: string) => {
+        out.push(s);
+      });
+    vi.spyOn(console, 'error')
+      .mockImplementation((s: string) => {
+        err.push(s);
+      });
+
+    await expect(
       async () => {
         await cli.parseAsync(
           'push --dry-run --format=json -C ./examples'.split(' '),
@@ -52,6 +61,38 @@ describe('CLI: push', () => {
       },
     ).rejects.toThrow();
     expect(out).toMatchSnapshot();
+    expect(err).toMatchSnapshot();
+  });
+
+  it('run', async () => {
+    const out = [];
+    const err = [];
+
+    const cli = createCLI();
+    setupCommanderForTest(cli, out, err);
+    for (const c of cli.commands) {
+      setupCommanderForTest(c, out, err);
+    }
+    vi.spyOn(console, 'log')
+      .mockImplementation((s: string) => {
+        out.push(s);
+      });
+    vi.spyOn(console, 'error')
+      .mockImplementation((s: string) => {
+        err.push(s);
+      });
+
+    await expect(
+      async () => {
+        await cli.parseAsync(
+          'push --format=json -C ./examples'.split(' '),
+          {
+            from: 'user',
+          },
+        );
+      },
+    ).rejects.toThrow();
+    expect(out.length).toMatchInlineSnapshot(`31`);
     expect(err).toMatchSnapshot();
   });
 });

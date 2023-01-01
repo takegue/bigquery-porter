@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createCLI } from '../../src/commands/cli.js';
-// import { spyConsole } from '../../src/runtime/console.js';
 
 import { Command } from 'commander';
 

@@ -74,7 +74,7 @@ function topologicalSort(relations: Relation[]) {
 const parser = new Parser();
 parser.setLanguage(Language);
 
-const findBigQueryResourceIdentifier = function* (node: any): any {
+const findBigQueryResourceIdentifier = function*(node: any): any {
   const resource_name = _extractBigQueryResourceIdentifier(node);
   if (resource_name != null) {
     yield resource_name;
