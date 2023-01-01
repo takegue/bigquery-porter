@@ -23,6 +23,7 @@ import { syncMetadata } from '../../src/metadata.js';
 import {
   extractDestinations,
   extractRefenrences,
+  StatementType,
   topologicalSort,
   walk,
 } from '../../src/util.js';
@@ -39,7 +40,7 @@ type JobConfig = {
   file: string;
   namespace: string;
   dependencies: string[];
-  destinations: string[];
+  destinations: [string, StatementType][];
   shouldDeploy: boolean;
 };
 
@@ -368,7 +369,7 @@ const extractBigQueryDestinations = async (
   rootPath: string,
   fpath: string,
   bqClient: BigQuery,
-) => {
+): Promise<[string, StatementType][]> => {
   const defaultProjectId = await bqClient.getProjectId();
   const bqID = path2bq(fpath, rootPath, defaultProjectId);
   const [projectID] = bqID.split('.');
@@ -378,7 +379,7 @@ const extractBigQueryDestinations = async (
   }
 
   if (fpath.endsWith(`${path.sep}view.sql`)) {
-    return [bqID];
+    return [[bqID, 'DDL_CREATE']];
   }
 
   const sql: string = await fs.promises.readFile(fpath, 'utf-8');
@@ -386,25 +387,76 @@ const extractBigQueryDestinations = async (
     ...new Set(
       extractDestinations(sql)
         .filter(([_, type]) => !type.startsWith('TEMPORARY'))
-        .map(([ref, type]) =>
-          normalizedBQPath(ref, projectID, type == 'SCHEMA')
+        .map((
+          [ref, type],
+        ) =>
+          JSON.stringify([
+            normalizedBQPath(ref, projectID, type == 'SCHEMA'),
+            type,
+          ])
         ),
     ),
   ];
 
-  return refs;
+  return refs.map((r) => JSON.parse(r));
+};
+
+const buildRelationsInDataOperation = (
+  jobs: JobConfig[],
+): Set<string> => {
+  const repoStmtType = new Map<string, StatementType>();
+  const key = ([f, id]: [string, string]) => JSON.stringify([f, id]);
+  const priority = (s: StatementType): number => {
+    switch (s) {
+      case 'DDL_CREATE':
+        return 3;
+      case 'DML':
+        return 2;
+      case 'DDL_DROP':
+        return 1;
+      case 'UNKNOWN':
+        return 0;
+    }
+  };
+  const ret = new Set<string>();
+
+  const bq2files = new Map<string, Set<string>>();
+  for (const { destinations, file } of jobs) {
+    for (const [dst, stype] of destinations) {
+      if (!bq2files.has(dst)) {
+        bq2files.set(dst, new Set());
+      }
+      bq2files.get(dst)?.add(file);
+      repoStmtType.set(key([file, dst]), stype);
+    }
+  }
+
+  for (const [bq, dsts] of bq2files) {
+    // DDL_CREATE <- DML(Data Update: ) <- DDL_DROP
+    const orderdDsts = Array.from(dsts).sort((lhs, rhs) => {
+      const aType = repoStmtType.get(key([lhs, bq])) ?? 'UNKNOWN';
+      const bType = repoStmtType.get(key([rhs, bq])) ?? 'UNKNOWN';
+      return priority(aType) - priority(bType);
+    });
+    for (let ix = 1; ix < orderdDsts.length; ix++) {
+      ret.add(JSON.stringify([orderdDsts[ix - 1], orderdDsts[ix]]));
+    }
+  }
+  return ret;
 };
 
 const buildDAG = async (
   jobs: JobConfig[],
-  enableDataLineage: boolean = false,
+  options?: {
+    enableDataLineage: boolean;
+  },
 ): Promise<[JobConfig[], WeakMap<JobConfig, JobConfig[]>]> => {
   const job2deps = new WeakMap<JobConfig, JobConfig[]>();
   const file2job = Object.fromEntries(jobs.map((j) => [j.file, j]));
 
   const bq2files = new Map<string, { dsts: Set<string>; refs: Set<string> }>();
   for (const { destinations, dependencies, file } of jobs) {
-    for (const dst of destinations) {
+    for (const [dst] of destinations) {
       if (!bq2files.has(dst)) {
         bq2files.set(dst, { dsts: new Set(), refs: new Set() });
       }
@@ -450,8 +502,12 @@ const buildDAG = async (
       }
     }
   }
+
   // ordered jobs: static relation
-  const relations = new Set<string>();
+  const relations = new Set<string>([
+    ...buildRelationsInDataOperation(jobs),
+  ]);
+
   for (const { dsts, refs } of bq2files.values()) {
     for (const ref of [...refs, '#leaf']) {
       for (const dst of [...dsts, '#root']) {
@@ -461,22 +517,20 @@ const buildDAG = async (
   }
 
   // ordered jobs: dynamic relation
-  if (enableDataLineage) {
+  if (options?.enableDataLineage ?? false) {
     const bqResources = bq2files.keys();
     const lineage = await getDyanmicLineage(bqResources);
+    const toFiles = (
+      r: { dsts: Set<string>; refs: Set<string> },
+    ) => [...r?.refs ?? [], ...r.dsts ?? []];
     for (const [dst, srcs] of lineage) {
       const dstFiles = bq2files.get(dst);
-      if (!dstFiles) {
-        continue;
-      }
+      if (!dstFiles) continue;
+
       for (const src of srcs) {
         const srcFiles = bq2files.get(src);
-        if (!srcFiles || !dstFiles) {
-          continue;
-        }
-        const toFiles = (
-          r: { dsts: Set<string>; refs: Set<string> },
-        ) => [...r?.refs ?? [], ...r.dsts ?? []];
+        if (!srcFiles || !dstFiles) continue;
+
         for (const src of toFiles(srcFiles)) {
           for (const dst of toFiles(dstFiles)) {
             relations.add(JSON.stringify([dst, src]));
@@ -520,7 +574,7 @@ const buildDAG = async (
 
     const ns = job.namespace.replace(/@[A-Za-z]+\./, '');
     if (
-      !job.destinations.includes(ns) &&
+      !job.destinations.map(([n]) => n).includes(ns) &&
       !job.dependencies.includes(ns)
     ) {
       console.error(
@@ -770,7 +824,7 @@ const getTargetFiles = async () => {
   return inputFiles;
 };
 
-export async function pushLocalFilesToBigQuery(
+async function pushLocalFilesToBigQuery(
   ctx: PushContext,
   jobOption: Query,
 ): Promise<number> {
@@ -812,3 +866,5 @@ export async function pushLocalFilesToBigQuery(
     tasks.filter((t) => t.result().status !== 'success').length;
   return failedTasks;
 }
+
+export { buildDAG, JobConfig, pushLocalFilesToBigQuery };
