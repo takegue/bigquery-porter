@@ -20,6 +20,11 @@ export function createCLI() {
     .option('-n, --threads <threads>', 'API Call Concurrency', '8')
     .option('-C, --root-path <rootPath>', 'Root Directory', './bigquery')
     .option(
+      '--enable-datalineage',
+      `Enable Data Lineage integration to resolve DAG dependency`,
+      false,
+    )
+    .option(
       '--format <reporter>',
       'formatter option: console., json',
       'console',
@@ -42,8 +47,8 @@ export function createCLI() {
     .option(
       '-p, --parameter <key:value...>',
       `Either a file containing a JSON list of query parameters, or a query parameter in the form "name:type:value".` +
-      `An empty name produces a positional parameter. The type may be omitted to assume STRING: name::value or ::value.` +
-      `The value "NULL" produces a null value. repeat this option to specify a list of values`,
+        `An empty name produces a positional parameter. The type may be omitted to assume STRING: name::value or ::value.` +
+        `The value "NULL" produces a null value. repeat this option to specify a list of values`,
     )
     .option(
       '--maximum_bytes_billed <number of bytes>',
@@ -152,6 +157,7 @@ export function createCLI() {
           dryRun: cmdOptions.dryRun ?? false,
           force: cmdOptions.force ?? false,
           reporter: cmdOptions.format ?? 'console',
+          enableDataLineage: cmdOptions.enableDatalineage ?? false,
         };
 
         const failed = await pushLocalFilesToBigQuery(ctx, jobOption);
@@ -245,6 +251,7 @@ export function createCLI() {
           dryRun: cmdOptions.dryRun ?? false,
           force: cmdOptions.force ?? false,
           reporter: cmdOptions.format ?? 'console',
+          enableDataLineage: cmdOptions.enableDatalineage ?? false,
         };
 
         const sql = await createBundleSQL(ctx);

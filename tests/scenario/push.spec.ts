@@ -48,12 +48,6 @@ describe('CLI: push', () => {
     vi.resetAllMocks();
   });
 
-  const stableCases = [
-    [`push --help`],
-    [`push --format=json --dry-run -C ./examples`],
-    [`push --format=json --dry-run -C ./examples --parameter flag:bool:true --parameter num:INTGER:1`],
-  ];
-
   it<CLITestContext>(
     `push --help`,
     async ({ meta, cli, out, err }) => {

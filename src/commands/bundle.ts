@@ -23,6 +23,7 @@ type JobConfig = {
 type BundleContext = {
   force: boolean;
   rootPath: string;
+  enableDataLineage: boolean;
   BigQuery: {
     projectId: string;
     client: BigQuery;
@@ -61,7 +62,9 @@ export const createBundleSQL = async (
       })),
   );
 
-  const [orderdJobs] = await buildDAG(targets);
+  const [orderdJobs] = await buildDAG(targets, {
+    enableDataLineage: ctx.enableDataLineage,
+  });
 
   return orderdJobs
     .filter((t) => t.shouldDeploy)

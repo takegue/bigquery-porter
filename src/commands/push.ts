@@ -34,6 +34,7 @@ type PushContext = {
   dryRun: boolean;
   force: boolean;
   rootPath: string;
+  enableDataLineage: boolean;
   BigQuery: {
     projectId: string;
     client: BigQuery;
@@ -410,7 +411,9 @@ const createDeployTasks = async (
       }))),
   ];
 
-  const [orderdJobs, jobDeps] = await buildDAG(targets);
+  const [orderdJobs, jobDeps] = await buildDAG(targets, {
+    enableDataLineage: ctx.enableDataLineage,
+  });
 
   return buildTasks(
     orderdJobs.filter((t) => t.shouldDeploy),
