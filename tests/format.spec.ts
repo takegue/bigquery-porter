@@ -92,6 +92,14 @@ describe('fixDestinationSQL', async () => {
       input: [
         'table_or_routine',
         'v0.hoge',
+        fs.readFileSync('tests/__sql__/example3/input.sql', 'utf8'),
+      ],
+      expected: fs.readFileSync('tests/__sql__/example3/expected.sql', 'utf8'),
+    },
+    {
+      input: [
+        'table_or_routine',
+        'v0.hoge',
         fs.readFileSync('tests/__sql__/example4/input.sql', 'utf8'),
       ],
       expected: fs.readFileSync('tests/__sql__/example4/expected.sql', 'utf8'),

@@ -60,7 +60,7 @@ function fixDestinationSQL(
   let newSQL = sql;
   let tree = parser.parse(sql);
 
-  const _visit = function*(node: any): any {
+  const _visit = function* (node: any): any {
     yield node;
     for (let n of node.children) {
       for (let c of _visit(n)) {
@@ -85,7 +85,7 @@ function fixDestinationSQL(
 
   const checks = dests.reduce(
     (acc, [n, resourceType, stmtType]) => {
-      const d = acc.get(n) ?? {
+      const d = acc.get(_cleanup(n)) ?? {
         has_create: false,
         has_drop: false,
         has_dml: false,
@@ -110,25 +110,40 @@ function fixDestinationSQL(
       } else if (stmtType == 'DML') {
         d.has_dml = true;
       }
-      acc.set(n, d);
+      acc.set(_cleanup(n), d);
       return acc;
     },
     new Map<string, Flag>(),
   );
+  const qualify = (n: string) => {
+    const flags = checks.get(_cleanup(n));
+    if (!flags) return false;
+    if (flags.has_drop_after_create) {
+      return false;
+    }
+    if (flags.has_create) {
+      return true;
+    }
+    return false;
+  };
 
   const willReplaceIdentifier: Map<string, string> = new Map<string, string>(
     (() => {
       const qualifiedDDL = dests
         .filter(([n]) => {
-          const flags = checks.get(n);
-          if (!flags) return false;
-          if (flags.has_drop_after_create) {
+          if (!qualify(_cleanup(n))) {
             return false;
           }
-          if (flags.has_create) {
-            return true;
+
+          const ancestors = _cleanup(n).split('.');
+          while (ancestors.length > 1) {
+            ancestors.pop();
+            const pFlag = checks.get(ancestors.join('.'));
+            if (pFlag?.has_drop_after_create ?? false) {
+              return false;
+            }
           }
-          return false;
+          return true;
         });
 
       if (qualifiedDDL.length > 0) {
@@ -152,8 +167,7 @@ function fixDestinationSQL(
 
           if (
             namespaceType == 'table_or_routine' &&
-            namespace.split('.').at(-1) ===
-            _cleanup(n).split('.').at(-1)
+            namespace.split('.').at(-1) === _cleanup(n).split('.').at(-1)
           ) {
             return _cleanup(n);
           }
@@ -192,8 +206,8 @@ function fixDestinationSQL(
       }
 
       /*
-   * Rule #99: Replaced remaining identifer that replaced by other rules.
-   */
+      * Rule #99: Replaced remaining identifer that replaced by other rules.
+      */
       if (
         willReplaceIdentifier.has(_cleanup(n.text))
       ) {
