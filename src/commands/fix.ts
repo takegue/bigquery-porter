@@ -14,7 +14,8 @@ const formatLocalfiles = async (
   rootPath: string,
   options?: { dryRun?: string },
 ) => {
-  const files = (await walk(rootPath));
+  const files = (await walk(rootPath))
+    .filter((f) => f.endsWith('.sql'));
 
   const bqClient = new BigQuery();
   const parser = new Parser();
@@ -60,7 +61,7 @@ function fixDestinationSQL(
   let newSQL = sql;
   let tree = parser.parse(sql);
 
-  const _visit = function* (node: any): any {
+  const _visit = function*(node: any): any {
     yield node;
     for (let n of node.children) {
       for (let c of _visit(n)) {
