@@ -28,6 +28,7 @@
   "dependencies": {
     "@google-cloud/bigquery": "^6.0.3",
     "@types/node": "^18.11.3",
+    "bigquery-porter": "^0.2.2",
     "commander": "^9.4.0",
     "log-update": "^5.0.1",
     "p-throttle": "^5.0.0",
