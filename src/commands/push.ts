@@ -260,19 +260,28 @@ const deployBigQueryResouce = async (
       throw new Error(msgWithPath(err));
     });
 
-  if (!datasetId) {
-    throw new Error(`Invalid SchemaId: ${datasetId}`);
-  }
-
   const jobPrefix = (() => {
-    if (name) {
+    if (datasetId && name) {
       return `bqporter-${datasetId}_${name.replace('*', '')}-`;
     }
-    return `bqporter-${datasetId}-`;
+
+    if (datasetId) {
+      return `bqporter-${datasetId}-`;
+    }
+
+    if (name) {
+      return `bqporter-${name.replace('*', '')}-`;
+    }
+
+    return `bqporter-`;
   })();
 
   switch (path.basename(p)) {
     case 'view.sql':
+      if (!datasetId) {
+        throw new Error(`Invalid SchemaId: ${datasetId}`);
+      }
+
       const schema = bqClient.dataset(datasetId);
       const tableId = name;
       if (!tableId) {
