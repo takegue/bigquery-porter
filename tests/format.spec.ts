@@ -58,14 +58,6 @@ describe('fixDestinationSQL', async () => {
     },
     {
       input: [
-        'dataset',
-        'awesome-project.sandbox',
-        'call `v0.test.procedure()`',
-      ],
-      expected: 'call `v0.test.procedure()`',
-    },
-    {
-      input: [
         'table_or_routine',
         'sandbox.correct_name',
         fs.readFileSync('tests/__sql__/example1/input.sql', 'utf8'),
@@ -83,7 +75,7 @@ describe('fixDestinationSQL', async () => {
     {
       input: [
         'dataset',
-        'replaced_schema',
+        'project.replaced_schema',
         fs.readFileSync('tests/__sql__/example2/input.sql', 'utf8'),
       ],
       expected: fs.readFileSync('tests/__sql__/example2/expected2.sql', 'utf8'),

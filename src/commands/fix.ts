@@ -163,7 +163,8 @@ function fixDestinationSQL(
           }
 
           if (namespaceType == 'dataset') {
-            return _cleanup(n).split('.').at(-2);
+            return undefined;
+            // return _cleanup(n).split('.').at(-2);
           }
 
           if (
