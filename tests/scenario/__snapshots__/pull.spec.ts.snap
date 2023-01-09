@@ -2,7 +2,7 @@
 
 exports[`CLI: pull > --help 1`] = `
 [
-  "Usage: program pull [options] [projects...]
+  "Usage: program pull [options] [ids...]
 
 pull dataset and its tabald and routine information
 
@@ -19,3 +19,21 @@ exports[`CLI: pull > --help 2`] = `[]`;
 exports[`CLI: pull > example 1`] = `[]`;
 
 exports[`CLI: pull > example 2`] = `[]`;
+
+exports[`CLIv2: pull > pull --format=json --all bigquery-public-data.baseball 1`] = `0`;
+
+exports[`CLIv2: pull > pull --format=json --all bigquery-public-data.baseball 2`] = `[]`;
+
+exports[`CLIv2: pull > pull --format=json --all bigquery-public-data.baseball.schedules 1`] = `0`;
+
+exports[`CLIv2: pull > pull --format=json --all bigquery-public-data.baseball.schedules 2`] = `
+[
+  "/tmp/H5Tzep",
+  "Some tasks are failed(Failed: 1)
+",
+]
+`;
+
+exports[`CLIv2: pull > pull --format=json bigquery-public-data.baseball 1`] = `0`;
+
+exports[`CLIv2: pull > pull --format=json bigquery-public-data.baseball 2`] = `[]`;

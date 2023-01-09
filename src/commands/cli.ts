@@ -171,14 +171,15 @@ export function createCLI() {
 
   const pullCommand = new Command('pull')
     .description('pull dataset and its tabald and routine information')
-    .argument('[projects...]')
+    .argument('[ids...]')
     .option('--all', 'Pulling All BugQuery Datasets', false)
     .option('--with-ddl', 'Pulling BigQuery Resources with DDL SQL', false)
-    .action(async (cmdProjects: string[] | undefined, _, cmd) => {
+    .action(async (cmdBQIDs: string[] | undefined, _, cmd) => {
       const cmdOptions = cmd.optsWithGlobals();
-      const projects = cmdProjects ?? [];
+      const BQIDs = cmdBQIDs ?? ['@default'];
 
       const options = {
+        BQIDs: BQIDs,
         rootDir: cmdOptions.rootPath,
         withDDL: cmdOptions.withDdl,
         forceAll: cmdOptions.all,
@@ -186,20 +187,7 @@ export function createCLI() {
       };
 
       const failed = await (async () => {
-        if (projects.length > 0) {
-          return await Promise.allSettled(
-            projects.map(async (p) =>
-              p == '@default'
-                ? await pullBigQueryResources({ ...options })
-                : await pullBigQueryResources({ projectId: p, ...options })
-            ),
-          ).then((results) =>
-            results.filter((r) => r.status !== 'fulfilled' || r.value > 0)
-              .length
-          );
-        } else {
-          return await pullBigQueryResources(options);
-        }
+        return await pullBigQueryResources({ ...options });
       })();
 
       if (failed > 0) {
