@@ -1,6 +1,20 @@
 // Vitest Snapshot v1
 
-exports[`CLI: pull > --help 1`] = `
+exports[`CLIv2: pull > pull --all 1`] = `Map {}`;
+
+exports[`CLIv2: pull > pull --all 2`] = `[]`;
+
+exports[`CLIv2: pull > pull --all 3`] = `
+[
+  "{\\"name\\":\\"# Check All Dataset and Resources\\",\\"result\\":\\"Total 3 resources\\"}",
+]
+`;
+
+exports[`CLIv2: pull > pull --help 1`] = `Map {}`;
+
+exports[`CLIv2: pull > pull --help 2`] = `[]`;
+
+exports[`CLIv2: pull > pull --help 3`] = `
 [
   "Usage: program pull [options] [ids...]
 
@@ -13,27 +27,3 @@ Options:
 ",
 ]
 `;
-
-exports[`CLI: pull > --help 2`] = `[]`;
-
-exports[`CLI: pull > example 1`] = `[]`;
-
-exports[`CLI: pull > example 2`] = `[]`;
-
-exports[`CLIv2: pull > pull --format=json --all bigquery-public-data.baseball 1`] = `0`;
-
-exports[`CLIv2: pull > pull --format=json --all bigquery-public-data.baseball 2`] = `[]`;
-
-exports[`CLIv2: pull > pull --format=json --all bigquery-public-data.baseball.schedules 1`] = `0`;
-
-exports[`CLIv2: pull > pull --format=json --all bigquery-public-data.baseball.schedules 2`] = `
-[
-  "/tmp/H5Tzep",
-  "Some tasks are failed(Failed: 1)
-",
-]
-`;
-
-exports[`CLIv2: pull > pull --format=json bigquery-public-data.baseball 1`] = `0`;
-
-exports[`CLIv2: pull > pull --format=json bigquery-public-data.baseball 2`] = `[]`;

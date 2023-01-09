@@ -253,21 +253,21 @@ const pullMetadataTaskBuilder = (
   };
 };
 
-// type BigQueryProjectID = '@default' | string;
+type OrdinalProjectID = string;
+type SpecialProjectID = '@default';
+type BigQueryProject = OrdinalProjectID | SpecialProjectID;
 
 async function crawlBigQueryProject(
   ctx: PullContext,
-  projectId: string,
+  projectId: BigQueryProject,
   allowDatasets: string[],
   cb: (t: Task) => void,
 ) {
   const projectDir = `${ctx.rootPath}/${projectId ?? '@default'}`;
-  console.log('done');
   if (!fs.existsSync(projectDir)) {
     await fs.promises.mkdir(projectDir, { recursive: true });
   }
 
-  console.log('done');
   const fsDatasets = ctx.forceAll
     ? undefined
     : (allowDatasets.length > 0
@@ -278,10 +278,14 @@ async function crawlBigQueryProject(
     '# Check All Dataset and Resources',
     async () => {
       let cnt = 0;
-      const [datasets] = await ctx.BigQuery
-        .getDatasets({ projectId } as GetDatasetsOptions);
+      const opt = projectId === '@default' ? {} : { projectId };
+      const [datasets] = await ctx.BigQuery.getDatasets(
+        opt as GetDatasetsOptions,
+      );
       const actualDatasets = datasets
-        .filter((d) => ctx.forceAll || (d.id && fsDatasets?.includes(d.id)));
+        .filter((d) =>
+          ctx.forceAll || !fsDatasets || (d.id && fsDatasets?.includes(d.id))
+        );
 
       let fetcher = undefined;
       if (ctx.withDDL) {
@@ -317,7 +321,6 @@ async function crawlBigQueryProject(
     },
   );
   cb(crawlTask);
-  console.log('done');
 }
 
 const groupByProject = (BQIDs: string[]): Map<string, Set<string>> => {
@@ -365,7 +368,6 @@ async function pullBigQueryResources({
 
   // Grouping BQIDs by project
   const targets: Map<string, Set<string>> = groupByProject(BQIDs);
-  console.log(BQIDs);
 
   const tasks: Task[] = [];
   const appendTask = (t: Task) => {
@@ -374,11 +376,10 @@ async function pullBigQueryResources({
   };
 
   for (const [project, allowDatasets] of targets) {
-    console.log(project, allowDatasets);
     await crawlBigQueryProject(ctx, project, [...allowDatasets], appendTask);
   }
 
-  const reporter = new ReporterMap['default']();
+  const reporter = new ReporterMap['json']();
   try {
     reporter.onInit(tasks);
     tasks.forEach((t) => t.run());
