@@ -1,4 +1,4 @@
-import {
+import type {
   BigQuery,
   Dataset,
   GetDatasetsOptions,
@@ -21,14 +21,6 @@ import { ReporterMap } from '../../src/reporter/index.js';
 import { Task } from '../../src/tasks/base.js';
 import 'process';
 
-const sqlDDLForSchemata = (projectId: string) => `
-select
-  'SCHEMA' as type
-  , schema_name as name
-  , ddl
-from \`${projectId}.INFORMATION_SCHEMA.SCHEMATA\`
-`;
-
 //FIXME: BigQuery Runtime Error on many datasets
 //FIXME: BigQuery Runtime Error on many tables in one dataset
 //This sql can get only resources in default location.
@@ -44,25 +36,35 @@ end if;
 
 execute immediate (
   select as value
-    string_agg(template, "union distinct")
+    ifnull("union distinct " || string_agg(template, "union distinct"), "")
   from unnest(schemas) schema
-  left join unnest([format("%s.%s", catalog, schema)]) identifier
-  left join unnest([format(
-"""-- SQL TEMPLATE
-select
-  'ROUTINE' as type
-  , routine_name as name
-  , ddl
-from \`%s.INFORMATION_SCHEMA.ROUTINES\`
-union distinct
-select distinct
-  'TABLE' as type
-  , table_name as name
-  , ddl
-from \`%s.INFORMATION_SCHEMA.TABLES\`
-"""
-  , identifier, identifier
-)]) template
+  left join unnest([format("%s.%s", catalog, schema)]) as identifier
+  left join unnest([struct(
+    format("""
+      select
+        'SCHEMA' as type
+        , schema_name as name
+        , ddl
+      from \`%s.INFORMATION_SCHEMA.SCHEMATA\`
+    """, catalog
+    ) as sql_schema
+    , format(
+      """-- SQL TEMPLATE
+      select
+        'ROUTINE' as type
+        , routine_name as name
+        , ddl
+      from \`%s.INFORMATION_SCHEMA.ROUTINES\`
+      union distinct
+      select distinct
+        'TABLE' as type
+        , table_name as name
+        , ddl
+      from \`%s.INFORMATION_SCHEMA.TABLES\`
+      """
+      , identifier, identifier
+    ) as template
+  )])
 )`;
 
 type PullContext = {
@@ -82,9 +84,9 @@ type ResultBQResource = {
 };
 
 const buildDDLFetcher = (
-  bqObj: BigQuery | Dataset,
-  datasets: string[],
   bqClient: BigQuery,
+  projectId: string,
+  datasets: string[],
 ): {
   job: Promise<unknown>;
   reader: (bqId: string) => Promise<string | undefined>;
@@ -113,23 +115,10 @@ const buildDDLFetcher = (
     );
   };
 
-  const promise = (() => {
-    if (bqObj instanceof Dataset) {
-      const projectId = bqObj.projectId;
-      if (!projectId) {
-        throw Error(`Invalid Dataset: ${bqObj}`);
-      }
-      return ddlFetcher(sqlDDLForSchemata(projectId), {
-        projectId: bqObj.projectId,
-        datasets: [bqObj],
-      });
-    }
-
-    return ddlFetcher(sqlDDLForProject, {
-      projectId: bqObj.getProjectId(),
-      datasets: datasets,
-    });
-  })();
+  const promise = ddlFetcher(sqlDDLForProject, {
+    projectId: projectId,
+    datasets: datasets,
+  });
 
   return {
     job: promise,
@@ -143,6 +132,7 @@ const buildDDLFetcher = (
 const fsWriter = async (
   ctx: PullContext,
   bqObj: Dataset | Model | Table | Routine,
+  ddlReader?: (bqId: string) => Promise<string | undefined>,
 ) => {
   const fsPath = bq2path(
     bqObj as BigQueryResource,
@@ -155,7 +145,6 @@ const fsWriter = async (
     await fs.promises.mkdir(pathDir, { recursive: true });
   }
 
-  let bqObj2DDL: any = {};
   const modified = await syncMetadata(bqObj, pathDir, { push: false })
     .catch((e) => {
       console.error('syncerror', e, bqObj);
@@ -179,11 +168,11 @@ const fsWriter = async (
     return retFiles;
   }
 
-  if (!ctx.withDDL || !bqObj.id) {
+  if (!ctx.withDDL || !bqObj.id || !ddlReader) {
     return retFiles;
   }
 
-  const ddlStatement = bqObj2DDL[bqObj?.id ?? bqObj.metadata?.id]?.ddl;
+  const ddlStatement = await ddlReader(bqObj?.id ?? bqObj.metadata?.id);
   if (!ddlStatement) {
     return retFiles;
   }
@@ -245,6 +234,7 @@ async function* crawlBigQueryDataset(
 
 const pullMetadataTaskBuilder = (
   ctx: PullContext,
+  ddlFetcher?: (bqId: string) => Promise<string | undefined>,
 ): ((bqObj: Dataset | Table | Routine | Model) => Promise<Task>) => {
   return async (bqObj) => {
     const parent = (bqObj.parent as ServiceObject);
@@ -254,7 +244,7 @@ const pullMetadataTaskBuilder = (
     const task = new Task(
       bqId.replace(/:|\./g, '/') + '/fetch metadata',
       async () => {
-        const updated = await fsWriter(ctx, bqObj);
+        const updated = await fsWriter(ctx, bqObj, ddlFetcher);
         return `Updated: ${updated.join(', ')}`;
       },
     );
@@ -263,6 +253,8 @@ const pullMetadataTaskBuilder = (
   };
 };
 
+// type BigQueryProjectID = '@default' | string;
+
 async function crawlBigQueryProject(
   ctx: PullContext,
   projectId: string,
@@ -270,16 +262,17 @@ async function crawlBigQueryProject(
   cb: (t: Task) => void,
 ) {
   const projectDir = `${ctx.rootPath}/${projectId ?? '@default'}`;
+  console.log('done');
   if (!fs.existsSync(projectDir)) {
     await fs.promises.mkdir(projectDir, { recursive: true });
   }
+
+  console.log('done');
   const fsDatasets = ctx.forceAll
     ? undefined
     : (allowDatasets.length > 0
       ? allowDatasets
       : await fs.promises.readdir(projectDir));
-
-  const buildTask = pullMetadataTaskBuilder(ctx);
 
   const crawlTask = new Task(
     '# Check All Dataset and Resources',
@@ -287,11 +280,30 @@ async function crawlBigQueryProject(
       let cnt = 0;
       const [datasets] = await ctx.BigQuery
         .getDatasets({ projectId } as GetDatasetsOptions);
-      const allowedDatasets = datasets
+      const actualDatasets = datasets
         .filter((d) => ctx.forceAll || (d.id && fsDatasets?.includes(d.id)));
 
+      let fetcher = undefined;
+      if (ctx.withDDL) {
+        const { job, reader } = buildDDLFetcher(
+          ctx.BigQuery,
+          projectId,
+          actualDatasets
+            .map((d) => d.id)
+            .filter((d): d is string => d != undefined),
+        );
+        cb(
+          new Task('# Check All Dataset and Resources/DDL', async () => {
+            await job;
+            return `DDL Job Done`;
+          }),
+        );
+        fetcher = reader;
+      }
+      const buildTask = pullMetadataTaskBuilder(ctx, fetcher);
+
       await Promise.allSettled(
-        allowedDatasets
+        actualDatasets
           .map(async (dataset: Dataset) => {
             cnt++;
             dataset['projectId'] = projectId ?? ctx.defaultProjectId;
@@ -305,7 +317,24 @@ async function crawlBigQueryProject(
     },
   );
   cb(crawlTask);
+  console.log('done');
 }
+
+const groupByProject = (BQIDs: string[]): Map<string, Set<string>> => {
+  return BQIDs.reduce((acc, c) => {
+    const elms = c.split('.');
+    // Allow Dataset or Project
+    if (elms.length > 2) {
+      throw Error(`Invalid BQID: ${c}`);
+    }
+    const [p, d] = elms;
+    if (!acc.has(p)) {
+      acc.set(p, new Set());
+    }
+    acc.get(p).add(d);
+    return acc;
+  }, new Map());
+};
 
 async function pullBigQueryResources({
   BQIDs,
@@ -327,26 +356,16 @@ async function pullBigQueryResources({
   }
 
   const ctx: PullContext = {
-    BigQuery: bqClient,
     defaultProjectId: projectId ?? '@default',
     rootPath: rootDir,
     withDDL: withDDL ?? false,
     forceAll: forceAll ?? false,
+    BigQuery: bqClient,
   };
 
-  const targets: Map<string, Set<string>> = BQIDs.reduce((acc, c) => {
-    const elms = c.split('.');
-    // Allow Dataset or Project
-    if (elms.length > 2) {
-      throw Error(`Invalid BQID: ${c}`);
-    }
-    const [p, d] = elms;
-    if (!acc.has(p)) {
-      acc.set(p, new Set());
-    }
-    acc.get(p).add(d);
-    return acc;
-  }, new Map());
+  // Grouping BQIDs by project
+  const targets: Map<string, Set<string>> = groupByProject(BQIDs);
+  console.log(BQIDs);
 
   const tasks: Task[] = [];
   const appendTask = (t: Task) => {
@@ -355,6 +374,7 @@ async function pullBigQueryResources({
   };
 
   for (const [project, allowDatasets] of targets) {
+    console.log(project, allowDatasets);
     await crawlBigQueryProject(ctx, project, [...allowDatasets], appendTask);
   }
 
@@ -377,6 +397,7 @@ async function pullBigQueryResources({
   return failedTasks;
 }
 
+/*
 async function oldPullBigQueryResources({
   projectId,
   rootDir,
@@ -541,5 +562,6 @@ async function oldPullBigQueryResources({
     tasks.filter((t) => t.result().status !== 'success').length;
   return failedTasks;
 }
+*/
 
-export { oldPullBigQueryResources, pullBigQueryResources };
+export { pullBigQueryResources };

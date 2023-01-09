@@ -176,7 +176,7 @@ export function createCLI() {
     .option('--with-ddl', 'Pulling BigQuery Resources with DDL SQL', false)
     .action(async (cmdBQIDs: string[] | undefined, _, cmd) => {
       const cmdOptions = cmd.optsWithGlobals();
-      const BQIDs = cmdBQIDs ?? ['@default'];
+      const BQIDs = cmdBQIDs && cmdBQIDs.length > 0 ? cmdBQIDs : ['@default'];
 
       const options = {
         BQIDs: BQIDs,
