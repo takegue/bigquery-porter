@@ -1,4 +1,5 @@
 import type {
+  BigQuery,
   Dataset,
   GetDatasetsOptions,
   Model,
@@ -12,21 +13,13 @@ import { syncMetadata } from '../../src/metadata.js';
 import {
   BigQueryResource,
   bq2path,
-  buildThrottledBigQueryClient,
+  getProjectId,
   normalizeShardingTableId,
-} from '../..//src/bigquery.js';
+} from '../../src/bigquery.js';
 
-import { ReporterMap } from '../../src/reporter/index.js';
+import { BuiltInReporters, ReporterMap } from '../../src/reporter/index.js';
 import { Task } from '../../src/tasks/base.js';
 import 'process';
-
-const sqlDDLForSchemata = (projectId: string) => `
-select
-  'SCHEMA' as type
-  , schema_name as name
-  , ddl
-from \`${projectId}.INFORMATION_SCHEMA.SCHEMATA\`
-`;
 
 //FIXME: BigQuery Runtime Error on many datasets
 //FIXME: BigQuery Runtime Error on many tables in one dataset
@@ -41,190 +34,244 @@ if schemas is null then
   ) into schemas;
 end if;
 
+begin
+  execute immediate format("""
+  create or replace temporary table bqport_ddl_schema
+    as select 'SCHEMA' as type, schema_name as name, ddl
+    from \`%s.INFORMATION_SCHEMA.SCHEMATA\`;
+  """, catalog);
+exception when error then
+  create temporary table bqport_ddl_schema(type STRING, name STRING, ddl STRING);
+end;
+
 execute immediate (
   select as value
-    string_agg(template, "union distinct")
+    ifnull("select * from bqport_ddl_schema union distinct " || string_agg(template, "union distinct"), "")
   from unnest(schemas) schema
-  left join unnest([format("%s.%s", catalog, schema)]) identifier
-  left join unnest([format(
-"""-- SQL TEMPLATE
-select
-  'ROUTINE' as type
-  , routine_name as name
-  , ddl
-from \`%s.INFORMATION_SCHEMA.ROUTINES\`
-union distinct
-select distinct
-  'TABLE' as type
-  , table_name as name
-  , ddl
-from \`%s.INFORMATION_SCHEMA.TABLES\`
-"""
-  , identifier, identifier
-)]) template
+  left join unnest([format("%s.%s", catalog, schema)]) as identifier
+  left join unnest([struct(
+    format(
+      """-- SQL TEMPLATE
+      select
+        'ROUTINE' as type
+        , routine_name as name
+        , ddl
+      from \`%s.INFORMATION_SCHEMA.ROUTINES\`
+      union distinct
+      select distinct
+        'TABLE' as type
+        , table_name as name
+        , ddl
+      from \`%s.INFORMATION_SCHEMA.TABLES\`
+      """
+      , identifier, identifier
+    ) as template
+  )])
 )`;
 
-async function pullBigQueryResources({
-  projectId,
-  rootDir,
-  withDDL,
-  forceAll,
-}: {
-  projectId?: string;
-  rootDir: string;
-  withDDL?: boolean;
-  forceAll?: boolean;
-}): Promise<number> {
-  type ResultBQResource = {
-    type: string;
-    path: string;
-    name: string;
-    ddl: string | undefined;
-    resource_type: string;
-  };
-  const bqClient = buildThrottledBigQueryClient(20, 500);
+type PullContext = {
+  BQIDs: string[];
+  forceAll: boolean;
+  rootPath: string;
+  BigQuery: BigQuery;
+  withDDL: boolean;
+  reporter: string;
+};
 
-  const defaultProjectId = await bqClient.getProjectId();
+type ResultBQResource = {
+  type: string;
+  path: string;
+  name: string;
+  ddl: string | undefined;
+  resource_type: string;
+};
 
-  let bqObj2DDL: any = {};
-  const fsWriter = async (
-    bqObj: Dataset | Model | Table | Routine,
-  ) => {
-    const fsPath = bq2path(bqObj as BigQueryResource, projectId === undefined);
-    const pathDir = `${rootDir}/${fsPath}`;
-    const retFiles: string[] = [];
+type NormalProject = {
+  kind: 'normal';
+  value: string;
+};
+type SpecialProject = {
+  kind: 'special';
+  value: '@default';
+  resolved_value: string;
+};
 
-    if (!fs.existsSync(pathDir)) {
-      await fs.promises.mkdir(pathDir, { recursive: true });
-    }
+type BQPPRojectID = NormalProject | SpecialProject;
 
-    const modified = await syncMetadata(bqObj, pathDir, { push: false })
-      .catch((e) => {
-        console.error('syncerror', e, bqObj);
-        throw e;
-      });
-
-    retFiles.push(...modified.map((m) => path.basename(m)));
-
-    if (bqObj.metadata.type == 'VIEW') {
-      let [metadata] = await bqObj.getMetadata();
-      if (metadata?.view) {
-        const pathView = `${pathDir}/view.sql`;
-        await fs.promises.writeFile(
-          pathView,
-          metadata.view.query
-            .replace(/\r\n/g, '\n'),
-        );
-      }
-      retFiles.push('view.sql');
-      // View don't capture ddl
-      return retFiles;
-    }
-
-    if (!withDDL || !bqObj.id) {
-      return retFiles;
-    }
-
-    const ddlStatement = bqObj2DDL[bqObj?.id ?? bqObj.metadata?.id]?.ddl;
-    if (!ddlStatement) {
-      return retFiles;
-    }
-
-    const pathDDL = `${pathDir}/ddl.sql`;
-    const regexp = new RegExp(`\`${defaultProjectId}\`.`);
-    const cleanedDDL = ddlStatement
-      .replace(/\r\n/g, '\n')
-      .replace('CREATE PROCEDURE', 'CREATE OR REPLACE PROCEDURE')
-      .replace(
-        'CREATE TABLE FUNCTION',
-        'CREATE OR REPLACE TABLE FUNCTION',
-      )
-      .replace('CREATE FUNCTION', 'CREATE OR REPLACE FUNCTION')
-      .replace(/CREATE TABLE/, 'CREATE TABLE IF NOT EXISTS')
-      .replace(/CREATE MODEL/, 'CREATE MODEL IF NOT EXISTS')
-      .replace(/CREATE SCHEMA/, 'CREATE SCHEMA IF NOT EXISTS')
-      .replace(/CREATE VIEW/, 'CREATE OR REPLACE VIEW')
-      .replace(
-        /CREATE MATERIALIZED VIEW/,
-        'CREATE MATERIALIZED VIEW IF NOT EXISTS ',
-      )
-      .replace(regexp, '');
-
-    await fs.promises.writeFile(pathDDL, cleanedDDL);
-    retFiles.push('ddl.sql');
-    return retFiles;
-  };
-
-  const [datasets] = await bqClient
-    .getDatasets({ projectId } as GetDatasetsOptions);
-
-  const projectDir = `${rootDir}/${projectId ?? '@default'}`;
-  if (!fs.existsSync(projectDir)) {
-    await fs.promises.mkdir(projectDir, { recursive: true });
-  }
-
-  const fsDatasets = forceAll
-    ? undefined
-    : await fs.promises.readdir(projectDir);
-
-  if (withDDL) {
-    const ddlFetcher = async (
-      sql: string,
-      params: { [param: string]: any },
-    ) => {
-      // Import BigQuery dataset Metadata
-      const [job] = await bqClient
-        .createQueryJob({
-          query: sql,
-          params,
-          jobPrefix: `bqport-metadata_import-`,
-        })
-        .catch((e) => {
-          console.log(e.message);
-          return [];
-        });
-      if (!job) {
-        return undefined;
-      }
-      const [records] = await job.getQueryResults();
-      return Object.fromEntries(
-        records.map((r: ResultBQResource) => [r.name, r]),
-      );
+const parseProjectID = async (
+  ctx: PullContext,
+  projectID: string,
+): Promise<BQPPRojectID> => {
+  if (projectID === '@default') {
+    return {
+      kind: 'special',
+      value: '@default',
+      resolved_value: await ctx.BigQuery.getProjectId(),
     };
+  } else {
+    return {
+      kind: 'normal',
+      value: projectID,
+    };
+  }
+};
 
-    const schemaDDL = await ddlFetcher(
-      sqlDDLForSchemata(projectId ?? defaultProjectId),
-      {},
+const buildDDLFetcher = (
+  bqClient: BigQuery,
+  projectId: string,
+  datasets: string[],
+): {
+  job: Promise<unknown>;
+  reader: (bqId: string) => Promise<string | undefined>;
+} => {
+  const ddlFetcher = async (
+    sql: string,
+    params: { [param: string]: any },
+  ) => {
+    // Import BigQuery dataset Metadata
+    const [job] = await bqClient
+      .createQueryJob({
+        query: sql,
+        params,
+        jobPrefix: `bqport-metadata_import-`,
+      })
+      .catch((e) => {
+        console.error(e.message);
+        return [];
+      });
+    if (!job) {
+      throw Error('buildDDLFetcher: Exception');
+    }
+    const [records] = await job.getQueryResults();
+    return Object.fromEntries(
+      records.map((r: ResultBQResource) => [r.name, r]),
     );
-    const resourceDDL = await ddlFetcher(sqlDDLForProject, {
-      projectId: projectId ?? defaultProjectId,
-      datasets: datasets
-        .filter((d) => d.location == 'US')
-        .map((d) => d?.id ?? d.metadata?.id),
+  };
+
+  const promise = ddlFetcher(sqlDDLForProject, {
+    projectId: projectId,
+    datasets: datasets,
+  });
+
+  return {
+    job: promise,
+    reader: async (bqId: string) => {
+      const ddlMap = await promise;
+      return ddlMap?.[bqId]?.ddl;
+    },
+  };
+};
+
+const fsWriter = async (
+  ctx: PullContext,
+  bqObj: Dataset | Model | Table | Routine,
+  ddlReader?: (bqId: string) => Promise<string | undefined>,
+) => {
+  const fsPath = bq2path(
+    bqObj as BigQueryResource,
+    (await ctx.BigQuery.getProjectId()) == getProjectId(bqObj),
+  );
+  const pathDir = `${ctx.rootPath}/${fsPath}`;
+  const retFiles: string[] = [];
+
+  if (!fs.existsSync(pathDir)) {
+    await fs.promises.mkdir(pathDir, { recursive: true });
+  }
+  const modified = await syncMetadata(bqObj, pathDir, { push: false })
+    .catch((e) => {
+      console.error('syncerror', e, bqObj);
+      throw e;
     });
 
-    bqObj2DDL = { ...schemaDDL, ...resourceDDL };
+  retFiles.push(...modified.map((m) => path.basename(m)));
+
+  if (bqObj.metadata.type == 'VIEW') {
+    let [metadata] = await bqObj.getMetadata();
+    if (metadata?.view) {
+      const pathView = `${pathDir}/view.sql`;
+      await fs.promises.writeFile(
+        pathView,
+        metadata.view.query
+          .replace(/\r\n/g, '\n'),
+      );
+    }
+    retFiles.push('view.sql');
+    // View don't capture ddl
+    return retFiles;
   }
 
-  const tasks: Task[] = [];
-  const registeredShards = new Set<string>();
-  const registerTask = async (bqObj: Dataset | Table | Routine | Model) => {
-    if (!bqObj.id) {
-      return;
-    }
+  if (!ctx.withDDL || !bqObj.id || !ddlReader) {
+    return retFiles;
+  }
 
-    const sharedName = normalizeShardingTableId(bqObj.id);
-    if (bqObj.id != sharedName) {
+  const ddlStatement = await ddlReader(bqObj?.id ?? bqObj.metadata?.id);
+  if (!ddlStatement) {
+    return retFiles;
+  }
+
+  const pathDDL = `${pathDir}/ddl.sql`;
+  const regexp = new RegExp(`\`${await ctx.BigQuery.getProjectId()}\`.`);
+  const cleanedDDL = ddlStatement
+    .replace(/\r\n/g, '\n')
+    .replace('CREATE PROCEDURE', 'CREATE OR REPLACE PROCEDURE')
+    .replace(
+      'CREATE TABLE FUNCTION',
+      'CREATE OR REPLACE TABLE FUNCTION',
+    )
+    .replace('CREATE FUNCTION', 'CREATE OR REPLACE FUNCTION')
+    .replace(/CREATE TABLE/, 'CREATE TABLE IF NOT EXISTS')
+    .replace(/CREATE MODEL/, 'CREATE MODEL IF NOT EXISTS')
+    .replace(/CREATE SCHEMA/, 'CREATE SCHEMA IF NOT EXISTS')
+    .replace(/CREATE VIEW/, 'CREATE OR REPLACE VIEW')
+    .replace(
+      /CREATE MATERIALIZED VIEW/,
+      'CREATE MATERIALIZED VIEW IF NOT EXISTS ',
+    )
+    .replace(regexp, '');
+
+  await fs.promises.writeFile(pathDDL, cleanedDDL);
+  retFiles.push('ddl.sql');
+  return retFiles;
+};
+
+async function* crawlBigQueryDataset(
+  dataset: Dataset,
+): AsyncGenerator<Table | Model | Routine> {
+  // WORKAORUND: dataset object may not have projectId nevertheless it is required to get resources
+  dataset['projectId'] = getProjectId(dataset);
+
+  const [models] = await dataset.getModels();
+  for (const model of models) {
+    yield model;
+  }
+
+  const [routines] = await dataset.getRoutines();
+  for (const routine of routines) {
+    yield routine;
+  }
+
+  const registeredShards = new Set<string>();
+
+  for await (
+    const table of dataset.getTablesStream()
+      .on('error', console.error)
+  ) {
+    const sharedName = normalizeShardingTableId(table.id);
+    if (table.id != sharedName) {
       if (registeredShards.has(sharedName)) {
-        return;
+        continue;
       }
       registeredShards.add(sharedName);
-
-      [bqObj] = await (bqObj.parent as Dataset)
-        .table(sharedName.replace('@', '*'))
-        .get();
     }
+    yield table;
+  }
+}
 
+const pullMetadataTaskBuilder = (
+  ctx: PullContext,
+  ddlFetcher?: (bqId: string) => Promise<string | undefined>,
+): ((bqObj: Dataset | Table | Routine | Model) => Promise<Task>) => {
+  return async (bqObj) => {
     const parent = (bqObj.parent as ServiceObject);
     const projectId = bqObj?.projectId ?? parent?.projectId;
     const bqId = bq2path(bqObj as BigQueryResource, projectId === undefined);
@@ -232,60 +279,131 @@ async function pullBigQueryResources({
     const task = new Task(
       bqId.replace(/:|\./g, '/') + '/fetch metadata',
       async () => {
-        const updated = await fsWriter(bqObj);
+        const updated = await fsWriter(ctx, bqObj, ddlFetcher);
         return `Updated: ${updated.join(', ')}`;
       },
     );
-
-    tasks.push(task);
     task.run();
+    return task;
   };
+};
 
-  const allowedDatasets = datasets
-    .filter((d) => forceAll || (d.id && fsDatasets?.includes(d.id)));
+async function crawlBigQueryProject(
+  ctx: PullContext,
+  project: BQPPRojectID,
+  allowDatasets: string[],
+  cb: (t: Task) => void,
+) {
+  const bqProjectId = project.kind == 'special'
+    ? project.resolved_value
+    : project.value;
 
-  const task = new Task(
+  const projectDir = `${ctx.rootPath}/${project.value}`;
+  if (!fs.existsSync(projectDir)) {
+    await fs.promises.mkdir(projectDir, { recursive: true });
+  }
+
+  const fsDatasets = ctx.forceAll
+    ? undefined
+    : (allowDatasets.length > 0
+      ? allowDatasets
+      : await fs.promises.readdir(projectDir));
+
+  const crawlTask = new Task(
     '# Check All Dataset and Resources',
     async () => {
       let cnt = 0;
-      await Promise.allSettled(allowedDatasets
-        .map(async (dataset: Dataset) => {
-          cnt++;
-          registerTask(dataset);
-          dataset['projectId'] = projectId ?? defaultProjectId;
-          return await Promise.allSettled([
-            await dataset.getRoutines()
-              .then(([rets]) => {
-                cnt += rets.length;
-                rets.forEach(registerTask);
-              })
-              .catch((e) => console.log(e)),
-            ,
-            await dataset.getModels()
-              .then(([rets]) => {
-                cnt += rets.length;
-                rets.forEach(registerTask);
-              })
-              .catch((e) => console.log(e)),
-            await (async () => {
-              for await (
-                const table of dataset.getTablesStream()
-                  .on('error', console.error)
-              ) {
-                cnt += 1;
-                registerTask(table);
-              }
-            })(),
-          ]);
-        }));
-      return `Total ${cnt}`;
+      const opt = project.kind === 'special'
+        ? {}
+        : { projectId: project.value };
+      const [datasets] = await ctx.BigQuery.getDatasets(
+        opt as GetDatasetsOptions,
+      );
+
+      const actualDatasets = datasets
+        .filter((d) =>
+          ctx.forceAll || !fsDatasets || (d.id && fsDatasets?.includes(d.id))
+        );
+
+      let fetcher = undefined;
+      if (ctx.withDDL) {
+        const { job, reader } = buildDDLFetcher(
+          ctx.BigQuery,
+          bqProjectId,
+          actualDatasets
+            .map((d) => d.id)
+            .filter((d): d is string => d != undefined),
+        );
+        cb(
+          new Task(
+            `# Check All Dataset and Resources/DDL/${bqProjectId}`,
+            async () => {
+              await job;
+              return `Fetching DDL`;
+            },
+          ),
+        );
+        fetcher = reader;
+      }
+      const buildTask = pullMetadataTaskBuilder(ctx, fetcher);
+
+      const p = Promise.allSettled(
+        actualDatasets
+          .map(async (dataset: Dataset) => {
+            cnt++;
+            for await (const bqObj of crawlBigQueryDataset(dataset)) {
+              cnt++;
+              cb(await buildTask(bqObj));
+            }
+          }),
+      );
+      for (const e of await p) {
+        if (e.status === 'rejected') {
+          console.error(e);
+        }
+      }
+      return `Total ${cnt} resources`;
     },
   );
+  cb(crawlTask);
+}
 
-  tasks.push(task);
-  task.run();
+const groupByProject = (BQIDs: string[]): Map<string, Set<string>> => {
+  return BQIDs.reduce((acc, c) => {
+    const elms = c.split('.');
+    // Allow Dataset or Project
+    if (elms.length > 2) {
+      throw Error(`Invalid BQID: ${c}`);
+    }
+    const [p, d] = elms;
+    if (!acc.has(p)) {
+      acc.set(p, new Set());
+    }
+    acc.get(p).add(d);
+    return acc;
+  }, new Map());
+};
 
-  const reporter = new ReporterMap['default']();
+async function pullBigQueryResources(
+  ctx: PullContext,
+): Promise<number> {
+  // Grouping BQIDs by project
+  const targets: Map<string, Set<string>> = groupByProject(ctx.BQIDs);
+
+  const tasks: Task[] = [];
+  const appendTask = (t: Task) => {
+    t.run();
+    tasks.push(t);
+  };
+
+  for (const [project, allowDatasets] of targets) {
+    const p = await parseProjectID(ctx, project);
+    await crawlBigQueryProject(ctx, p, [...allowDatasets], appendTask);
+  }
+
+  const reporterType: BuiltInReporters =
+    (ctx.reporter ?? 'console') as BuiltInReporters;
+  const reporter = new ReporterMap[reporterType]();
   try {
     reporter.onInit(tasks);
     tasks.forEach((t) => t.run());
@@ -295,7 +413,6 @@ async function pullBigQueryResources({
     }
     reporter.onUpdate();
   } catch (e: unknown) {
-    console.error(e);
   } finally {
     reporter.onFinished();
   }

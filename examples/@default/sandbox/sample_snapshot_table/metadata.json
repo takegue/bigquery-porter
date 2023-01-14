@@ -1,10 +1,5 @@
 {
   "type": "SNAPSHOT",
-  "clustering": {
-    "fields": [
-      "a"
-    ]
-  },
   "snapshotDefinition": {
     "baseTableReference": {
       "projectId": "project-id-7288898082930342315",

@@ -26,7 +26,7 @@ export function createCLI() {
     )
     .option(
       '--format <reporter>',
-      'formatter option: console., json',
+      'formatter option: console, json',
       'console',
     );
 
@@ -171,35 +171,23 @@ export function createCLI() {
 
   const pullCommand = new Command('pull')
     .description('pull dataset and its tabald and routine information')
-    .argument('[projects...]')
+    .argument('[ids...]')
     .option('--all', 'Pulling All BugQuery Datasets', false)
     .option('--with-ddl', 'Pulling BigQuery Resources with DDL SQL', false)
-    .action(async (cmdProjects: string[] | undefined, _, cmd) => {
+    .action(async (cmdBQIDs: string[] | undefined, _, cmd) => {
       const cmdOptions = cmd.optsWithGlobals();
-      const projects = cmdProjects ?? [];
-
-      const options = {
-        rootDir: cmdOptions.rootPath,
-        withDDL: cmdOptions.withDdl,
-        forceAll: cmdOptions.all,
-        concurrency: cmdOptions.concurrency,
-      };
+      const BQIDs = cmdBQIDs && cmdBQIDs.length > 0 ? cmdBQIDs : ['@default'];
 
       const failed = await (async () => {
-        if (projects.length > 0) {
-          return await Promise.allSettled(
-            projects.map(async (p) =>
-              p == '@default'
-                ? await pullBigQueryResources({ ...options })
-                : await pullBigQueryResources({ projectId: p, ...options })
-            ),
-          ).then((results) =>
-            results.filter((r) => r.status !== 'fulfilled' || r.value > 0)
-              .length
-          );
-        } else {
-          return await pullBigQueryResources(options);
-        }
+        return await pullBigQueryResources({
+          BQIDs,
+          BigQuery: buildThrottledBigQueryClient(20, 500),
+          rootPath: cmdOptions.rootPath,
+          withDDL: cmdOptions.withDdl,
+          forceAll: cmdOptions.all,
+          // concurrency: cmdOptions.concurrency,
+          reporter: cmdOptions.format ?? 'console',
+        });
       })();
 
       if (failed > 0) {

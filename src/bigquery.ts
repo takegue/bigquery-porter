@@ -1,6 +1,15 @@
 import * as fs from 'node:fs';
 import type { Metadata } from '@google-cloud/common';
-import { BigQuery, BigQueryOptions } from '@google-cloud/bigquery';
+
+import {
+  BigQuery,
+  BigQueryOptions,
+  Dataset,
+  Model,
+  Routine,
+  Table,
+} from '@google-cloud/bigquery';
+
 import pThrottle from 'p-throttle';
 import * as path from 'node:path';
 import {
@@ -18,6 +27,36 @@ interface BigQueryResource {
   projectId?: string;
   parent?: BigQueryResource;
 }
+
+function getProjectId(dataset: Dataset): string;
+function getProjectId(model: Model): string;
+function getProjectId(table: Table): string;
+function getProjectId(routine: Routine): string;
+function getProjectId(bigquery: BigQuery): string;
+
+function getProjectId(
+  bqObj: Dataset | Table | Routine | Model | BigQuery,
+): string {
+  if (bqObj instanceof Model) {
+    return bqObj.metadata.modelReference.projectId;
+  }
+
+  if (bqObj instanceof Table) {
+    return bqObj.metadata.tableReference.projectId;
+  }
+
+  if (bqObj instanceof Routine) {
+    return bqObj.metadata.routineReference.projectId;
+  }
+
+  if (bqObj instanceof Dataset) {
+    return bqObj.metadata.datasetReference.projectId;
+  }
+
+  return bqObj.projectId;
+}
+
+export { getProjectId };
 
 const buildThrottledBigQueryClient = (
   concurrency: number,
@@ -101,6 +140,10 @@ const bq2path = (bqObj: BigQueryResource, asDefaultProject: boolean) => {
     tree.push(bqObj.projectId);
   } else if (bqObj.parent?.projectId) {
     tree.push(bqObj.parent.projectId);
+  } else if (bqObj.parent?.parent?.projectId) {
+    tree.push(bqObj.parent.parent.projectId);
+  } else {
+    throw new Error(`Cannot find projectId ${bqObj}`);
   }
 
   const ns = bqObj.baseUrl?.replace('/', '@');

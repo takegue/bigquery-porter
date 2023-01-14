@@ -241,7 +241,7 @@ describe('bigquery: path2bq', () => {
   });
 });
 
-describe('biquery: bq2path', () => {
+describe('bigquery: bq2path', () => {
   const client: BigQueryResource = {
     baseUrl: 'https://bigquery.googleapis.com/bigquery/v2',
     projectId: 'awesome-project',
@@ -249,7 +249,6 @@ describe('biquery: bq2path', () => {
 
   const dataset: BigQueryResource = {
     baseUrl: '/dataset',
-    projectId: 'awesome-project',
     id: 'sandbox',
     parent: client,
   };
