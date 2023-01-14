@@ -7,4 +7,5 @@ export const ReporterMap = {
   'json': JSONReporter,
 };
 
-export type BuiltInReporters = 'console' | 'default' | 'console';
+// export type BuiltInReporters = keyof typeof ReporterMap;
+export type BuiltInReporters = 'console' | 'default';

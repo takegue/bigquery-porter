@@ -26,7 +26,7 @@ export function createCLI() {
     )
     .option(
       '--format <reporter>',
-      'formatter option: console., json',
+      'formatter option: console, json',
       'console',
     );
 
@@ -178,16 +178,16 @@ export function createCLI() {
       const cmdOptions = cmd.optsWithGlobals();
       const BQIDs = cmdBQIDs && cmdBQIDs.length > 0 ? cmdBQIDs : ['@default'];
 
-      const options = {
-        BQIDs: BQIDs,
-        rootDir: cmdOptions.rootPath,
-        withDDL: cmdOptions.withDdl,
-        forceAll: cmdOptions.all,
-        concurrency: cmdOptions.concurrency,
-      };
-
       const failed = await (async () => {
-        return await pullBigQueryResources({ ...options });
+        return await pullBigQueryResources({
+          BQIDs,
+          BigQuery: buildThrottledBigQueryClient(20, 500),
+          rootPath: cmdOptions.rootPath,
+          withDDL: cmdOptions.withDdl,
+          forceAll: cmdOptions.all,
+          // concurrency: cmdOptions.concurrency,
+          reporter: cmdOptions.format ?? 'console',
+        });
       })();
 
       if (failed > 0) {

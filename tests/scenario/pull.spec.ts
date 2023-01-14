@@ -82,7 +82,7 @@ describe('CLIv2: pull', () => {
 
   it<CLITestContext>(
     `pull --all`,
-    async ({ meta, cli, out, err, rootPath }) => {
+    async ({ meta, cli, err, rootPath }) => {
       await cli.parseAsync([...meta.name.split(' '), ...['-C', rootPath]], {
         from: 'user',
       });
@@ -105,22 +105,4 @@ describe('CLIv2: pull', () => {
       expect(out).toMatchSnapshot();
     },
   );
-
-  // it<CLITestContext>(
-  //   `pull --format=json bigquery-public-data.baseball`,
-  //   async ({ meta, cli, out, err, rootPath }) => {
-  //     await cli.parseAsync(
-  //       [...meta.name.split(' '), ...['-C', rootPath]],
-  //       {
-  //         from: 'user',
-  //       },
-  //     );
-  //     const actualFiles = await crawlFs(rootPath);
-
-  //     expect(actualFiles.keys()).toMatchSnapshot();
-  //     expect(actualFiles).toMatchSnapshot();
-  //     expect(out).toMatchSnapshot();
-  //     expect(err).toMatchSnapshot();
-  //   },
-  // );
 });

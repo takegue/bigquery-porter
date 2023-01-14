@@ -10,12 +10,12 @@
       "specialGroup": "projectOwners"
     },
     {
-      "role": "READER",
-      "specialGroup": "projectReaders"
+      "role": "OWNER",
+      "userByEmail": "takegue@gmail.com"
     },
     {
       "role": "READER",
-      "userByEmail": "github-action@bqmake.iam.gserviceaccount.com"
+      "specialGroup": "projectReaders"
     }
   ],
   "location": "US"

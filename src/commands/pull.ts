@@ -13,11 +13,10 @@ import { syncMetadata } from '../../src/metadata.js';
 import {
   BigQueryResource,
   bq2path,
-  buildThrottledBigQueryClient,
   normalizeShardingTableId,
 } from '../..//src/bigquery.js';
 
-import { ReporterMap } from '../../src/reporter/index.js';
+import { BuiltInReporters, ReporterMap } from '../../src/reporter/index.js';
 import { Task } from '../../src/tasks/base.js';
 import 'process';
 
@@ -68,11 +67,12 @@ execute immediate (
 )`;
 
 type PullContext = {
+  BQIDs: string[];
   forceAll: boolean;
   rootPath: string;
   BigQuery: BigQuery;
-  defaultProjectId: string | undefined;
   withDDL: boolean;
+  reporter: string;
 };
 
 type ResultBQResource = {
@@ -133,7 +133,7 @@ const buildDDLFetcher = (
         jobPrefix: `bqport-metadata_import-`,
       })
       .catch((e) => {
-        console.log(e.message);
+        console.error(e.message);
         return [];
       });
     if (!job) {
@@ -166,7 +166,7 @@ const fsWriter = async (
 ) => {
   const fsPath = bq2path(
     bqObj as BigQueryResource,
-    ctx.defaultProjectId !== bqObj.projectId,
+    (await ctx.BigQuery.getProjectId()) !== bqObj.projectId,
   );
   const pathDir = `${ctx.rootPath}/${fsPath}`;
   const retFiles: string[] = [];
@@ -174,8 +174,6 @@ const fsWriter = async (
   if (!fs.existsSync(pathDir)) {
     await fs.promises.mkdir(pathDir, { recursive: true });
   }
-  console.error(pathDir);
-
   const modified = await syncMetadata(bqObj, pathDir, { push: false })
     .catch((e) => {
       console.error('syncerror', e, bqObj);
@@ -209,7 +207,7 @@ const fsWriter = async (
   }
 
   const pathDDL = `${pathDir}/ddl.sql`;
-  const regexp = new RegExp(`\`${ctx.defaultProjectId}\`.`);
+  const regexp = new RegExp(`\`${await ctx.BigQuery.getProjectId()}\`.`);
   const cleanedDDL = ddlStatement
     .replace(/\r\n/g, '\n')
     .replace('CREATE PROCEDURE', 'CREATE OR REPLACE PROCEDURE')
@@ -236,6 +234,10 @@ const fsWriter = async (
 async function* crawlBigQueryDataset(
   dataset: Dataset,
 ): AsyncGenerator<Table | Model | Routine> {
+  // WORKAORUND: dataset object may not have projectId nevertheless it is required to get resources
+  dataset['projectId'] = dataset.projectId ??
+    dataset?.metadata?.datasetReference?.projectId;
+
   const [models] = await dataset.getModels();
   for (const model of models) {
     yield model;
@@ -293,6 +295,7 @@ async function crawlBigQueryProject(
   const bqProjectId = project.kind == 'special'
     ? project.resolved_value
     : project.value;
+
   const projectDir = `${ctx.rootPath}/${project.value}`;
   if (!fs.existsSync(projectDir)) {
     await fs.promises.mkdir(projectDir, { recursive: true });
@@ -315,6 +318,7 @@ async function crawlBigQueryProject(
       const [datasets] = await ctx.BigQuery.getDatasets(
         opt as GetDatasetsOptions,
       );
+
       const actualDatasets = datasets
         .filter((d) =>
           ctx.forceAll || !fsDatasets || (d.id && fsDatasets?.includes(d.id))
@@ -343,14 +347,17 @@ async function crawlBigQueryProject(
         actualDatasets
           .map(async (dataset: Dataset) => {
             cnt++;
-            // dataset['projectId'] = projectId ?? ctx.defaultProjectId;
             for await (const bqObj of crawlBigQueryDataset(dataset)) {
               cnt++;
               cb(await buildTask(bqObj));
             }
           }),
       );
-      await p;
+      for (const e of await p) {
+        if (e.status === 'rejected') {
+          console.error(e);
+        }
+      }
       return `Total ${cnt} resources`;
     },
   );
@@ -373,35 +380,11 @@ const groupByProject = (BQIDs: string[]): Map<string, Set<string>> => {
   }, new Map());
 };
 
-async function pullBigQueryResources({
-  BQIDs,
-  projectId,
-  rootDir,
-  withDDL,
-  forceAll,
-}: {
-  BQIDs: string[];
-  projectId?: string;
-  rootDir: string;
-  withDDL?: boolean;
-  forceAll?: boolean;
-}): Promise<number> {
-  const bqClient = buildThrottledBigQueryClient(20, 500);
-  const ctx: PullContext = {
-    defaultProjectId: projectId ?? '@default',
-    rootPath: rootDir,
-    withDDL: withDDL ?? false,
-    forceAll: forceAll ?? false,
-    BigQuery: bqClient,
-  };
-
-  const projectDir = `${rootDir}/${projectId ?? '@default'}`;
-  if (!fs.existsSync(projectDir)) {
-    await fs.promises.mkdir(projectDir, { recursive: true });
-  }
-
+async function pullBigQueryResources(
+  ctx: PullContext,
+): Promise<number> {
   // Grouping BQIDs by project
-  const targets: Map<string, Set<string>> = groupByProject(BQIDs);
+  const targets: Map<string, Set<string>> = groupByProject(ctx.BQIDs);
 
   const tasks: Task[] = [];
   const appendTask = (t: Task) => {
@@ -414,7 +397,9 @@ async function pullBigQueryResources({
     await crawlBigQueryProject(ctx, p, [...allowDatasets], appendTask);
   }
 
-  const reporter = new ReporterMap['json']();
+  const reporterType: BuiltInReporters =
+    (ctx.reporter ?? 'console') as BuiltInReporters;
+  const reporter = new ReporterMap[reporterType]();
   try {
     reporter.onInit(tasks);
     tasks.forEach((t) => t.run());
