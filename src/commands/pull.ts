@@ -83,6 +83,36 @@ type ResultBQResource = {
   resource_type: string;
 };
 
+type NormalProject = {
+  kind: 'normal';
+  value: string;
+};
+type SpecialProject = {
+  kind: 'special';
+  value: '@default';
+  resolved_value: string;
+};
+
+type BQPPRojectID = NormalProject | SpecialProject;
+
+const parseProjectID = async (
+  ctx: PullContext,
+  projectID: string,
+): Promise<BQPPRojectID> => {
+  if (projectID === '@default') {
+    return {
+      kind: 'special',
+      value: '@default',
+      resolved_value: await ctx.BigQuery.getProjectId(),
+    };
+  } else {
+    return {
+      kind: 'normal',
+      value: projectID,
+    };
+  }
+};
+
 const buildDDLFetcher = (
   bqClient: BigQuery,
   projectId: string,
@@ -206,12 +236,15 @@ async function* crawlBigQueryDataset(
   dataset: Dataset,
 ): AsyncGenerator<Table | Model | Routine> {
   const [models] = await dataset.getModels();
+  console.log(models);
   for (const model of models) {
     yield model;
   }
 
   const [routines] = await dataset.getRoutines();
+  console.log(routines);
   for (const routine of routines) {
+    console.log(routine);
     yield routine;
   }
 
@@ -221,6 +254,7 @@ async function* crawlBigQueryDataset(
     const [table] of dataset.getTablesStream()
       .on('error', console.error)
   ) {
+    console.log(table);
     const sharedName = normalizeShardingTableId(table.id);
     if (table.id != sharedName) {
       if (registeredShards.has(sharedName)) {
@@ -306,17 +340,20 @@ async function crawlBigQueryProject(
       }
       const buildTask = pullMetadataTaskBuilder(ctx, fetcher);
 
-      await Promise.allSettled(
+      const p = Promise.allSettled(
         actualDatasets
           .map(async (dataset: Dataset) => {
             cnt++;
             dataset['projectId'] = projectId ?? ctx.defaultProjectId;
             for await (const bqObj of crawlBigQueryDataset(dataset)) {
               cnt++;
+              console.log(bqObj);
               await buildTask(bqObj);
             }
           }),
       );
+      await p;
+      console.dir(p, { depth: 10 });
       return `Total ${cnt} resources`;
     },
   );
@@ -353,11 +390,6 @@ async function pullBigQueryResources({
   forceAll?: boolean;
 }): Promise<number> {
   const bqClient = buildThrottledBigQueryClient(20, 500);
-  const projectDir = `${rootDir}/${projectId ?? '@default'}`;
-  if (!fs.existsSync(projectDir)) {
-    await fs.promises.mkdir(projectDir, { recursive: true });
-  }
-
   const ctx: PullContext = {
     defaultProjectId: projectId ?? '@default',
     rootPath: rootDir,
@@ -365,6 +397,12 @@ async function pullBigQueryResources({
     forceAll: forceAll ?? false,
     BigQuery: bqClient,
   };
+
+  parseProjectID(ctx, projectId ?? '@default');
+  const projectDir = `${rootDir}/${projectId ?? '@default'}`;
+  if (!fs.existsSync(projectDir)) {
+    await fs.promises.mkdir(projectDir, { recursive: true });
+  }
 
   // Grouping BQIDs by project
   const targets: Map<string, Set<string>> = groupByProject(BQIDs);
