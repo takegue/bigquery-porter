@@ -17,6 +17,7 @@ interface CLITestContext {
 }
 
 describe('CLIv2: pull', () => {
+  const tempDir = path.join(tmpdir(), `bqport-`);
   const setupCommanderForTest = (c: Command, out: string[], err: string[]) => {
     c
       .exitOverride((e: Error) => {
@@ -58,7 +59,7 @@ describe('CLIv2: pull', () => {
     ctx.cli = cli;
     ctx.out = out;
     ctx.err = err;
-    ctx.rootPath = path.resolve(fs.mkdtempSync(`${tmpdir()}${path.sep}`));
+    ctx.rootPath = path.resolve(fs.mkdtempSync(tempDir));
   });
 
   afterEach(async () => {
@@ -81,6 +82,19 @@ describe('CLIv2: pull', () => {
 
   it<CLITestContext>(
     `pull --all`,
+    async ({ meta, cli, out, err, rootPath }) => {
+      await cli.parseAsync([...meta.name.split(' '), ...['-C', rootPath]], {
+        from: 'user',
+      });
+      expect(await crawlFs(path.join(rootPath, '@default')))
+        .toMatchSnapshot();
+      expect(err).toMatchSnapshot();
+      // expect(out).toMatchSnapshot();
+    },
+  );
+
+  it<CLITestContext>(
+    `pull --format=json bigquery-public-data.baseball`,
     async ({ meta, cli, out, err, rootPath }) => {
       await cli.parseAsync([...meta.name.split(' '), ...['-C', rootPath]], {
         from: 'user',

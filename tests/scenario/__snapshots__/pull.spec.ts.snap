@@ -1,12 +1,442 @@
 // Vitest Snapshot v1
 
-exports[`CLIv2: pull > pull --all 1`] = `Map {}`;
+exports[`CLIv2: pull > pull --all 1`] = `
+Map {
+  "sandbox/@models/mymodel/metadata.json" => "{
+  \\"modelType\\": \\"LINEAR_REGRESSION\\",
+  \\"featureColumns\\": [
+    {
+      \\"name\\": \\"column1\\",
+      \\"type\\": {
+        \\"typeKind\\": \\"INT64\\"
+      }
+    },
+    {
+      \\"name\\": \\"column2\\",
+      \\"type\\": {
+        \\"typeKind\\": \\"INT64\\"
+      }
+    },
+    {
+      \\"name\\": \\"column3\\",
+      \\"type\\": {
+        \\"typeKind\\": \\"INT64\\"
+      }
+    }
+  ],
+  \\"labelColumns\\": [
+    {
+      \\"name\\": \\"predicted_label\\",
+      \\"type\\": {
+        \\"typeKind\\": \\"INT64\\"
+      }
+    }
+  ],
+  \\"trainingRuns\\": [
+    {
+      \\"trainingOptions\\": {
+        \\"maxIterations\\": \\"5\\",
+        \\"lossType\\": \\"MEAN_SQUARED_LOSS\\",
+        \\"l1Regularization\\": 1,
+        \\"l2Regularization\\": 0,
+        \\"minRelativeProgress\\": 0.01,
+        \\"warmStart\\": false,
+        \\"earlyStop\\": true,
+        \\"dataSplitMethod\\": \\"AUTO_SPLIT\\",
+        \\"learnRateStrategy\\": \\"LINE_SEARCH\\",
+        \\"initialLearnRate\\": 0.15,
+        \\"optimizationStrategy\\": \\"BATCH_GRADIENT_DESCENT\\",
+        \\"calculatePValues\\": false,
+        \\"preserveInputStructs\\": false
+      },
+      \\"trainingStartTime\\": \\"1672534389200\\",
+      \\"results\\": [
+        {
+          \\"index\\": 0,
+          \\"durationMs\\": \\"2231\\",
+          \\"trainingLoss\\": 1491.053977063737,
+          \\"learnRate\\": 0.3
+        },
+        {
+          \\"index\\": 1,
+          \\"durationMs\\": \\"1991\\",
+          \\"trainingLoss\\": 241.92978201881198,
+          \\"learnRate\\": 0.6
+        },
+        {
+          \\"index\\": 2,
+          \\"durationMs\\": \\"2178\\",
+          \\"trainingLoss\\": 41.69727113362372,
+          \\"learnRate\\": 0.6
+        },
+        {
+          \\"index\\": 3,
+          \\"durationMs\\": \\"2166\\",
+          \\"trainingLoss\\": 7.920357012251959,
+          \\"learnRate\\": 0.6
+        },
+        {
+          \\"index\\": 4,
+          \\"durationMs\\": \\"2040\\",
+          \\"trainingLoss\\": 2.6036132184550516,
+          \\"learnRate\\": 0.6
+        }
+      ],
+      \\"evaluationMetrics\\": {
+        \\"regressionMetrics\\": {
+          \\"meanAbsoluteError\\": 1.3283107802514804,
+          \\"meanSquaredError\\": 2.6036132184550516,
+          \\"meanSquaredLogError\\": 0.0012176719511574185,
+          \\"medianAbsoluteError\\": 1.0159802433960294,
+          \\"rSquared\\": 0.9968441051897514
+        }
+      },
+      \\"startTime\\": \\"2023-01-01T00:53:09.200Z\\"
+    }
+  ]
+}",
+  "sandbox/@routines/sample_function/README.md" => "test",
+  "sandbox/@routines/sample_function/metadata.json" => "{
+  \\"routineType\\": \\"SCALAR_FUNCTION\\",
+  \\"language\\": \\"SQL\\",
+  \\"arguments\\": [
+    {
+      \\"name\\": \\"argument\\",
+      \\"dataType\\": {
+        \\"typeKind\\": \\"INT64\\"
+      }
+    }
+  ],
+  \\"returnType\\": {
+    \\"typeKind\\": \\"INT64\\"
+  }
+}",
+  "sandbox/@routines/sample_procedure/metadata.json" => "{
+  \\"routineType\\": \\"PROCEDURE\\",
+  \\"language\\": \\"SQL\\",
+  \\"arguments\\": [
+    {
+      \\"name\\": \\"sample_argument\\",
+      \\"mode\\": \\"IN\\",
+      \\"dataType\\": {
+        \\"typeKind\\": \\"INT64\\"
+      }
+    }
+  ]
+}",
+  "sandbox/@routines/sample_tvf/metadata.json" => "{
+  \\"routineType\\": \\"TABLE_VALUED_FUNCTION\\",
+  \\"language\\": \\"SQL\\",
+  \\"arguments\\": [
+    {
+      \\"name\\": \\"argument\\",
+      \\"dataType\\": {
+        \\"typeKind\\": \\"INT64\\"
+      }
+    }
+  ],
+  \\"returnTableType\\": {
+    \\"columns\\": [
+      {
+        \\"name\\": \\"a\\",
+        \\"type\\": {
+          \\"typeKind\\": \\"INT64\\"
+        }
+      }
+    ]
+  }
+}",
+  "sandbox/sample_clone_table/metadata.json" => "{
+  \\"type\\": \\"TABLE\\",
+  \\"clustering\\": {
+    \\"fields\\": [
+      \\"a\\"
+    ]
+  }
+}",
+  "sandbox/sample_clone_table/schema.json" => "[
+  {
+    \\"name\\": \\"a\\",
+    \\"type\\": \\"INTEGER\\"
+  }
+]",
+  "sandbox/sample_materialized_view/metadata.json" => "{
+  \\"type\\": \\"MATERIALIZED_VIEW\\"
+}",
+  "sandbox/sample_materialized_view/schema.json" => "[
+  {
+    \\"name\\": \\"a\\",
+    \\"type\\": \\"INTEGER\\"
+  }
+]",
+  "sandbox/sample_partition_table/metadata.json" => "{
+  \\"type\\": \\"TABLE\\",
+  \\"timePartitioning\\": {
+    \\"type\\": \\"DAY\\",
+    \\"field\\": \\"date_jst\\"
+  }
+}",
+  "sandbox/sample_partition_table/schema.json" => "[
+  {
+    \\"name\\": \\"date_jst\\",
+    \\"type\\": \\"DATE\\"
+  }
+]",
+  "sandbox/sample_sharding_@/metadata.json" => "{
+  \\"type\\": \\"TABLE\\"
+}",
+  "sandbox/sample_sharding_@/schema.json" => "[
+  {
+    \\"name\\": \\"date_jst\\",
+    \\"type\\": \\"DATE\\"
+  }
+]",
+  "sandbox/sample_snapshot_table/metadata.json" => "{
+  \\"type\\": \\"SNAPSHOT\\",
+  \\"snapshotDefinition\\": {
+    \\"baseTableReference\\": {
+      \\"projectId\\": \\"takegue\\",
+      \\"datasetId\\": \\"sandbox\\",
+      \\"tableId\\": \\"sample_table\\"
+    },
+    \\"snapshotTime\\": \\"2023-01-01T01:12:07.322Z\\"
+  },
+  \\"cloneDefinition\\": {
+    \\"baseTableReference\\": {
+      \\"projectId\\": \\"takegue\\",
+      \\"datasetId\\": \\"sandbox\\",
+      \\"tableId\\": \\"sample_table\\"
+    },
+    \\"snapshotTime\\": \\"2023-01-01T01:12:07.322Z\\"
+  }
+}",
+  "sandbox/sample_snapshot_table/schema.json" => "[
+  {
+    \\"name\\": \\"a\\",
+    \\"type\\": \\"INTEGER\\",
+    \\"description\\": \\"ふがふが\\\\nふが\\"
+  }
+]",
+  "sandbox/sample_table/metadata.json" => "{
+  \\"type\\": \\"TABLE\\",
+  \\"clustering\\": {
+    \\"fields\\": [
+      \\"a\\"
+    ]
+  }
+}",
+  "sandbox/sample_table/schema.json" => "[
+  {
+    \\"name\\": \\"a\\",
+    \\"type\\": \\"INTEGER\\",
+    \\"description\\": \\"ふがふが\\\\nふが\\"
+  }
+]",
+  "sandbox/sample_view/metadata.json" => "{
+  \\"type\\": \\"VIEW\\"
+}",
+  "sandbox/sample_view/schema.json" => "[
+  {
+    \\"name\\": \\"unique_key\\",
+    \\"type\\": \\"STRING\\",
+    \\"mode\\": \\"NULLABLE\\"
+  },
+  {
+    \\"name\\": \\"complaint_description\\",
+    \\"type\\": \\"STRING\\",
+    \\"mode\\": \\"NULLABLE\\"
+  },
+  {
+    \\"name\\": \\"source\\",
+    \\"type\\": \\"STRING\\",
+    \\"mode\\": \\"NULLABLE\\"
+  },
+  {
+    \\"name\\": \\"status\\",
+    \\"type\\": \\"STRING\\",
+    \\"mode\\": \\"NULLABLE\\"
+  },
+  {
+    \\"name\\": \\"status_change_date\\",
+    \\"type\\": \\"TIMESTAMP\\",
+    \\"mode\\": \\"NULLABLE\\"
+  },
+  {
+    \\"name\\": \\"created_date\\",
+    \\"type\\": \\"TIMESTAMP\\",
+    \\"mode\\": \\"NULLABLE\\"
+  },
+  {
+    \\"name\\": \\"last_update_date\\",
+    \\"type\\": \\"TIMESTAMP\\",
+    \\"mode\\": \\"NULLABLE\\"
+  },
+  {
+    \\"name\\": \\"close_date\\",
+    \\"type\\": \\"TIMESTAMP\\",
+    \\"mode\\": \\"NULLABLE\\"
+  },
+  {
+    \\"name\\": \\"incident_address\\",
+    \\"type\\": \\"STRING\\",
+    \\"mode\\": \\"NULLABLE\\"
+  },
+  {
+    \\"name\\": \\"street_number\\",
+    \\"type\\": \\"STRING\\",
+    \\"mode\\": \\"NULLABLE\\"
+  },
+  {
+    \\"name\\": \\"street_name\\",
+    \\"type\\": \\"STRING\\",
+    \\"mode\\": \\"NULLABLE\\"
+  },
+  {
+    \\"name\\": \\"city\\",
+    \\"type\\": \\"STRING\\",
+    \\"mode\\": \\"NULLABLE\\"
+  },
+  {
+    \\"name\\": \\"incident_zip\\",
+    \\"type\\": \\"INTEGER\\",
+    \\"mode\\": \\"NULLABLE\\"
+  },
+  {
+    \\"name\\": \\"county\\",
+    \\"type\\": \\"STRING\\",
+    \\"mode\\": \\"NULLABLE\\"
+  },
+  {
+    \\"name\\": \\"state_plane_x_coordinate\\",
+    \\"type\\": \\"STRING\\",
+    \\"mode\\": \\"NULLABLE\\"
+  },
+  {
+    \\"name\\": \\"state_plane_y_coordinate\\",
+    \\"type\\": \\"FLOAT\\",
+    \\"mode\\": \\"NULLABLE\\"
+  },
+  {
+    \\"name\\": \\"latitude\\",
+    \\"type\\": \\"FLOAT\\",
+    \\"mode\\": \\"NULLABLE\\"
+  },
+  {
+    \\"name\\": \\"longitude\\",
+    \\"type\\": \\"FLOAT\\",
+    \\"mode\\": \\"NULLABLE\\"
+  },
+  {
+    \\"name\\": \\"location\\",
+    \\"type\\": \\"STRING\\",
+    \\"mode\\": \\"NULLABLE\\"
+  },
+  {
+    \\"name\\": \\"council_district_code\\",
+    \\"type\\": \\"INTEGER\\",
+    \\"mode\\": \\"NULLABLE\\"
+  },
+  {
+    \\"name\\": \\"map_page\\",
+    \\"type\\": \\"STRING\\",
+    \\"mode\\": \\"NULLABLE\\"
+  },
+  {
+    \\"name\\": \\"map_tile\\",
+    \\"type\\": \\"STRING\\",
+    \\"mode\\": \\"NULLABLE\\"
+  }
+]",
+  "sandbox/sample_view/view.sql" => "SELECT * FROM \`bigquery-public-data.austin_311.311_service_requests\` LIMIT 1000
+",
+  "zzHXMX7Z/@routines/sample_routine/metadata.json" => "{
+  \\"routineType\\": \\"SCALAR_FUNCTION\\",
+  \\"language\\": \\"SQL\\",
+  \\"arguments\\": [
+    {
+      \\"name\\": \\"from\\",
+      \\"dataType\\": {
+        \\"typeKind\\": \\"STRING\\"
+      }
+    }
+  ],
+  \\"returnType\\": {
+    \\"typeKind\\": \\"STRING\\"
+  }
+}",
+  "zzHXMX7Z/sample_table/README.md" => "sample table",
+  "zzHXMX7Z/sample_table/metadata.json" => "{
+  \\"type\\": \\"TABLE\\"
+}",
+  "zzHXMX7Z/sample_table/schema.json" => "[
+  {
+    \\"name\\": \\"id\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"name\\",
+    \\"type\\": \\"STRING\\"
+  }
+]",
+  "zzrIxASZ/@routines/sample_routine/metadata.json" => "{
+  \\"routineType\\": \\"SCALAR_FUNCTION\\",
+  \\"language\\": \\"SQL\\",
+  \\"arguments\\": [
+    {
+      \\"name\\": \\"from\\",
+      \\"dataType\\": {
+        \\"typeKind\\": \\"STRING\\"
+      }
+    }
+  ],
+  \\"returnType\\": {
+    \\"typeKind\\": \\"STRING\\"
+  }
+}",
+  "zzrIxASZ/sample_table/README.md" => "sample table",
+  "zzrIxASZ/sample_table/metadata.json" => "{
+  \\"type\\": \\"TABLE\\"
+}",
+  "zzrIxASZ/sample_table/schema.json" => "[
+  {
+    \\"name\\": \\"id\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"name\\",
+    \\"type\\": \\"STRING\\"
+  }
+]",
+}
+`;
 
-exports[`CLIv2: pull > pull --all 2`] = `[]`;
-
-exports[`CLIv2: pull > pull --all 3`] = `
+exports[`CLIv2: pull > pull --all 2`] = `
 [
-  "{\\"name\\":\\"# Check All Dataset and Resources\\",\\"result\\":\\"Total 3 resources\\"}",
+  "/tmp/bqport-kYtOIQ/@default/sandbox/@models/mymodel",
+  "/tmp/bqport-kYtOIQ/@default/sandbox/@routines/sample_function",
+  "/tmp/bqport-kYtOIQ/@default/sandbox/@routines/sample_procedure",
+  "/tmp/bqport-kYtOIQ/@default/sandbox/@routines/sample_tvf",
+  "/tmp/bqport-kYtOIQ/@default/zzrIxASZ/@routines/sample_routine",
+  "/tmp/bqport-kYtOIQ/@default/zzHXMX7Z/@routines/sample_routine",
+  "/tmp/bqport-kYtOIQ/@default/sandbox/sample_clone_table",
+  "/tmp/bqport-kYtOIQ/@default/sandbox/sample_materialized_view",
+  "/tmp/bqport-kYtOIQ/@default/sandbox/sample_partition_table",
+  "/tmp/bqport-kYtOIQ/@default/sandbox/sample_sharding_@",
+  "/tmp/bqport-kYtOIQ/@default/sandbox/sample_snapshot_table",
+  "/tmp/bqport-kYtOIQ/@default/sandbox/sample_table",
+  "/tmp/bqport-kYtOIQ/@default/sandbox/sample_view",
+  "/tmp/bqport-kYtOIQ/@default/zzrIxASZ/sample_table",
+  "/tmp/bqport-kYtOIQ/@default/zzHXMX7Z/sample_table",
+]
+`;
+
+exports[`CLIv2: pull > pull --format=json bigquery-public-data.baseball 1`] = `Map {}`;
+
+exports[`CLIv2: pull > pull --format=json bigquery-public-data.baseball 2`] = `[]`;
+
+exports[`CLIv2: pull > pull --format=json bigquery-public-data.baseball 3`] = `
+[
+  "{\\"name\\":\\"# Check All Dataset and Resources\\",\\"result\\":\\"Total 1 resources\\"}",
 ]
 `;
 

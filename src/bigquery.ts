@@ -101,6 +101,10 @@ const bq2path = (bqObj: BigQueryResource, asDefaultProject: boolean) => {
     tree.push(bqObj.projectId);
   } else if (bqObj.parent?.projectId) {
     tree.push(bqObj.parent.projectId);
+  } else if (bqObj.parent?.parent?.projectId) {
+    tree.push(bqObj.parent.parent.projectId);
+  } else {
+    throw new Error(`Cannot find projectId ${bqObj}`);
   }
 
   const ns = bqObj.baseUrl?.replace('/', '@');
