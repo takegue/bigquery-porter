@@ -1,4 +1,4 @@
-import type {
+import {
   BigQuery,
   Dataset,
   GetDatasetsOptions,
@@ -33,21 +33,23 @@ if schemas is null then
   ) into schemas;
 end if;
 
+begin
+  execute immediate format("""
+  create or replace temporary table bqport_ddl_schema
+    as select 'SCHEMA' as type, schema_name as name, ddl
+    from \`%s.INFORMATION_SCHEMA.SCHEMATA\`;
+  """, catalog);
+exception when error then
+  create temporary table bqport_ddl_schema(type STRING, name STRING, ddl STRING);
+end;
+
 execute immediate (
   select as value
-    ifnull("union distinct " || string_agg(template, "union distinct"), "")
+    ifnull("select * from bqport_ddl_schema union distinct " || string_agg(template, "union distinct"), "")
   from unnest(schemas) schema
   left join unnest([format("%s.%s", catalog, schema)]) as identifier
   left join unnest([struct(
-    format("""
-      select
-        'SCHEMA' as type
-        , schema_name as name
-        , ddl
-      from \`%s.INFORMATION_SCHEMA.SCHEMATA\`
-    """, catalog
-    ) as sql_schema
-    , format(
+    format(
       """-- SQL TEMPLATE
       select
         'ROUTINE' as type
@@ -164,9 +166,28 @@ const fsWriter = async (
   bqObj: Dataset | Model | Table | Routine,
   ddlReader?: (bqId: string) => Promise<string | undefined>,
 ) => {
+  const bqObjprojectID = ((): string => {
+    if (bqObj instanceof Model) {
+      return bqObj.metadata.modelReference.projectId;
+    }
+
+    if (bqObj instanceof Table) {
+      return bqObj.metadata.tableReference.projectId;
+    }
+
+    if (bqObj instanceof Routine) {
+      return bqObj.metadata.routineReference.projectId;
+    }
+
+    if (bqObj instanceof Dataset) {
+      return bqObj.metadata.datasetReference.projectId;
+    }
+    throw Error('fsWriter: Exception');
+  })();
+
   const fsPath = bq2path(
     bqObj as BigQueryResource,
-    (await ctx.BigQuery.getProjectId()) !== bqObj.projectId,
+    (await ctx.BigQuery.getProjectId()) == bqObjprojectID,
   );
   const pathDir = `${ctx.rootPath}/${fsPath}`;
   const retFiles: string[] = [];
@@ -311,7 +332,6 @@ async function crawlBigQueryProject(
     '# Check All Dataset and Resources',
     async () => {
       let cnt = 0;
-
       const opt = project.kind === 'special'
         ? {}
         : { projectId: project.value };
@@ -334,10 +354,13 @@ async function crawlBigQueryProject(
             .filter((d): d is string => d != undefined),
         );
         cb(
-          new Task('# Check All Dataset and Resources/DDL', async () => {
-            await job;
-            return `DDL Job Done`;
-          }),
+          new Task(
+            `# Check All Dataset and Resources/DDL/${bqProjectId}`,
+            async () => {
+              await job;
+              return `Fetching DDL`;
+            },
+          ),
         );
         fetcher = reader;
       }

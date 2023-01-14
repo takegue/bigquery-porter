@@ -2,7 +2,7 @@
 
 exports[`CLIv2: pull > pull --all 1`] = `
 Map {
-  "sandbox/@models/mymodel/metadata.json" => "{
+  "@default/sandbox/@models/mymodel/metadata.json" => "{
   \\"modelType\\": \\"LINEAR_REGRESSION\\",
   \\"featureColumns\\": [
     {
@@ -95,8 +95,8 @@ Map {
     }
   ]
 }",
-  "sandbox/@routines/sample_function/README.md" => "test",
-  "sandbox/@routines/sample_function/metadata.json" => "{
+  "@default/sandbox/@routines/sample_function/README.md" => "test",
+  "@default/sandbox/@routines/sample_function/metadata.json" => "{
   \\"routineType\\": \\"SCALAR_FUNCTION\\",
   \\"language\\": \\"SQL\\",
   \\"arguments\\": [
@@ -111,7 +111,7 @@ Map {
     \\"typeKind\\": \\"INT64\\"
   }
 }",
-  "sandbox/@routines/sample_procedure/metadata.json" => "{
+  "@default/sandbox/@routines/sample_procedure/metadata.json" => "{
   \\"routineType\\": \\"PROCEDURE\\",
   \\"language\\": \\"SQL\\",
   \\"arguments\\": [
@@ -124,7 +124,7 @@ Map {
     }
   ]
 }",
-  "sandbox/@routines/sample_tvf/metadata.json" => "{
+  "@default/sandbox/@routines/sample_tvf/metadata.json" => "{
   \\"routineType\\": \\"TABLE_VALUED_FUNCTION\\",
   \\"language\\": \\"SQL\\",
   \\"arguments\\": [
@@ -146,7 +146,7 @@ Map {
     ]
   }
 }",
-  "sandbox/sample_clone_table/metadata.json" => "{
+  "@default/sandbox/sample_clone_table/metadata.json" => "{
   \\"type\\": \\"TABLE\\",
   \\"clustering\\": {
     \\"fields\\": [
@@ -154,44 +154,44 @@ Map {
     ]
   }
 }",
-  "sandbox/sample_clone_table/schema.json" => "[
+  "@default/sandbox/sample_clone_table/schema.json" => "[
   {
     \\"name\\": \\"a\\",
     \\"type\\": \\"INTEGER\\"
   }
 ]",
-  "sandbox/sample_materialized_view/metadata.json" => "{
+  "@default/sandbox/sample_materialized_view/metadata.json" => "{
   \\"type\\": \\"MATERIALIZED_VIEW\\"
 }",
-  "sandbox/sample_materialized_view/schema.json" => "[
+  "@default/sandbox/sample_materialized_view/schema.json" => "[
   {
     \\"name\\": \\"a\\",
     \\"type\\": \\"INTEGER\\"
   }
 ]",
-  "sandbox/sample_partition_table/metadata.json" => "{
+  "@default/sandbox/sample_partition_table/metadata.json" => "{
   \\"type\\": \\"TABLE\\",
   \\"timePartitioning\\": {
     \\"type\\": \\"DAY\\",
     \\"field\\": \\"date_jst\\"
   }
 }",
-  "sandbox/sample_partition_table/schema.json" => "[
+  "@default/sandbox/sample_partition_table/schema.json" => "[
   {
     \\"name\\": \\"date_jst\\",
     \\"type\\": \\"DATE\\"
   }
 ]",
-  "sandbox/sample_sharding_@/metadata.json" => "{
+  "@default/sandbox/sample_sharding_@/metadata.json" => "{
   \\"type\\": \\"TABLE\\"
 }",
-  "sandbox/sample_sharding_@/schema.json" => "[
+  "@default/sandbox/sample_sharding_@/schema.json" => "[
   {
     \\"name\\": \\"date_jst\\",
     \\"type\\": \\"DATE\\"
   }
 ]",
-  "sandbox/sample_snapshot_table/metadata.json" => "{
+  "@default/sandbox/sample_snapshot_table/metadata.json" => "{
   \\"type\\": \\"SNAPSHOT\\",
   \\"snapshotDefinition\\": {
     \\"baseTableReference\\": {
@@ -210,14 +210,14 @@ Map {
     \\"snapshotTime\\": \\"2023-01-01T01:12:07.322Z\\"
   }
 }",
-  "sandbox/sample_snapshot_table/schema.json" => "[
+  "@default/sandbox/sample_snapshot_table/schema.json" => "[
   {
     \\"name\\": \\"a\\",
     \\"type\\": \\"INTEGER\\",
     \\"description\\": \\"ふがふが\\\\nふが\\"
   }
 ]",
-  "sandbox/sample_table/metadata.json" => "{
+  "@default/sandbox/sample_table/metadata.json" => "{
   \\"type\\": \\"TABLE\\",
   \\"clustering\\": {
     \\"fields\\": [
@@ -225,17 +225,17 @@ Map {
     ]
   }
 }",
-  "sandbox/sample_table/schema.json" => "[
+  "@default/sandbox/sample_table/schema.json" => "[
   {
     \\"name\\": \\"a\\",
     \\"type\\": \\"INTEGER\\",
     \\"description\\": \\"ふがふが\\\\nふが\\"
   }
 ]",
-  "sandbox/sample_view/metadata.json" => "{
+  "@default/sandbox/sample_view/metadata.json" => "{
   \\"type\\": \\"VIEW\\"
 }",
-  "sandbox/sample_view/schema.json" => "[
+  "@default/sandbox/sample_view/schema.json" => "[
   {
     \\"name\\": \\"unique_key\\",
     \\"type\\": \\"STRING\\",
@@ -347,9 +347,9 @@ Map {
     \\"mode\\": \\"NULLABLE\\"
   }
 ]",
-  "sandbox/sample_view/view.sql" => "SELECT * FROM \`bigquery-public-data.austin_311.311_service_requests\` LIMIT 1000
+  "@default/sandbox/sample_view/view.sql" => "SELECT * FROM \`bigquery-public-data.austin_311.311_service_requests\` LIMIT 1000
 ",
-  "zzHXMX7Z/@routines/sample_routine/metadata.json" => "{
+  "@default/zzHXMX7Z/@routines/sample_routine/metadata.json" => "{
   \\"routineType\\": \\"SCALAR_FUNCTION\\",
   \\"language\\": \\"SQL\\",
   \\"arguments\\": [
@@ -364,11 +364,11 @@ Map {
     \\"typeKind\\": \\"STRING\\"
   }
 }",
-  "zzHXMX7Z/sample_table/README.md" => "sample table",
-  "zzHXMX7Z/sample_table/metadata.json" => "{
+  "@default/zzHXMX7Z/sample_table/README.md" => "sample table",
+  "@default/zzHXMX7Z/sample_table/metadata.json" => "{
   \\"type\\": \\"TABLE\\"
 }",
-  "zzHXMX7Z/sample_table/schema.json" => "[
+  "@default/zzHXMX7Z/sample_table/schema.json" => "[
   {
     \\"name\\": \\"id\\",
     \\"type\\": \\"INTEGER\\"
@@ -378,7 +378,7 @@ Map {
     \\"type\\": \\"STRING\\"
   }
 ]",
-  "zzrIxASZ/@routines/sample_routine/metadata.json" => "{
+  "@default/zzrIxASZ/@routines/sample_routine/metadata.json" => "{
   \\"routineType\\": \\"SCALAR_FUNCTION\\",
   \\"language\\": \\"SQL\\",
   \\"arguments\\": [
@@ -393,11 +393,11 @@ Map {
     \\"typeKind\\": \\"STRING\\"
   }
 }",
-  "zzrIxASZ/sample_table/README.md" => "sample table",
-  "zzrIxASZ/sample_table/metadata.json" => "{
+  "@default/zzrIxASZ/sample_table/README.md" => "sample table",
+  "@default/zzrIxASZ/sample_table/metadata.json" => "{
   \\"type\\": \\"TABLE\\"
 }",
-  "zzrIxASZ/sample_table/schema.json" => "[
+  "@default/zzrIxASZ/sample_table/schema.json" => "[
   {
     \\"name\\": \\"id\\",
     \\"type\\": \\"INTEGER\\"
@@ -412,12 +412,1583 @@ Map {
 
 exports[`CLIv2: pull > pull --all 2`] = `[]`;
 
+exports[`CLIv2: pull > pull --format=json --with-ddl bigquery-public-data.baseball 1`] = `
+Map {
+  "bigquery-public-data/baseball/games_post_wide/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-public-data.baseball.games_post_wide\`
+(
+  gameId STRING,
+  seasonId STRING,
+  seasonType STRING,
+  year INT64,
+  startTime TIMESTAMP,
+  gameStatus STRING,
+  attendance INT64,
+  dayNight STRING,
+  duration STRING,
+  durationMinutes INT64,
+  awayTeamId STRING,
+  awayTeamName STRING,
+  homeTeamId STRING,
+  homeTeamName STRING,
+  venueId STRING,
+  venueName STRING,
+  venueSurface STRING,
+  venueCapacity INT64,
+  venueCity STRING,
+  venueState STRING,
+  venueZip STRING,
+  venueMarket STRING,
+  venueOutfieldDistances STRING,
+  homeFinalRuns INT64,
+  homeFinalHits INT64,
+  homeFinalErrors INT64,
+  awayFinalRuns INT64,
+  awayFinalHits INT64,
+  awayFinalErrors INT64,
+  homeFinalRunsForInning INT64,
+  awayFinalRunsForInning INT64,
+  inningNumber INT64,
+  inningHalf STRING,
+  inningEventType STRING,
+  inningHalfEventSequenceNumber INT64,
+  description STRING,
+  atBatEventType STRING,
+  atBatEventSequenceNumber INT64,
+  createdAt TIMESTAMP,
+  updatedAt TIMESTAMP,
+  status STRING,
+  outcomeId STRING,
+  outcomeDescription STRING,
+  hitterId STRING,
+  hitterLastName STRING,
+  hitterFirstName STRING,
+  hitterWeight INT64,
+  hitterHeight INT64,
+  hitterBatHand STRING,
+  pitcherId STRING,
+  pitcherFirstName STRING,
+  pitcherLastName STRING,
+  pitcherThrowHand STRING,
+  pitchType STRING,
+  pitchTypeDescription STRING,
+  pitchSpeed INT64,
+  pitchZone INT64,
+  pitcherPitchCount INT64,
+  hitterPitchCount INT64,
+  hitLocation INT64,
+  hitType STRING,
+  startingBalls INT64,
+  startingStrikes INT64,
+  startingOuts INT64,
+  balls INT64,
+  strikes INT64,
+  outs INT64,
+  rob0_start STRING,
+  rob0_end INT64,
+  rob0_isOut STRING,
+  rob0_outcomeId STRING,
+  rob0_outcomeDescription STRING,
+  rob1_start STRING,
+  rob1_end INT64,
+  rob1_isOut STRING,
+  rob1_outcomeId STRING,
+  rob1_outcomeDescription STRING,
+  rob2_start STRING,
+  rob2_end INT64,
+  rob2_isOut STRING,
+  rob2_outcomeId STRING,
+  rob2_outcomeDescription STRING,
+  rob3_start STRING,
+  rob3_end INT64,
+  rob3_isOut STRING,
+  rob3_outcomeId STRING,
+  rob3_outcomeDescription STRING,
+  is_ab INT64,
+  is_ab_over INT64,
+  is_hit INT64,
+  is_on_base INT64,
+  is_bunt INT64,
+  is_bunt_shown INT64,
+  is_double_play INT64,
+  is_triple_play INT64,
+  is_wild_pitch INT64,
+  is_passed_ball INT64,
+  homeCurrentTotalRuns INT64,
+  awayCurrentTotalRuns INT64,
+  awayFielder1 STRING,
+  awayFielder2 STRING,
+  awayFielder3 STRING,
+  awayFielder4 STRING,
+  awayFielder5 STRING,
+  awayFielder6 STRING,
+  awayFielder7 STRING,
+  awayFielder8 STRING,
+  awayFielder9 STRING,
+  awayFielder10 STRING,
+  awayFielder11 STRING,
+  awayFielder12 STRING,
+  awayBatter1 STRING,
+  awayBatter2 STRING,
+  awayBatter3 STRING,
+  awayBatter4 STRING,
+  awayBatter5 STRING,
+  awayBatter6 STRING,
+  awayBatter7 STRING,
+  awayBatter8 STRING,
+  awayBatter9 STRING,
+  homeFielder1 STRING,
+  homeFielder2 STRING,
+  homeFielder3 STRING,
+  homeFielder4 STRING,
+  homeFielder5 STRING,
+  homeFielder6 STRING,
+  homeFielder7 STRING,
+  homeFielder8 STRING,
+  homeFielder9 STRING,
+  homeFielder10 STRING,
+  homeFielder11 STRING,
+  homeFielder12 STRING,
+  homeBatter1 STRING,
+  homeBatter2 STRING,
+  homeBatter3 STRING,
+  homeBatter4 STRING,
+  homeBatter5 STRING,
+  homeBatter6 STRING,
+  homeBatter7 STRING,
+  homeBatter8 STRING,
+  homeBatter9 STRING,
+  lineupTeamId STRING,
+  lineupPlayerId STRING,
+  lineupPosition INT64,
+  lineupOrder INT64
+);",
+  "bigquery-public-data/baseball/games_post_wide/metadata.json" => "{
+  \\"type\\": \\"TABLE\\"
+}",
+  "bigquery-public-data/baseball/games_post_wide/schema.json" => "[
+  {
+    \\"name\\": \\"gameId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"seasonId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"seasonType\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"year\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"startTime\\",
+    \\"type\\": \\"TIMESTAMP\\"
+  },
+  {
+    \\"name\\": \\"gameStatus\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"attendance\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"dayNight\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"duration\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"durationMinutes\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"awayTeamId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayTeamName\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeTeamId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeTeamName\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"venueId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"venueName\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"venueSurface\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"venueCapacity\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"venueCity\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"venueState\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"venueZip\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"venueMarket\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"venueOutfieldDistances\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeFinalRuns\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"homeFinalHits\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"homeFinalErrors\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"awayFinalRuns\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"awayFinalHits\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"awayFinalErrors\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"homeFinalRunsForInning\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"awayFinalRunsForInning\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"inningNumber\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"inningHalf\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"inningEventType\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"inningHalfEventSequenceNumber\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"description\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"atBatEventType\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"atBatEventSequenceNumber\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"createdAt\\",
+    \\"type\\": \\"TIMESTAMP\\"
+  },
+  {
+    \\"name\\": \\"updatedAt\\",
+    \\"type\\": \\"TIMESTAMP\\"
+  },
+  {
+    \\"name\\": \\"status\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"outcomeId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"outcomeDescription\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"hitterId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"hitterLastName\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"hitterFirstName\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"hitterWeight\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"hitterHeight\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"hitterBatHand\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"pitcherId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"pitcherFirstName\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"pitcherLastName\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"pitcherThrowHand\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"pitchType\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"pitchTypeDescription\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"pitchSpeed\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"pitchZone\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"pitcherPitchCount\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"hitterPitchCount\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"hitLocation\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"hitType\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"startingBalls\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"startingStrikes\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"startingOuts\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"balls\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"strikes\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"outs\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"rob0_start\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob0_end\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"rob0_isOut\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob0_outcomeId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob0_outcomeDescription\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob1_start\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob1_end\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"rob1_isOut\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob1_outcomeId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob1_outcomeDescription\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob2_start\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob2_end\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"rob2_isOut\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob2_outcomeId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob2_outcomeDescription\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob3_start\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob3_end\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"rob3_isOut\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob3_outcomeId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob3_outcomeDescription\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"is_ab\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"is_ab_over\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"is_hit\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"is_on_base\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"is_bunt\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"is_bunt_shown\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"is_double_play\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"is_triple_play\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"is_wild_pitch\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"is_passed_ball\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"homeCurrentTotalRuns\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"awayCurrentTotalRuns\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"awayFielder1\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayFielder2\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayFielder3\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayFielder4\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayFielder5\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayFielder6\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayFielder7\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayFielder8\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayFielder9\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayFielder10\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayFielder11\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayFielder12\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayBatter1\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayBatter2\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayBatter3\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayBatter4\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayBatter5\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayBatter6\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayBatter7\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayBatter8\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayBatter9\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeFielder1\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeFielder2\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeFielder3\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeFielder4\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeFielder5\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeFielder6\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeFielder7\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeFielder8\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeFielder9\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeFielder10\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeFielder11\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeFielder12\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeBatter1\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeBatter2\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeBatter3\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeBatter4\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeBatter5\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeBatter6\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeBatter7\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeBatter8\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeBatter9\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"lineupTeamId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"lineupPlayerId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"lineupPosition\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"lineupOrder\\",
+    \\"type\\": \\"INTEGER\\"
+  }
+]",
+  "bigquery-public-data/baseball/games_wide/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-public-data.baseball.games_wide\`
+(
+  gameId STRING,
+  seasonId STRING,
+  seasonType STRING,
+  year INT64,
+  startTime TIMESTAMP,
+  gameStatus STRING,
+  attendance INT64,
+  dayNight STRING,
+  duration STRING,
+  durationMinutes INT64,
+  awayTeamId STRING,
+  awayTeamName STRING,
+  homeTeamId STRING,
+  homeTeamName STRING,
+  venueId STRING,
+  venueName STRING,
+  venueSurface STRING,
+  venueCapacity INT64,
+  venueCity STRING,
+  venueState STRING,
+  venueZip STRING,
+  venueMarket STRING,
+  venueOutfieldDistances STRING,
+  homeFinalRuns INT64,
+  homeFinalHits INT64,
+  homeFinalErrors INT64,
+  awayFinalRuns INT64,
+  awayFinalHits INT64,
+  awayFinalErrors INT64,
+  homeFinalRunsForInning INT64,
+  awayFinalRunsForInning INT64,
+  inningNumber INT64,
+  inningHalf STRING,
+  inningEventType STRING,
+  inningHalfEventSequenceNumber INT64,
+  description STRING,
+  atBatEventType STRING,
+  atBatEventSequenceNumber INT64,
+  createdAt TIMESTAMP,
+  updatedAt TIMESTAMP,
+  status STRING,
+  outcomeId STRING,
+  outcomeDescription STRING,
+  hitterId STRING,
+  hitterLastName STRING,
+  hitterFirstName STRING,
+  hitterWeight INT64,
+  hitterHeight INT64,
+  hitterBatHand STRING,
+  pitcherId STRING,
+  pitcherFirstName STRING,
+  pitcherLastName STRING,
+  pitcherThrowHand STRING,
+  pitchType STRING,
+  pitchTypeDescription STRING,
+  pitchSpeed INT64,
+  pitchZone INT64,
+  pitcherPitchCount INT64,
+  hitterPitchCount INT64,
+  hitLocation INT64,
+  hitType STRING,
+  startingBalls INT64,
+  startingStrikes INT64,
+  startingOuts INT64,
+  balls INT64,
+  strikes INT64,
+  outs INT64,
+  rob0_start STRING,
+  rob0_end INT64,
+  rob0_isOut STRING,
+  rob0_outcomeId STRING,
+  rob0_outcomeDescription STRING,
+  rob1_start STRING,
+  rob1_end INT64,
+  rob1_isOut STRING,
+  rob1_outcomeId STRING,
+  rob1_outcomeDescription STRING,
+  rob2_start STRING,
+  rob2_end INT64,
+  rob2_isOut STRING,
+  rob2_outcomeId STRING,
+  rob2_outcomeDescription STRING,
+  rob3_start STRING,
+  rob3_end INT64,
+  rob3_isOut STRING,
+  rob3_outcomeId STRING,
+  rob3_outcomeDescription STRING,
+  is_ab INT64,
+  is_ab_over INT64,
+  is_hit INT64,
+  is_on_base INT64,
+  is_bunt INT64,
+  is_bunt_shown INT64,
+  is_double_play INT64,
+  is_triple_play INT64,
+  is_wild_pitch INT64,
+  is_passed_ball INT64,
+  homeCurrentTotalRuns INT64,
+  awayCurrentTotalRuns INT64,
+  awayFielder1 STRING,
+  awayFielder2 STRING,
+  awayFielder3 STRING,
+  awayFielder4 STRING,
+  awayFielder5 STRING,
+  awayFielder6 STRING,
+  awayFielder7 STRING,
+  awayFielder8 STRING,
+  awayFielder9 STRING,
+  awayFielder10 STRING,
+  awayFielder11 STRING,
+  awayFielder12 STRING,
+  awayBatter1 STRING,
+  awayBatter2 STRING,
+  awayBatter3 STRING,
+  awayBatter4 STRING,
+  awayBatter5 STRING,
+  awayBatter6 STRING,
+  awayBatter7 STRING,
+  awayBatter8 STRING,
+  awayBatter9 STRING,
+  homeFielder1 STRING,
+  homeFielder2 STRING,
+  homeFielder3 STRING,
+  homeFielder4 STRING,
+  homeFielder5 STRING,
+  homeFielder6 STRING,
+  homeFielder7 STRING,
+  homeFielder8 STRING,
+  homeFielder9 STRING,
+  homeFielder10 STRING,
+  homeFielder11 STRING,
+  homeFielder12 STRING,
+  homeBatter1 STRING,
+  homeBatter2 STRING,
+  homeBatter3 STRING,
+  homeBatter4 STRING,
+  homeBatter5 STRING,
+  homeBatter6 STRING,
+  homeBatter7 STRING,
+  homeBatter8 STRING,
+  homeBatter9 STRING,
+  lineupTeamId STRING,
+  lineupPlayerId STRING,
+  lineupPosition INT64,
+  lineupOrder INT64
+);",
+  "bigquery-public-data/baseball/games_wide/metadata.json" => "{
+  \\"type\\": \\"TABLE\\"
+}",
+  "bigquery-public-data/baseball/games_wide/schema.json" => "[
+  {
+    \\"name\\": \\"gameId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"seasonId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"seasonType\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"year\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"startTime\\",
+    \\"type\\": \\"TIMESTAMP\\"
+  },
+  {
+    \\"name\\": \\"gameStatus\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"attendance\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"dayNight\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"duration\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"durationMinutes\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"awayTeamId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayTeamName\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeTeamId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeTeamName\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"venueId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"venueName\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"venueSurface\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"venueCapacity\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"venueCity\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"venueState\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"venueZip\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"venueMarket\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"venueOutfieldDistances\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeFinalRuns\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"homeFinalHits\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"homeFinalErrors\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"awayFinalRuns\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"awayFinalHits\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"awayFinalErrors\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"homeFinalRunsForInning\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"awayFinalRunsForInning\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"inningNumber\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"inningHalf\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"inningEventType\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"inningHalfEventSequenceNumber\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"description\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"atBatEventType\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"atBatEventSequenceNumber\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"createdAt\\",
+    \\"type\\": \\"TIMESTAMP\\"
+  },
+  {
+    \\"name\\": \\"updatedAt\\",
+    \\"type\\": \\"TIMESTAMP\\"
+  },
+  {
+    \\"name\\": \\"status\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"outcomeId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"outcomeDescription\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"hitterId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"hitterLastName\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"hitterFirstName\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"hitterWeight\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"hitterHeight\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"hitterBatHand\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"pitcherId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"pitcherFirstName\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"pitcherLastName\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"pitcherThrowHand\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"pitchType\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"pitchTypeDescription\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"pitchSpeed\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"pitchZone\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"pitcherPitchCount\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"hitterPitchCount\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"hitLocation\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"hitType\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"startingBalls\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"startingStrikes\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"startingOuts\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"balls\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"strikes\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"outs\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"rob0_start\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob0_end\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"rob0_isOut\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob0_outcomeId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob0_outcomeDescription\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob1_start\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob1_end\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"rob1_isOut\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob1_outcomeId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob1_outcomeDescription\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob2_start\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob2_end\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"rob2_isOut\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob2_outcomeId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob2_outcomeDescription\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob3_start\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob3_end\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"rob3_isOut\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob3_outcomeId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"rob3_outcomeDescription\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"is_ab\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"is_ab_over\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"is_hit\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"is_on_base\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"is_bunt\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"is_bunt_shown\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"is_double_play\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"is_triple_play\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"is_wild_pitch\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"is_passed_ball\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"homeCurrentTotalRuns\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"awayCurrentTotalRuns\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"awayFielder1\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayFielder2\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayFielder3\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayFielder4\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayFielder5\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayFielder6\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayFielder7\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayFielder8\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayFielder9\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayFielder10\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayFielder11\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayFielder12\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayBatter1\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayBatter2\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayBatter3\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayBatter4\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayBatter5\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayBatter6\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayBatter7\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayBatter8\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayBatter9\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeFielder1\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeFielder2\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeFielder3\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeFielder4\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeFielder5\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeFielder6\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeFielder7\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeFielder8\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeFielder9\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeFielder10\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeFielder11\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeFielder12\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeBatter1\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeBatter2\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeBatter3\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeBatter4\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeBatter5\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeBatter6\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeBatter7\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeBatter8\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeBatter9\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"lineupTeamId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"lineupPlayerId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"lineupPosition\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"lineupOrder\\",
+    \\"type\\": \\"INTEGER\\"
+  }
+]",
+  "bigquery-public-data/baseball/schedules/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-public-data.baseball.schedules\`
+(
+  gameId STRING,
+  gameNumber INT64,
+  seasonId STRING,
+  year INT64,
+  type STRING,
+  dayNight STRING,
+  duration STRING,
+  duration_minutes INT64,
+  homeTeamId STRING,
+  homeTeamName STRING,
+  awayTeamId STRING,
+  awayTeamName STRING,
+  startTime TIMESTAMP,
+  attendance INT64,
+  status STRING,
+  created TIMESTAMP
+);",
+  "bigquery-public-data/baseball/schedules/metadata.json" => "{
+  \\"type\\": \\"TABLE\\"
+}",
+  "bigquery-public-data/baseball/schedules/schema.json" => "[
+  {
+    \\"name\\": \\"gameId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"gameNumber\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"seasonId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"year\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"type\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"dayNight\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"duration\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"duration_minutes\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"homeTeamId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"homeTeamName\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayTeamId\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"awayTeamName\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"startTime\\",
+    \\"type\\": \\"TIMESTAMP\\"
+  },
+  {
+    \\"name\\": \\"attendance\\",
+    \\"type\\": \\"INTEGER\\"
+  },
+  {
+    \\"name\\": \\"status\\",
+    \\"type\\": \\"STRING\\"
+  },
+  {
+    \\"name\\": \\"created\\",
+    \\"type\\": \\"TIMESTAMP\\"
+  }
+]",
+}
+`;
+
+exports[`CLIv2: pull > pull --format=json --with-ddl bigquery-public-data.baseball 2`] = `[]`;
+
+exports[`CLIv2: pull > pull --format=json --with-ddl bigquery-public-data.baseball 3`] = `
+[
+  "{\\"name\\":\\"# Check All Dataset and Resources\\",\\"result\\":\\"Total 4 resources\\"}",
+  "{\\"name\\":\\"# Check All Dataset and Resources/DDL/bigquery-public-data\\",\\"result\\":\\"Fetching DDL\\"}",
+  "{\\"name\\":\\"bigquery-public-data/baseball/games_post_wide/fetch metadata\\",\\"result\\":\\"Updated: schema.json, metadata.json, ddl.sql\\"}",
+  "{\\"name\\":\\"bigquery-public-data/baseball/games_wide/fetch metadata\\",\\"result\\":\\"Updated: schema.json, metadata.json, ddl.sql\\"}",
+  "{\\"name\\":\\"bigquery-public-data/baseball/schedules/fetch metadata\\",\\"result\\":\\"Updated: schema.json, metadata.json, ddl.sql\\"}",
+]
+`;
+
 exports[`CLIv2: pull > pull --format=json bigquery-public-data.baseball 1`] = `
 Map {
-  "baseball/games_post_wide/metadata.json" => "{
+  "bigquery-public-data/baseball/games_post_wide/metadata.json" => "{
   \\"type\\": \\"TABLE\\"
 }",
-  "baseball/games_post_wide/schema.json" => "[
+  "bigquery-public-data/baseball/games_post_wide/schema.json" => "[
   {
     \\"name\\": \\"gameId\\",
     \\"type\\": \\"STRING\\"
@@ -999,10 +2570,10 @@ Map {
     \\"type\\": \\"INTEGER\\"
   }
 ]",
-  "baseball/games_wide/metadata.json" => "{
+  "bigquery-public-data/baseball/games_wide/metadata.json" => "{
   \\"type\\": \\"TABLE\\"
 }",
-  "baseball/games_wide/schema.json" => "[
+  "bigquery-public-data/baseball/games_wide/schema.json" => "[
   {
     \\"name\\": \\"gameId\\",
     \\"type\\": \\"STRING\\"
@@ -1584,10 +3155,10 @@ Map {
     \\"type\\": \\"INTEGER\\"
   }
 ]",
-  "baseball/schedules/metadata.json" => "{
+  "bigquery-public-data/baseball/schedules/metadata.json" => "{
   \\"type\\": \\"TABLE\\"
 }",
-  "baseball/schedules/schema.json" => "[
+  "bigquery-public-data/baseball/schedules/schema.json" => "[
   {
     \\"name\\": \\"gameId\\",
     \\"type\\": \\"STRING\\"
