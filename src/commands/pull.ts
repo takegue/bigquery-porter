@@ -236,25 +236,21 @@ async function* crawlBigQueryDataset(
   dataset: Dataset,
 ): AsyncGenerator<Table | Model | Routine> {
   const [models] = await dataset.getModels();
-  console.log(models);
   for (const model of models) {
     yield model;
   }
 
   const [routines] = await dataset.getRoutines();
-  console.log(routines);
   for (const routine of routines) {
-    console.log(routine);
     yield routine;
   }
 
   const registeredShards = new Set<string>();
 
   for await (
-    const [table] of dataset.getTablesStream()
+    const table of dataset.getTablesStream()
       .on('error', console.error)
   ) {
-    console.log(table);
     const sharedName = normalizeShardingTableId(table.id);
     if (table.id != sharedName) {
       if (registeredShards.has(sharedName)) {
@@ -287,17 +283,16 @@ const pullMetadataTaskBuilder = (
   };
 };
 
-type OrdinalProjectID = string;
-type SpecialProjectID = '@default';
-type BigQueryProject = OrdinalProjectID | SpecialProjectID;
-
 async function crawlBigQueryProject(
   ctx: PullContext,
-  projectId: BigQueryProject,
+  project: BQPPRojectID,
   allowDatasets: string[],
   cb: (t: Task) => void,
 ) {
-  const projectDir = `${ctx.rootPath}/${projectId ?? '@default'}`;
+  const bqProjectId = project.kind == 'special'
+    ? project.resolved_value
+    : project.value;
+  const projectDir = `${ctx.rootPath}/${project.value}`;
   if (!fs.existsSync(projectDir)) {
     await fs.promises.mkdir(projectDir, { recursive: true });
   }
@@ -312,7 +307,10 @@ async function crawlBigQueryProject(
     '# Check All Dataset and Resources',
     async () => {
       let cnt = 0;
-      const opt = projectId === '@default' ? {} : { projectId };
+
+      const opt = project.kind === 'special'
+        ? {}
+        : { projectId: project.value };
       const [datasets] = await ctx.BigQuery.getDatasets(
         opt as GetDatasetsOptions,
       );
@@ -325,7 +323,7 @@ async function crawlBigQueryProject(
       if (ctx.withDDL) {
         const { job, reader } = buildDDLFetcher(
           ctx.BigQuery,
-          projectId,
+          bqProjectId,
           actualDatasets
             .map((d) => d.id)
             .filter((d): d is string => d != undefined),
@@ -344,16 +342,14 @@ async function crawlBigQueryProject(
         actualDatasets
           .map(async (dataset: Dataset) => {
             cnt++;
-            dataset['projectId'] = projectId ?? ctx.defaultProjectId;
+            // dataset['projectId'] = projectId ?? ctx.defaultProjectId;
             for await (const bqObj of crawlBigQueryDataset(dataset)) {
               cnt++;
-              console.log(bqObj);
-              await buildTask(bqObj);
+              cb(await buildTask(bqObj));
             }
           }),
       );
       await p;
-      console.dir(p, { depth: 10 });
       return `Total ${cnt} resources`;
     },
   );
@@ -398,7 +394,6 @@ async function pullBigQueryResources({
     BigQuery: bqClient,
   };
 
-  parseProjectID(ctx, projectId ?? '@default');
   const projectDir = `${rootDir}/${projectId ?? '@default'}`;
   if (!fs.existsSync(projectDir)) {
     await fs.promises.mkdir(projectDir, { recursive: true });
@@ -414,10 +409,11 @@ async function pullBigQueryResources({
   };
 
   for (const [project, allowDatasets] of targets) {
-    await crawlBigQueryProject(ctx, project, [...allowDatasets], appendTask);
+    const p = await parseProjectID(ctx, project);
+    await crawlBigQueryProject(ctx, p, [...allowDatasets], appendTask);
   }
 
-  const reporter = new ReporterMap['json']();
+  const reporter = new ReporterMap['default']();
   try {
     reporter.onInit(tasks);
     tasks.forEach((t) => t.run());
