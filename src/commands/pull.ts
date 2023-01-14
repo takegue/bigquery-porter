@@ -1,4 +1,4 @@
-import {
+import type {
   BigQuery,
   Dataset,
   GetDatasetsOptions,
@@ -13,8 +13,9 @@ import { syncMetadata } from '../../src/metadata.js';
 import {
   BigQueryResource,
   bq2path,
+  getProjectId,
   normalizeShardingTableId,
-} from '../..//src/bigquery.js';
+} from '../../src/bigquery.js';
 
 import { BuiltInReporters, ReporterMap } from '../../src/reporter/index.js';
 import { Task } from '../../src/tasks/base.js';
@@ -166,28 +167,9 @@ const fsWriter = async (
   bqObj: Dataset | Model | Table | Routine,
   ddlReader?: (bqId: string) => Promise<string | undefined>,
 ) => {
-  const bqObjprojectID = ((): string => {
-    if (bqObj instanceof Model) {
-      return bqObj.metadata.modelReference.projectId;
-    }
-
-    if (bqObj instanceof Table) {
-      return bqObj.metadata.tableReference.projectId;
-    }
-
-    if (bqObj instanceof Routine) {
-      return bqObj.metadata.routineReference.projectId;
-    }
-
-    if (bqObj instanceof Dataset) {
-      return bqObj.metadata.datasetReference.projectId;
-    }
-    throw Error('fsWriter: Exception');
-  })();
-
   const fsPath = bq2path(
     bqObj as BigQueryResource,
-    (await ctx.BigQuery.getProjectId()) == bqObjprojectID,
+    (await ctx.BigQuery.getProjectId()) == getProjectId(bqObj),
   );
   const pathDir = `${ctx.rootPath}/${fsPath}`;
   const retFiles: string[] = [];
@@ -256,8 +238,7 @@ async function* crawlBigQueryDataset(
   dataset: Dataset,
 ): AsyncGenerator<Table | Model | Routine> {
   // WORKAORUND: dataset object may not have projectId nevertheless it is required to get resources
-  dataset['projectId'] = dataset.projectId ??
-    dataset?.metadata?.datasetReference?.projectId;
+  dataset['projectId'] = getProjectId(dataset);
 
   const [models] = await dataset.getModels();
   for (const model of models) {
