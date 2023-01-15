@@ -67,7 +67,7 @@ class Task extends BaseTask<string> {
       return result.result;
     }
     if (result.status === 'failed') {
-      return `${result.status}: ${result.error}`;
+      return `${result.error}`;
     }
     return result.status;
   }
