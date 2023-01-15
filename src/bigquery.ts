@@ -37,6 +37,10 @@ function getProjectId(bigquery: BigQuery): string;
 function getProjectId(
   bqObj: Dataset | Table | Routine | Model | BigQuery,
 ): string {
+  if (bqObj.projectId) {
+    return bqObj.projectId;
+  }
+
   if (bqObj instanceof Model) {
     return bqObj.metadata.modelReference.projectId;
   }
@@ -53,7 +57,7 @@ function getProjectId(
     return bqObj.metadata.datasetReference.projectId;
   }
 
-  return bqObj.projectId;
+  throw new Error(`Cannot find projectId ${bqObj}`);
 }
 
 export { getProjectId };
