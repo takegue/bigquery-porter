@@ -37,7 +37,7 @@ function getProjectId(bigquery: BigQuery): string;
 function getProjectId(
   bqObj: Dataset | Table | Routine | Model | BigQuery,
 ): string {
-  if (bqObj.projectId) {
+  if (bqObj?.projectId) {
     return bqObj.projectId;
   }
 

@@ -98,6 +98,7 @@ type SpecialProject = {
 };
 
 type BQPPRojectID = NormalProject | SpecialProject;
+type BQDatasetType = 'DEFAULT' | 'LINKED';
 
 const parseProjectID = async (
   ctx: PullContext,
@@ -238,9 +239,6 @@ const fsWriter = async (
 async function* crawlBigQueryDataset(
   dataset: Dataset,
 ): AsyncGenerator<Table | Model | Routine> {
-  // WORKAORUND: dataset object may not have projectId nevertheless it is required to get resources
-  dataset['projectId'] = getProjectId(dataset);
-
   const buff: (Table | Model | Routine)[] = [];
   const cb = async (resource: Model | Routine) => {
     buff.push(resource);
@@ -261,15 +259,7 @@ async function* crawlBigQueryDataset(
     buff.push(table);
   };
 
-  const p = Promise.allSettled([
-    new Promise(
-      (resolve, reject) => {
-        dataset.getRoutinesStream()
-          .on('error', reject)
-          .on('data', cb)
-          .on('end', resolve);
-      },
-    ),
+  const promises = [
     new Promise(
       (resolve, reject) => {
         dataset.getTablesStream()
@@ -285,7 +275,23 @@ async function* crawlBigQueryDataset(
         .on('data', cb)
         .on('end', resolve);
     }),
-  ]);
+  ];
+
+  // Analytics Hub dataset(type=LINKED) don't implement routines
+  const datasetType = (dataset.metadata?.type ?? 'DEFAULT') as BQDatasetType;
+  if (datasetType !== 'LINKED') {
+    promises.push(
+      new Promise(
+        (resolve, reject) => {
+          dataset.getRoutinesStream()
+            .on('error', reject)
+            .on('data', cb)
+            .on('end', resolve);
+        },
+      ),
+    );
+  }
+  const p = Promise.allSettled(promises);
 
   const pool = async function* () {
     while (true) {
@@ -367,12 +373,16 @@ async function crawlBigQueryProject(
         ? {}
         : { projectId: project.value };
 
-      const datasets = await (async () => {
+      const datasets = await (async (): Promise<Dataset[]> => {
         if (fsDatasets && fsDatasets?.length > 0) {
           const datasets = fsDatasets.map(
-            (d) => ctx.BigQuery.dataset(d, opt as DatasetOptions),
+            async (id) => {
+              const [d] = await ctx.BigQuery.dataset(id, opt as DatasetOptions)
+                .get();
+              return d;
+            },
           );
-          return datasets;
+          return await Promise.all(datasets);
         }
 
         const [datasets] = await ctx.BigQuery.getDatasets(
@@ -407,6 +417,7 @@ async function crawlBigQueryProject(
         datasets
           .map(async (dataset: Dataset) => {
             cnt++;
+            cb(await buildTask(dataset));
             for await (const bqObj of crawlBigQueryDataset(dataset)) {
               cnt++;
               cb(await buildTask(bqObj));
@@ -435,7 +446,9 @@ const groupByProject = (BQIDs: string[]): Map<string, Set<string>> => {
     if (!acc.has(p)) {
       acc.set(p, new Set());
     }
-    acc.get(p).add(d);
+    if (d) {
+      acc.get(p).add(d);
+    }
     return acc;
   }, new Map());
 };

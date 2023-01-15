@@ -70,13 +70,33 @@ describe('CLIv2: pull', () => {
     `pull --help`,
     async ({ meta, cli, out, err, rootPath }) => {
       await expect(
-        async () => {
-          await cli.parseAsync(meta.name.split(' '), { from: 'user' });
-        },
+        cli.parseAsync(meta.name.split(' '), { from: 'user' }),
       ).rejects.toThrow();
       expect(await crawlFs(rootPath)).toMatchSnapshot();
       expect(err).toMatchSnapshot();
       expect(out).toMatchSnapshot();
+    },
+  );
+
+  it<CLITestContext>(
+    `pull`,
+    async ({ meta, cli, err, rootPath }) => {
+      // Expected sandobx dataset files
+      fs.mkdirSync(
+        path.join(rootPath, '@default', 'sandbox'),
+        {
+          recursive: true,
+        },
+      );
+
+      await cli.parseAsync([...meta.name.split(' '), ...['-C', rootPath]], {
+        from: 'user',
+      });
+      const files = await crawlFs(path.join(rootPath));
+      expect(files.keys()).toMatchSnapshot('Pulled Files: List');
+      expect(files).toMatchSnapshot('Pulled Files: Contents');
+      expect(err).toMatchSnapshot();
+      // expect(out).toMatchSnapshot();
     },
   );
 
@@ -86,8 +106,9 @@ describe('CLIv2: pull', () => {
       await cli.parseAsync([...meta.name.split(' '), ...['-C', rootPath]], {
         from: 'user',
       });
-      expect(await crawlFs(path.join(rootPath)))
-        .toMatchSnapshot();
+      const files = await crawlFs(path.join(rootPath));
+      expect(files.keys()).toMatchSnapshot('Pulled Files: List');
+      expect(files).toMatchSnapshot('Pulled Files: Contents');
       expect(err).toMatchSnapshot();
       // expect(out).toMatchSnapshot();
     },
@@ -99,8 +120,10 @@ describe('CLIv2: pull', () => {
       await cli.parseAsync([...meta.name.split(' '), ...['-C', rootPath]], {
         from: 'user',
       });
-      expect(new Set(await crawlFs(path.join(rootPath))))
-        .toMatchSnapshot();
+      const files = await crawlFs(path.join(rootPath));
+      expect(files.keys()).toMatchSnapshot('Pulled Files: List');
+      expect(files).toMatchSnapshot('Pulled Files: Contents');
+
       expect(err).toMatchSnapshot();
       expect(new Set(out)).toMatchSnapshot();
       expect(out.length).toMatchSnapshot();
@@ -113,8 +136,10 @@ describe('CLIv2: pull', () => {
       await cli.parseAsync([...meta.name.split(' '), ...['-C', rootPath]], {
         from: 'user',
       });
-      expect(new Set(await crawlFs(path.join(rootPath))))
-        .toMatchSnapshot();
+      const files = await crawlFs(path.join(rootPath));
+      expect(files.keys()).toMatchSnapshot('Pulled Files: List');
+      expect(files).toMatchSnapshot('Pulled Files: Contents');
+
       expect(err).toMatchSnapshot();
       expect(new Set(out)).toMatchSnapshot();
       expect(out.length).toMatchSnapshot();
