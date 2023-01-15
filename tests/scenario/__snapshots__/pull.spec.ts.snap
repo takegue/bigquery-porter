@@ -413,8 +413,10 @@ Map {
 exports[`CLIv2: pull > pull --all 2`] = `[]`;
 
 exports[`CLIv2: pull > pull --format=json --with-ddl bigquery-public-data.baseball 1`] = `
-Map {
-  "bigquery-public-data/baseball/games_post_wide/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-public-data.baseball.games_post_wide\`
+Set {
+  [
+    "bigquery-public-data/baseball/games_post_wide/ddl.sql",
+    "CREATE TABLE IF NOT EXISTS \`bigquery-public-data.baseball.games_post_wide\`
 (
   gameId STRING,
   seasonId STRING,
@@ -562,10 +564,16 @@ Map {
   lineupPosition INT64,
   lineupOrder INT64
 );",
-  "bigquery-public-data/baseball/games_post_wide/metadata.json" => "{
+  ],
+  [
+    "bigquery-public-data/baseball/games_post_wide/metadata.json",
+    "{
   \\"type\\": \\"TABLE\\"
 }",
-  "bigquery-public-data/baseball/games_post_wide/schema.json" => "[
+  ],
+  [
+    "bigquery-public-data/baseball/games_post_wide/schema.json",
+    "[
   {
     \\"name\\": \\"gameId\\",
     \\"type\\": \\"STRING\\"
@@ -1147,7 +1155,10 @@ Map {
     \\"type\\": \\"INTEGER\\"
   }
 ]",
-  "bigquery-public-data/baseball/games_wide/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-public-data.baseball.games_wide\`
+  ],
+  [
+    "bigquery-public-data/baseball/games_wide/ddl.sql",
+    "CREATE TABLE IF NOT EXISTS \`bigquery-public-data.baseball.games_wide\`
 (
   gameId STRING,
   seasonId STRING,
@@ -1295,10 +1306,16 @@ Map {
   lineupPosition INT64,
   lineupOrder INT64
 );",
-  "bigquery-public-data/baseball/games_wide/metadata.json" => "{
+  ],
+  [
+    "bigquery-public-data/baseball/games_wide/metadata.json",
+    "{
   \\"type\\": \\"TABLE\\"
 }",
-  "bigquery-public-data/baseball/games_wide/schema.json" => "[
+  ],
+  [
+    "bigquery-public-data/baseball/games_wide/schema.json",
+    "[
   {
     \\"name\\": \\"gameId\\",
     \\"type\\": \\"STRING\\"
@@ -1880,7 +1897,10 @@ Map {
     \\"type\\": \\"INTEGER\\"
   }
 ]",
-  "bigquery-public-data/baseball/schedules/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-public-data.baseball.schedules\`
+  ],
+  [
+    "bigquery-public-data/baseball/schedules/ddl.sql",
+    "CREATE TABLE IF NOT EXISTS \`bigquery-public-data.baseball.schedules\`
 (
   gameId STRING,
   gameNumber INT64,
@@ -1899,10 +1919,16 @@ Map {
   status STRING,
   created TIMESTAMP
 );",
-  "bigquery-public-data/baseball/schedules/metadata.json" => "{
+  ],
+  [
+    "bigquery-public-data/baseball/schedules/metadata.json",
+    "{
   \\"type\\": \\"TABLE\\"
 }",
-  "bigquery-public-data/baseball/schedules/schema.json" => "[
+  ],
+  [
+    "bigquery-public-data/baseball/schedules/schema.json",
+    "[
   {
     \\"name\\": \\"gameId\\",
     \\"type\\": \\"STRING\\"
@@ -1968,27 +1994,35 @@ Map {
     \\"type\\": \\"TIMESTAMP\\"
   }
 ]",
+  ],
 }
 `;
 
 exports[`CLIv2: pull > pull --format=json --with-ddl bigquery-public-data.baseball 2`] = `[]`;
 
 exports[`CLIv2: pull > pull --format=json --with-ddl bigquery-public-data.baseball 3`] = `
-[
+Set {
   "{\\"name\\":\\"# Check All Dataset and Resources\\",\\"result\\":\\"Total 4 resources\\"}",
   "{\\"name\\":\\"# Check All Dataset and Resources/DDL/bigquery-public-data\\",\\"result\\":\\"Fetching DDL\\"}",
-  "{\\"name\\":\\"bigquery-public-data/baseball/games_post_wide/fetch metadata\\",\\"result\\":\\"Updated: schema.json, metadata.json, ddl.sql\\"}",
-  "{\\"name\\":\\"bigquery-public-data/baseball/games_wide/fetch metadata\\",\\"result\\":\\"Updated: schema.json, metadata.json, ddl.sql\\"}",
   "{\\"name\\":\\"bigquery-public-data/baseball/schedules/fetch metadata\\",\\"result\\":\\"Updated: schema.json, metadata.json, ddl.sql\\"}",
-]
+  "{\\"name\\":\\"bigquery-public-data/baseball/games_wide/fetch metadata\\",\\"result\\":\\"Updated: schema.json, metadata.json, ddl.sql\\"}",
+  "{\\"name\\":\\"bigquery-public-data/baseball/games_post_wide/fetch metadata\\",\\"result\\":\\"Updated: schema.json, metadata.json, ddl.sql\\"}",
+}
 `;
 
+exports[`CLIv2: pull > pull --format=json --with-ddl bigquery-public-data.baseball 4`] = `5`;
+
 exports[`CLIv2: pull > pull --format=json bigquery-public-data.baseball 1`] = `
-Map {
-  "bigquery-public-data/baseball/games_post_wide/metadata.json" => "{
+Set {
+  [
+    "bigquery-public-data/baseball/games_post_wide/metadata.json",
+    "{
   \\"type\\": \\"TABLE\\"
 }",
-  "bigquery-public-data/baseball/games_post_wide/schema.json" => "[
+  ],
+  [
+    "bigquery-public-data/baseball/games_post_wide/schema.json",
+    "[
   {
     \\"name\\": \\"gameId\\",
     \\"type\\": \\"STRING\\"
@@ -2570,10 +2604,16 @@ Map {
     \\"type\\": \\"INTEGER\\"
   }
 ]",
-  "bigquery-public-data/baseball/games_wide/metadata.json" => "{
+  ],
+  [
+    "bigquery-public-data/baseball/games_wide/metadata.json",
+    "{
   \\"type\\": \\"TABLE\\"
 }",
-  "bigquery-public-data/baseball/games_wide/schema.json" => "[
+  ],
+  [
+    "bigquery-public-data/baseball/games_wide/schema.json",
+    "[
   {
     \\"name\\": \\"gameId\\",
     \\"type\\": \\"STRING\\"
@@ -3155,10 +3195,16 @@ Map {
     \\"type\\": \\"INTEGER\\"
   }
 ]",
-  "bigquery-public-data/baseball/schedules/metadata.json" => "{
+  ],
+  [
+    "bigquery-public-data/baseball/schedules/metadata.json",
+    "{
   \\"type\\": \\"TABLE\\"
 }",
-  "bigquery-public-data/baseball/schedules/schema.json" => "[
+  ],
+  [
+    "bigquery-public-data/baseball/schedules/schema.json",
+    "[
   {
     \\"name\\": \\"gameId\\",
     \\"type\\": \\"STRING\\"
@@ -3224,19 +3270,22 @@ Map {
     \\"type\\": \\"TIMESTAMP\\"
   }
 ]",
+  ],
 }
 `;
 
 exports[`CLIv2: pull > pull --format=json bigquery-public-data.baseball 2`] = `[]`;
 
 exports[`CLIv2: pull > pull --format=json bigquery-public-data.baseball 3`] = `
-[
+Set {
   "{\\"name\\":\\"# Check All Dataset and Resources\\",\\"result\\":\\"Total 4 resources\\"}",
-  "{\\"name\\":\\"bigquery-public-data/baseball/games_post_wide/fetch metadata\\",\\"result\\":\\"Updated: schema.json, metadata.json\\"}",
-  "{\\"name\\":\\"bigquery-public-data/baseball/games_wide/fetch metadata\\",\\"result\\":\\"Updated: schema.json, metadata.json\\"}",
   "{\\"name\\":\\"bigquery-public-data/baseball/schedules/fetch metadata\\",\\"result\\":\\"Updated: schema.json, metadata.json\\"}",
-]
+  "{\\"name\\":\\"bigquery-public-data/baseball/games_wide/fetch metadata\\",\\"result\\":\\"Updated: schema.json, metadata.json\\"}",
+  "{\\"name\\":\\"bigquery-public-data/baseball/games_post_wide/fetch metadata\\",\\"result\\":\\"Updated: schema.json, metadata.json\\"}",
+}
 `;
+
+exports[`CLIv2: pull > pull --format=json bigquery-public-data.baseball 4`] = `4`;
 
 exports[`CLIv2: pull > pull --help 1`] = `Map {}`;
 

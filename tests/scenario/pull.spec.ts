@@ -99,10 +99,11 @@ describe('CLIv2: pull', () => {
       await cli.parseAsync([...meta.name.split(' '), ...['-C', rootPath]], {
         from: 'user',
       });
-      expect(await crawlFs(path.join(rootPath)))
+      expect(new Set(await crawlFs(path.join(rootPath))))
         .toMatchSnapshot();
       expect(err).toMatchSnapshot();
-      expect(out).toMatchSnapshot();
+      expect(new Set(out)).toMatchSnapshot();
+      expect(out.length).toMatchSnapshot();
     },
   );
 
@@ -112,10 +113,11 @@ describe('CLIv2: pull', () => {
       await cli.parseAsync([...meta.name.split(' '), ...['-C', rootPath]], {
         from: 'user',
       });
-      expect(await crawlFs(path.join(rootPath)))
+      expect(new Set(await crawlFs(path.join(rootPath))))
         .toMatchSnapshot();
       expect(err).toMatchSnapshot();
-      expect(out).toMatchSnapshot();
+      expect(new Set(out)).toMatchSnapshot();
+      expect(out.length).toMatchSnapshot();
     },
   );
 });

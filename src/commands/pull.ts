@@ -1,6 +1,7 @@
 import type {
   BigQuery,
   Dataset,
+  DatasetOptions,
   GetDatasetsOptions,
   Model,
   Routine,
@@ -240,30 +241,79 @@ async function* crawlBigQueryDataset(
   // WORKAORUND: dataset object may not have projectId nevertheless it is required to get resources
   dataset['projectId'] = getProjectId(dataset);
 
-  const [models] = await dataset.getModels();
-  for (const model of models) {
-    yield model;
-  }
-
-  const [routines] = await dataset.getRoutines();
-  for (const routine of routines) {
-    yield routine;
-  }
+  const buff: (Table | Model | Routine)[] = [];
+  const cb = async (resource: Model | Routine) => {
+    buff.push(resource);
+  };
 
   const registeredShards = new Set<string>();
-
-  for await (
-    const table of dataset.getTablesStream()
-      .on('error', console.error)
-  ) {
+  const cb4table = async (table: Table) => {
+    if (!table.id) {
+      return;
+    }
     const sharedName = normalizeShardingTableId(table.id);
     if (table.id != sharedName) {
       if (registeredShards.has(sharedName)) {
-        continue;
+        return;
       }
       registeredShards.add(sharedName);
     }
-    yield table;
+    buff.push(table);
+  };
+
+  const p = Promise.allSettled([
+    new Promise(
+      (resolve, reject) => {
+        dataset.getRoutinesStream()
+          .on('error', reject)
+          .on('data', cb)
+          .on('end', resolve);
+      },
+    ),
+    new Promise(
+      (resolve, reject) => {
+        dataset.getTablesStream()
+          .on('error', reject)
+          .on('data', cb4table)
+          .on('end', resolve);
+      },
+    ),
+    new Promise((resolve, reject) => {
+      dataset
+        .getModelsStream()
+        .on('error', reject)
+        .on('data', cb)
+        .on('end', resolve);
+    }),
+  ]);
+
+  const pool = async function* () {
+    while (true) {
+      try {
+        await Promise.race([
+          new Promise((_, rj) => setTimeout(() => rj(), 200)),
+          p,
+        ]);
+        break;
+      } catch {
+        yield true;
+      }
+    }
+    for (const e of await p) {
+      if (e.status === 'rejected') {
+        console.error(e.reason);
+      }
+    }
+    yield true;
+  };
+
+  for await (const _ of pool()) {
+    while (buff.length > 0) {
+      const r = buff.pop();
+      if (r) {
+        yield r;
+      }
+    }
   }
 }
 
@@ -316,21 +366,27 @@ async function crawlBigQueryProject(
       const opt = project.kind === 'special'
         ? {}
         : { projectId: project.value };
-      const [datasets] = await ctx.BigQuery.getDatasets(
-        opt as GetDatasetsOptions,
-      );
 
-      const actualDatasets = datasets
-        .filter((d) =>
-          ctx.forceAll || !fsDatasets || (d.id && fsDatasets?.includes(d.id))
+      const datasets = await (async () => {
+        if (fsDatasets && fsDatasets?.length > 0) {
+          const datasets = fsDatasets.map(
+            (d) => ctx.BigQuery.dataset(d, opt as DatasetOptions),
+          );
+          return datasets;
+        }
+
+        const [datasets] = await ctx.BigQuery.getDatasets(
+          opt as GetDatasetsOptions,
         );
+        return datasets;
+      })();
 
       let fetcher = undefined;
       if (ctx.withDDL) {
         const { job, reader } = buildDDLFetcher(
           ctx.BigQuery,
           bqProjectId,
-          actualDatasets
+          datasets
             .map((d) => d.id)
             .filter((d): d is string => d != undefined),
         );
@@ -348,7 +404,7 @@ async function crawlBigQueryProject(
       const buildTask = pullMetadataTaskBuilder(ctx, fetcher);
 
       const p = Promise.allSettled(
-        actualDatasets
+        datasets
           .map(async (dataset: Dataset) => {
             cnt++;
             for await (const bqObj of crawlBigQueryDataset(dataset)) {
