@@ -55,17 +55,28 @@ class DefaultReporter<T extends Stringable> implements Reporter<T> {
         break;
     }
 
-    const title = c(`${s} ${task.name.split(this.separator).pop()}`);
+    const width = process.stdout.columns ?? 80;
+    const title = `${s} ${task.name.split(this.separator).pop()}`;
+
+    const withMsg = (title: string, msg: string) => {
+      const t = c(title.substring(0, width));
+      if (msg && msg.length > 0) {
+        const msgWidth = width - title.length - 3;
+        const m = msg.substring(0, msgWidth);
+        if (m.length > 0) {
+          return `${t} (${m})`;
+        }
+      }
+      return t;
+    };
+
     const msg = task.toString();
     if (result.status === 'failed') {
-      return `${title}: ${pc.bold(msg)}`.trim();
+      return withMsg(title, msg);
     } else if (result.status === 'success') {
-      if (msg) {
-        return `${title} (${msg})`;
-      }
-      return title;
+      return withMsg(title, msg);
     } else {
-      return title;
+      return withMsg(title, '');
     }
   }
 

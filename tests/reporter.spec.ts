@@ -9,13 +9,47 @@ describe('Reporter: Default Reporter', () => {
     const tasks = [
       new Task(
         'test1',
-        () => new Promise((resolve) => setTimeout(resolve, 50)),
+        async () => {
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          return 'test';
+        },
       ),
     ];
     tasks.forEach((t) => t.run());
 
     reporter.onInit(tasks);
-    await reporter.onUpdate();
+    while (tasks.some((t) => !t.done())) {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    reporter.onUpdate();
+    reporter.onFinished();
+  });
+
+  it.concurrent('Too long message tasks', async () => {
+    const reporter = new DefaultReporter();
+    const tasks = [
+      new Task(
+        'success'.repeat(100),
+        async () => {
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          return 'msg';
+        },
+      ),
+      new Task(
+        'failed',
+        async () => {
+          throw new Error('msg '.repeat(100));
+        },
+      ),
+    ];
+    tasks.forEach((t) => t.run());
+
+    reporter.onInit(tasks);
+    while (tasks.some((t) => !t.done())) {
+      reporter.onUpdate();
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    reporter.onUpdate();
     reporter.onFinished();
   });
 });
