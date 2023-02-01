@@ -335,7 +335,8 @@ const pullMetadataTaskBuilder = (
     const task = new Task(
       bqId.replace(/:|\./g, '/') + '/fetch metadata',
       async () => {
-        const updated = await fsWriter(ctx, bqObj, ddlFetcher);
+        const [b] = await bqObj.get();
+        const updated = await fsWriter(ctx, b, ddlFetcher);
         return `Updated: ${updated.join(', ')}`;
       },
     );
@@ -377,9 +378,8 @@ async function crawlBigQueryProject(
         if (fsDatasets && fsDatasets?.length > 0) {
           const datasets = fsDatasets.map(
             async (id) => {
-              const [d] = await ctx.BigQuery.dataset(id, opt as DatasetOptions)
-                .get();
-              return d;
+              const dataset = ctx.BigQuery.dataset(id, opt as DatasetOptions);
+              return dataset;
             },
           );
           return await Promise.all(datasets);

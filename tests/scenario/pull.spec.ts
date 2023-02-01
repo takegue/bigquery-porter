@@ -115,6 +115,22 @@ describe('CLIv2: pull', () => {
   );
 
   it<CLITestContext>(
+    `pull --format=json bigquery-public-data.missing`,
+    async ({ meta, cli, out, err, rootPath }) => {
+      await expect(
+        cli.parseAsync(meta.name.split(' '), { from: 'user' }),
+      ).rejects.toThrow();
+      const files = await crawlFs(path.join(rootPath));
+      expect(files.keys()).toMatchSnapshot('Pulled Files: List');
+      expect(files).toMatchSnapshot('Pulled Files: Contents');
+
+      expect(err).toMatchSnapshot();
+      expect(new Set(out)).toMatchSnapshot();
+      expect(out.length).toMatchSnapshot();
+    },
+  );
+
+  it<CLITestContext>(
     `pull --format=json bigquery-public-data.baseball`,
     async ({ meta, cli, out, err, rootPath }) => {
       await cli.parseAsync([...meta.name.split(' '), ...['-C', rootPath]], {
