@@ -330,7 +330,11 @@ const pullMetadataTaskBuilder = (
   return async (bqObj) => {
     const parent = (bqObj.parent as ServiceObject);
     const projectId = bqObj?.projectId ?? parent?.projectId;
-    const bqId = bq2path(bqObj as BigQueryResource, projectId === undefined);
+    const bqId = bq2path(
+      bqObj as BigQueryResource,
+      projectId === undefined ||
+        projectId === await ctx.BigQuery.getProjectId(),
+    );
 
     const task = new Task(
       bqId.replace(/:|\./g, '/') + '/fetch metadata',
