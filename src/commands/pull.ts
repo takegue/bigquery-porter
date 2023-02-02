@@ -244,6 +244,13 @@ async function* crawlBigQueryDataset(
     buff.push(resource);
   };
 
+  try {
+    // Metadata Update
+    await dataset.get();
+  } catch (e) {
+    return;
+  }
+
   const registeredShards = new Set<string>();
   const cb4table = async (table: Table) => {
     if (!table.id) {
