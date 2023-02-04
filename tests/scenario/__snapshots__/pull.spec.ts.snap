@@ -402,41 +402,6 @@ exports[`CLIv2: pull > pull > Pulled Files: List 1`] = `{}`;
 
 exports[`CLIv2: pull > pull --all > Pulled Files: Contents 1`] = `
 Map {
-  "@default/jp_dataset/hoge/metadata.json" => "{
-  \\"type\\": \\"VIEW\\"
-}",
-  "@default/jp_dataset/hoge/schema.json" => "[
-  {
-    \\"name\\": \\"f0_\\",
-    \\"type\\": \\"INTEGER\\",
-    \\"mode\\": \\"NULLABLE\\"
-  }
-]",
-  "@default/jp_dataset/hoge/view.sql" => "
-select 1
-",
-  "@default/jp_dataset/metadata.json" => "{
-  \\"type\\": \\"DEFAULT\\",
-  \\"access\\": [
-    {
-      \\"role\\": \\"WRITER\\",
-      \\"specialGroup\\": \\"projectWriters\\"
-    },
-    {
-      \\"role\\": \\"OWNER\\",
-      \\"specialGroup\\": \\"projectOwners\\"
-    },
-    {
-      \\"role\\": \\"OWNER\\",
-      \\"userByEmail\\": \\"takegue@gmail.com\\"
-    },
-    {
-      \\"role\\": \\"READER\\",
-      \\"specialGroup\\": \\"projectReaders\\"
-    }
-  ],
-  \\"location\\": \\"asia-northeast1\\"
-}",
   "@default/jp_holidays_preprocessed_by_bq_fun/README.md" => "ソース リスティング: [JP Holidays preprocessed by BQ FUN](/bigquery\\\\(analyticshub:projects/120299025068/locations/asia-northeast1/dataExchanges/jpdata_18253a34a30/listings/jp_holidays_preprocessed_by_bq_fun_18253c4e9dc\\\\))",
   "@default/jp_holidays_preprocessed_by_bq_fun/holidays/README.md" => "国民の祝日・休日",
   "@default/jp_holidays_preprocessed_by_bq_fun/holidays/metadata.json" => "{
@@ -3799,9 +3764,6 @@ exports[`CLIv2: pull > pull --format=json bigquery-public-data.missing > Pulled 
 
 exports[`CLIv2: pull > pull --format=json bigquery-public-data.missing 1`] = `
 [
-  [Error: Not found: Dataset bigquery-public-data:missing],
-  [Error: Not found: Dataset bigquery-public-data:missing],
-  [Error: Not found: Dataset bigquery-public-data:missing],
   "Some tasks are failed(Failed: 1)
 ",
 ]
