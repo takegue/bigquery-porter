@@ -3764,9 +3764,6 @@ exports[`CLIv2: pull > pull --format=json bigquery-public-data.missing > Pulled 
 
 exports[`CLIv2: pull > pull --format=json bigquery-public-data.missing 1`] = `
 [
-  [Error: Not found: Dataset bigquery-public-data:missing],
-  [Error: Not found: Dataset bigquery-public-data:missing],
-  [Error: Not found: Dataset bigquery-public-data:missing],
   "Some tasks are failed(Failed: 1)
 ",
 ]
