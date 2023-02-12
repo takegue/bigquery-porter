@@ -46,8 +46,7 @@ Map {
         \\"learnRateStrategy\\": \\"LINE_SEARCH\\",
         \\"initialLearnRate\\": 0.15,
         \\"optimizationStrategy\\": \\"BATCH_GRADIENT_DESCENT\\",
-        \\"calculatePValues\\": false,
-        \\"preserveInputStructs\\": false
+        \\"calculatePValues\\": false
       },
       \\"trainingStartTime\\": \\"1672534389200\\",
       \\"results\\": [
@@ -488,8 +487,7 @@ Map {
         \\"learnRateStrategy\\": \\"LINE_SEARCH\\",
         \\"initialLearnRate\\": 0.15,
         \\"optimizationStrategy\\": \\"BATCH_GRADIENT_DESCENT\\",
-        \\"calculatePValues\\": false,
-        \\"preserveInputStructs\\": false
+        \\"calculatePValues\\": false
       },
       \\"trainingStartTime\\": \\"1672534389200\\",
       \\"results\\": [
