@@ -34,7 +34,7 @@
     "p-throttle": "^5.0.0",
     "picocolors": "^1.0.0",
     "tree-sitter": "^0.20.1",
-    "tree-sitter-sql-bigquery": "^0.1.8"
+    "tree-sitter-sql-bigquery": "^0.2.0"
   },
   "devDependencies": {
     "@tsconfig/strictest": "^1.0.1",
