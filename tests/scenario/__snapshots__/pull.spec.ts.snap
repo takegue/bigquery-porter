@@ -8165,12 +8165,11 @@ exports[`CLIv2: pull > pull --format=json bigquery-public-data.missing 1`] = `
 
 exports[`CLIv2: pull > pull --format=json bigquery-public-data.missing 2`] = `
 Set {
-  "{\\"name\\":\\"# Check All Dataset and Resources\\",\\"result\\":\\"Total 1 resources\\"}",
-  "{\\"name\\":\\"bigquery-public-data/missing/fetch metadata\\",\\"error\\":\\"Not found: Dataset bigquery-public-data:missing\\"}",
+  "{\\"name\\":\\"# Check All Dataset and Resources\\",\\"error\\":\\"Not found: Dataset bigquery-public-data:missing\\"}",
 }
 `;
 
-exports[`CLIv2: pull > pull --format=json bigquery-public-data.missing 3`] = `2`;
+exports[`CLIv2: pull > pull --format=json bigquery-public-data.missing 3`] = `1`;
 
 exports[`CLIv2: pull > pull --help 1`] = `Map {}`;
 
