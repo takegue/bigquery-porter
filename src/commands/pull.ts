@@ -121,7 +121,7 @@ const parseProjectID = async (
 const buildDDLFetcher = (
   bqClient: BigQuery,
   projectId: string,
-  datasets: string[],
+  datasets: Dataset[],
 ): {
   job: Promise<unknown>;
   reader: (bqId: string) => Promise<string | undefined>;
@@ -136,6 +136,7 @@ const buildDDLFetcher = (
         query: sql,
         params,
         jobPrefix: `bqport-metadata_import-`,
+        location: datasets[0]?.metadata.location ?? 'US',
       })
       .catch((e) => {
         console.error(e.message);
@@ -145,21 +146,49 @@ const buildDDLFetcher = (
       throw Error('buildDDLFetcher: Exception');
     }
     const [records] = await job.getQueryResults();
-    return Object.fromEntries(
+    return new Map(
       records.map((r: ResultBQResource) => [r.name, r]),
     );
   };
 
-  const promise = ddlFetcher(sqlDDLForProject, {
-    projectId: projectId,
-    datasets: datasets,
-  });
+  const groupByLoctaion: Map<string, Dataset[]> = datasets.reduce(
+    (acc, c) => {
+      const location = c.metadata.location;
+      if (!acc.has(location)) {
+        acc.set(location, []);
+      }
+      acc.get(location).push(c);
+      return acc;
+    },
+    new Map(),
+  );
+
+  const promise = Promise.allSettled(
+    Array.from(groupByLoctaion.entries())
+      .map(async ([_, datasets]: [string, Dataset[]]) => {
+        return await ddlFetcher(sqlDDLForProject, {
+          projectId: projectId,
+          datasets: datasets.map((d) => d.id),
+        });
+      }),
+  );
 
   return {
     job: promise,
     reader: async (bqId: string) => {
-      const ddlMap = await promise;
-      return ddlMap?.[bqId]?.ddl;
+      const payloads = await promise;
+      const ddlMap = new Map<string, ResultBQResource>();
+      for (const p of payloads) {
+        if (p.status === 'fulfilled') {
+          // Merge p.value into ddlMap
+          for await (const [k, v] of p.value) {
+            if (k) {
+              ddlMap.set(k, v);
+            }
+          }
+        }
+      }
+      return ddlMap.get(bqId)?.ddl;
     },
   };
 };
@@ -390,6 +419,7 @@ async function crawlBigQueryProject(
           const datasets = fsDatasets.map(
             async (id) => {
               const dataset = ctx.BigQuery.dataset(id, opt as DatasetOptions);
+              await dataset.get();
               return dataset;
             },
           );
@@ -407,9 +437,7 @@ async function crawlBigQueryProject(
         const { job, reader } = buildDDLFetcher(
           ctx.BigQuery,
           bqProjectId,
-          datasets
-            .map((d) => d.id)
-            .filter((d): d is string => d != undefined),
+          datasets,
         );
         cb(
           new Task(
