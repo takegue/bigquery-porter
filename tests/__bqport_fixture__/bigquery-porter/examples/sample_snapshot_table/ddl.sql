@@ -1,0 +1,3 @@
+CREATE SNAPSHOT TABLE IF NOT EXISTS `examples.sample_snapshot_table`
+CLONE `examples.sample_table`
+FOR SYSTEM_TIME AS OF TIMESTAMP (CURRENT_TIMESTAMP() - INTERVAL 1 SECOND);

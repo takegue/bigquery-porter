@@ -1,0 +1,8 @@
+{
+  "type": "SNAPSHOT",
+  "clustering": {
+    "fields": [
+      "a"
+    ]
+  }
+}
