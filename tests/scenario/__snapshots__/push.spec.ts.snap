@@ -13,7 +13,7 @@ exports[`CLI: push > push --format=json --dry-run -C ./examples --parameter flag
   "{\\"name\\":\\"takegue/sandbox/sample_clone_table/ddl.sql\\",\\"result\\":{\\"file\\":\\"examples/@default/sandbox/sample_clone_table/ddl.sql\\",\\"totalBytesProcessed\\":0,\\"isDryRun\\":true}}",
   "{\\"name\\":\\"takegue/sandbox/sample_partition_table/ddl.sql\\",\\"result\\":{\\"file\\":\\"examples/@default/sandbox/sample_partition_table/ddl.sql\\",\\"totalBytesProcessed\\":0,\\"isDryRun\\":true}}",
   "{\\"name\\":\\"takegue/sandbox/sample_sharding_*/ddl.sql\\",\\"result\\":{\\"file\\":\\"examples/@default/sandbox/sample_sharding_@/ddl.sql\\",\\"totalBytesProcessed\\":0,\\"isDryRun\\":true}}",
-  "{\\"name\\":\\"takegue/sandbox/sample_snapshot_table/ddl.sql\\",\\"error\\":\\"Invalid time travel timestamp 1672535527322 for table takegue:sandbox.sample_table@1672535527322. Cannot read before 1678129073193\\"}",
+  "{\\"name\\":\\"takegue/sandbox/sample_snapshot_table/ddl.sql\\",\\"result\\":{\\"file\\":\\"examples/@default/sandbox/sample_snapshot_table/ddl.sql\\",\\"totalBytesProcessed\\":0,\\"isDryRun\\":true}}",
   "{\\"name\\":\\"takegue/sandbox/sample_table/ddl.sql\\",\\"error\\":\\"Syntax error: Unclosed string literal at [3:31]\\"}",
   "{\\"name\\":\\"takegue/sandbox/sample_view/view.sql\\",\\"result\\":{\\"file\\":\\"examples/@default/sandbox/sample_view/view.sql\\",\\"totalBytesProcessed\\":0,\\"isDryRun\\":true}}",
   "{\\"name\\":\\"takegue/sandbox/@_QUERIES/preview.sql\\",\\"error\\":\\"Suspended: Parent job is failed: takegue/sandbox/sample_table/ddl.sql\\"}",
@@ -27,7 +27,7 @@ exports[`CLI: push > push --format=json --dry-run -C ./examples --parameter flag
   [Error: Routines are not supported on linked datasets.],
   "Warning: Irrelevant SQL file located in examples/@default/sandbox/error_sample/ddl.sql for takegue.sandbox.error_sample",
   "Warning: Irrelevant SQL file located in examples/@default/sandbox/error_sample/test.sql for takegue.sandbox.error_sample",
-  "Some tasks are failed(Failed: 7)
+  "Some tasks are failed(Failed: 6)
 ",
 ]
 `;
@@ -45,7 +45,7 @@ exports[`CLI: push > push --format=json --dry-run -C ./examples 1`] = `
   "{\\"name\\":\\"takegue/sandbox/sample_clone_table/ddl.sql\\",\\"result\\":{\\"file\\":\\"examples/@default/sandbox/sample_clone_table/ddl.sql\\",\\"totalBytesProcessed\\":0,\\"isDryRun\\":true}}",
   "{\\"name\\":\\"takegue/sandbox/sample_partition_table/ddl.sql\\",\\"result\\":{\\"file\\":\\"examples/@default/sandbox/sample_partition_table/ddl.sql\\",\\"totalBytesProcessed\\":0,\\"isDryRun\\":true}}",
   "{\\"name\\":\\"takegue/sandbox/sample_sharding_*/ddl.sql\\",\\"result\\":{\\"file\\":\\"examples/@default/sandbox/sample_sharding_@/ddl.sql\\",\\"totalBytesProcessed\\":0,\\"isDryRun\\":true}}",
-  "{\\"name\\":\\"takegue/sandbox/sample_snapshot_table/ddl.sql\\",\\"error\\":\\"Invalid time travel timestamp 1672535527322 for table takegue:sandbox.sample_table@1672535527322. Cannot read before 1678129069466\\"}",
+  "{\\"name\\":\\"takegue/sandbox/sample_snapshot_table/ddl.sql\\",\\"result\\":{\\"file\\":\\"examples/@default/sandbox/sample_snapshot_table/ddl.sql\\",\\"totalBytesProcessed\\":0,\\"isDryRun\\":true}}",
   "{\\"name\\":\\"takegue/sandbox/sample_table/ddl.sql\\",\\"error\\":\\"Syntax error: Unclosed string literal at [3:31]\\"}",
   "{\\"name\\":\\"takegue/sandbox/sample_view/view.sql\\",\\"result\\":{\\"file\\":\\"examples/@default/sandbox/sample_view/view.sql\\",\\"totalBytesProcessed\\":0,\\"isDryRun\\":true}}",
   "{\\"name\\":\\"takegue/sandbox/@_QUERIES/preview.sql\\",\\"error\\":\\"Suspended: Parent job is failed: takegue/sandbox/sample_table/ddl.sql\\"}",
@@ -59,19 +59,19 @@ exports[`CLI: push > push --format=json --dry-run -C ./examples 2`] = `
   [Error: Routines are not supported on linked datasets.],
   "Warning: Irrelevant SQL file located in examples/@default/sandbox/error_sample/ddl.sql for takegue.sandbox.error_sample",
   "Warning: Irrelevant SQL file located in examples/@default/sandbox/error_sample/test.sql for takegue.sandbox.error_sample",
-  "Some tasks are failed(Failed: 7)
+  "Some tasks are failed(Failed: 6)
 ",
 ]
 `;
 
-exports[`CLI: push > push --format=json -C ./examples 1`] = `40`;
+exports[`CLI: push > push --format=json -C ./examples 1`] = `33`;
 
 exports[`CLI: push > push --format=json -C ./examples 2`] = `
 [
   [Error: Routines are not supported on linked datasets.],
   "Warning: Irrelevant SQL file located in examples/@default/sandbox/error_sample/ddl.sql for takegue.sandbox.error_sample",
   "Warning: Irrelevant SQL file located in examples/@default/sandbox/error_sample/test.sql for takegue.sandbox.error_sample",
-  "Some tasks are failed(Failed: 19)
+  "Some tasks are failed(Failed: 10)
 ",
 ]
 `;
