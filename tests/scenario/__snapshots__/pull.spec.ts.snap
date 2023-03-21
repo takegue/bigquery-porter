@@ -2,7 +2,7 @@
 
 exports[`CLIv2: pull > pull > Pulled Files: Contents 1`] = `
 Map {
-  "@default/sandbox/@models/mymodel/metadata.json" => "{
+  "@default/examples/@models/mymodel/metadata.json" => "{
   \\"modelType\\": \\"LINEAR_REGRESSION\\",
   \\"featureColumns\\": [
     {
@@ -48,54 +48,54 @@ Map {
         \\"optimizationStrategy\\": \\"BATCH_GRADIENT_DESCENT\\",
         \\"calculatePValues\\": false
       },
-      \\"trainingStartTime\\": \\"1672534389200\\",
+      \\"trainingStartTime\\": \\"1678750101144\\",
       \\"results\\": [
         {
           \\"index\\": 0,
-          \\"durationMs\\": \\"2231\\",
-          \\"trainingLoss\\": 1491.053977063737,
+          \\"durationMs\\": \\"2112\\",
+          \\"trainingLoss\\": 1491.0539770637374,
           \\"learnRate\\": 0.3
         },
         {
           \\"index\\": 1,
-          \\"durationMs\\": \\"1991\\",
-          \\"trainingLoss\\": 241.92978201881198,
+          \\"durationMs\\": \\"2350\\",
+          \\"trainingLoss\\": 241.92978201881206,
           \\"learnRate\\": 0.6
         },
         {
           \\"index\\": 2,
-          \\"durationMs\\": \\"2178\\",
-          \\"trainingLoss\\": 41.69727113362372,
+          \\"durationMs\\": \\"2384\\",
+          \\"trainingLoss\\": 41.69727113362376,
           \\"learnRate\\": 0.6
         },
         {
           \\"index\\": 3,
-          \\"durationMs\\": \\"2166\\",
-          \\"trainingLoss\\": 7.920357012251959,
+          \\"durationMs\\": \\"2288\\",
+          \\"trainingLoss\\": 7.920357012251917,
           \\"learnRate\\": 0.6
         },
         {
           \\"index\\": 4,
-          \\"durationMs\\": \\"2040\\",
-          \\"trainingLoss\\": 2.6036132184550516,
+          \\"durationMs\\": \\"2404\\",
+          \\"trainingLoss\\": 2.6036132184550227,
           \\"learnRate\\": 0.6
         }
       ],
       \\"evaluationMetrics\\": {
         \\"regressionMetrics\\": {
-          \\"meanAbsoluteError\\": 1.3283107802514804,
-          \\"meanSquaredError\\": 2.6036132184550516,
-          \\"meanSquaredLogError\\": 0.0012176719511574185,
-          \\"medianAbsoluteError\\": 1.0159802433960294,
-          \\"rSquared\\": 0.9968441051897514
+          \\"meanAbsoluteError\\": 1.328310780251473,
+          \\"meanSquaredError\\": 2.603613218455023,
+          \\"meanSquaredLogError\\": 0.001217671951157408,
+          \\"medianAbsoluteError\\": 1.0159802433960223,
+          \\"rSquared\\": 0.9968441051897515
         }
       },
-      \\"startTime\\": \\"2023-01-01T00:53:09.200Z\\"
+      \\"startTime\\": \\"2023-03-13T23:28:21.144Z\\"
     }
   ]
 }",
-  "@default/sandbox/@routines/sample_function/README.md" => "test",
-  "@default/sandbox/@routines/sample_function/metadata.json" => "{
+  "@default/examples/@routines/sample_function/README.md" => "test",
+  "@default/examples/@routines/sample_function/metadata.json" => "{
   \\"routineType\\": \\"SCALAR_FUNCTION\\",
   \\"language\\": \\"SQL\\",
   \\"arguments\\": [
@@ -110,7 +110,7 @@ Map {
     \\"typeKind\\": \\"INT64\\"
   }
 }",
-  "@default/sandbox/@routines/sample_procedure/metadata.json" => "{
+  "@default/examples/@routines/sample_procedure/metadata.json" => "{
   \\"routineType\\": \\"PROCEDURE\\",
   \\"language\\": \\"SQL\\",
   \\"arguments\\": [
@@ -123,7 +123,7 @@ Map {
     }
   ]
 }",
-  "@default/sandbox/@routines/sample_tvf/metadata.json" => "{
+  "@default/examples/@routines/sample_tvf/metadata.json" => "{
   \\"routineType\\": \\"TABLE_VALUED_FUNCTION\\",
   \\"language\\": \\"SQL\\",
   \\"arguments\\": [
@@ -145,31 +145,7 @@ Map {
     ]
   }
 }",
-  "@default/sandbox/README.md" => "<!--- BQMAKE_DATASET: BEGIN -->
-\`\`\`mermaid
-graph LR
-subgraph project-id-7288898082930342315.sandbox
-	H1NS(sample_clone_table)
-	5BLN(sample_table)
-	oEk9(sample_materialized_view)
-	mxt6(sample_lineage)
-	1Tdy(sample_partition_table)
-	P5GH(sample_sharding_*)
-	FHJh(sample_snapshot_table)
-	sldk(stations_scd_type2)
-end
-subgraph bigquery-public-data.austin_bikeshare
-	0Q1b(bikeshare_stations)
-end
-5BLN --> H1NS
-oEk9 --> H1NS
-5BLN --> oEk9
-5BLN --> FHJh
-oEk9 --> FHJh
-0Q1b --> sldk
-\`\`\`
-<!--- BQMAKE_DATASET: END -->",
-  "@default/sandbox/metadata.json" => "{
+  "@default/examples/metadata.json" => "{
   \\"type\\": \\"DEFAULT\\",
   \\"access\\": [
     {
@@ -191,7 +167,7 @@ oEk9 --> FHJh
   ],
   \\"location\\": \\"US\\"
 }",
-  "@default/sandbox/sample_clone_table/metadata.json" => "{
+  "@default/examples/sample_clone_table/metadata.json" => "{
   \\"type\\": \\"TABLE\\",
   \\"clustering\\": {
     \\"fields\\": [
@@ -199,70 +175,76 @@ oEk9 --> FHJh
     ]
   }
 }",
-  "@default/sandbox/sample_clone_table/schema.json" => "[
+  "@default/examples/sample_clone_table/schema.json" => "[
   {
     \\"name\\": \\"a\\",
     \\"type\\": \\"INTEGER\\"
   }
 ]",
-  "@default/sandbox/sample_materialized_view/metadata.json" => "{
+  "@default/examples/sample_materialized_view/metadata.json" => "{
   \\"type\\": \\"MATERIALIZED_VIEW\\"
 }",
-  "@default/sandbox/sample_materialized_view/schema.json" => "[
+  "@default/examples/sample_materialized_view/schema.json" => "[
   {
     \\"name\\": \\"a\\",
     \\"type\\": \\"INTEGER\\"
   }
 ]",
-  "@default/sandbox/sample_partition_table/metadata.json" => "{
+  "@default/examples/sample_partition_table/metadata.json" => "{
   \\"type\\": \\"TABLE\\",
   \\"timePartitioning\\": {
     \\"type\\": \\"DAY\\",
+    \\"expirationMs\\": \\"5184000000\\",
     \\"field\\": \\"date_jst\\"
   }
 }",
-  "@default/sandbox/sample_partition_table/schema.json" => "[
+  "@default/examples/sample_partition_table/schema.json" => "[
   {
     \\"name\\": \\"date_jst\\",
     \\"type\\": \\"DATE\\"
   }
 ]",
-  "@default/sandbox/sample_sharding_@/metadata.json" => "{
+  "@default/examples/sample_sharding_@/metadata.json" => "{
   \\"type\\": \\"TABLE\\"
 }",
-  "@default/sandbox/sample_sharding_@/schema.json" => "[
+  "@default/examples/sample_sharding_@/schema.json" => "[
   {
     \\"name\\": \\"date_jst\\",
     \\"type\\": \\"DATE\\"
   }
 ]",
-  "@default/sandbox/sample_snapshot_table/metadata.json" => "{
+  "@default/examples/sample_snapshot_table/metadata.json" => "{
   \\"type\\": \\"SNAPSHOT\\",
+  \\"clustering\\": {
+    \\"fields\\": [
+      \\"a\\"
+    ]
+  },
   \\"snapshotDefinition\\": {
     \\"baseTableReference\\": {
-      \\"projectId\\": \\"takegue\\",
-      \\"datasetId\\": \\"sandbox\\",
+      \\"projectId\\": \\"bigquery-porter\\",
+      \\"datasetId\\": \\"examples\\",
       \\"tableId\\": \\"sample_table\\"
     },
-    \\"snapshotTime\\": \\"2023-01-01T01:12:07.322Z\\"
+    \\"snapshotTime\\": \\"2023-03-13T23:34:57.316Z\\"
   },
   \\"cloneDefinition\\": {
     \\"baseTableReference\\": {
-      \\"projectId\\": \\"takegue\\",
-      \\"datasetId\\": \\"sandbox\\",
+      \\"projectId\\": \\"bigquery-porter\\",
+      \\"datasetId\\": \\"examples\\",
       \\"tableId\\": \\"sample_table\\"
     },
-    \\"snapshotTime\\": \\"2023-01-01T01:12:07.322Z\\"
+    \\"snapshotTime\\": \\"2023-03-13T23:34:57.316Z\\"
   }
 }",
-  "@default/sandbox/sample_snapshot_table/schema.json" => "[
+  "@default/examples/sample_snapshot_table/schema.json" => "[
   {
     \\"name\\": \\"a\\",
     \\"type\\": \\"INTEGER\\",
     \\"description\\": \\"ふがふが\\\\nふが\\"
   }
 ]",
-  "@default/sandbox/sample_table/metadata.json" => "{
+  "@default/examples/sample_table/metadata.json" => "{
   \\"type\\": \\"TABLE\\",
   \\"clustering\\": {
     \\"fields\\": [
@@ -270,130 +252,13 @@ oEk9 --> FHJh
     ]
   }
 }",
-  "@default/sandbox/sample_table/schema.json" => "[
+  "@default/examples/sample_table/schema.json" => "[
   {
     \\"name\\": \\"a\\",
     \\"type\\": \\"INTEGER\\",
     \\"description\\": \\"ふがふが\\\\nふが\\"
   }
 ]",
-  "@default/sandbox/sample_view/metadata.json" => "{
-  \\"type\\": \\"VIEW\\"
-}",
-  "@default/sandbox/sample_view/schema.json" => "[
-  {
-    \\"name\\": \\"unique_key\\",
-    \\"type\\": \\"STRING\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"complaint_description\\",
-    \\"type\\": \\"STRING\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"source\\",
-    \\"type\\": \\"STRING\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"status\\",
-    \\"type\\": \\"STRING\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"status_change_date\\",
-    \\"type\\": \\"TIMESTAMP\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"created_date\\",
-    \\"type\\": \\"TIMESTAMP\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"last_update_date\\",
-    \\"type\\": \\"TIMESTAMP\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"close_date\\",
-    \\"type\\": \\"TIMESTAMP\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"incident_address\\",
-    \\"type\\": \\"STRING\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"street_number\\",
-    \\"type\\": \\"STRING\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"street_name\\",
-    \\"type\\": \\"STRING\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"city\\",
-    \\"type\\": \\"STRING\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"incident_zip\\",
-    \\"type\\": \\"INTEGER\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"county\\",
-    \\"type\\": \\"STRING\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"state_plane_x_coordinate\\",
-    \\"type\\": \\"STRING\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"state_plane_y_coordinate\\",
-    \\"type\\": \\"FLOAT\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"latitude\\",
-    \\"type\\": \\"FLOAT\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"longitude\\",
-    \\"type\\": \\"FLOAT\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"location\\",
-    \\"type\\": \\"STRING\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"council_district_code\\",
-    \\"type\\": \\"INTEGER\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"map_page\\",
-    \\"type\\": \\"STRING\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"map_tile\\",
-    \\"type\\": \\"STRING\\",
-    \\"mode\\": \\"NULLABLE\\"
-  }
-]",
-  "@default/sandbox/sample_view/view.sql" => "SELECT * FROM \`bigquery-public-data.austin_311.311_service_requests\` LIMIT 1000
-",
 }
 `;
 
@@ -401,15 +266,303 @@ exports[`CLIv2: pull > pull > Pulled Files: List 1`] = `{}`;
 
 exports[`CLIv2: pull > pull --all > Pulled Files: Contents 1`] = `
 Map {
-  "@default/jp_holidays_preprocessed_by_bq_fun/README.md" => "ソース リスティング: [JP Holidays preprocessed by BQ FUN](/bigquery\\\\(analyticshub:projects/120299025068/locations/asia-northeast1/dataExchanges/jpdata_18253a34a30/listings/jp_holidays_preprocessed_by_bq_fun_18253c4e9dc\\\\))",
-  "@default/jp_holidays_preprocessed_by_bq_fun/holidays/README.md" => "国民の祝日・休日",
-  "@default/jp_holidays_preprocessed_by_bq_fun/holidays/metadata.json" => "{
+  "@default/examples/@models/mymodel/metadata.json" => "{
+  \\"modelType\\": \\"LINEAR_REGRESSION\\",
+  \\"featureColumns\\": [
+    {
+      \\"name\\": \\"column1\\",
+      \\"type\\": {
+        \\"typeKind\\": \\"INT64\\"
+      }
+    },
+    {
+      \\"name\\": \\"column2\\",
+      \\"type\\": {
+        \\"typeKind\\": \\"INT64\\"
+      }
+    },
+    {
+      \\"name\\": \\"column3\\",
+      \\"type\\": {
+        \\"typeKind\\": \\"INT64\\"
+      }
+    }
+  ],
+  \\"labelColumns\\": [
+    {
+      \\"name\\": \\"predicted_label\\",
+      \\"type\\": {
+        \\"typeKind\\": \\"INT64\\"
+      }
+    }
+  ],
+  \\"trainingRuns\\": [
+    {
+      \\"trainingOptions\\": {
+        \\"maxIterations\\": \\"5\\",
+        \\"lossType\\": \\"MEAN_SQUARED_LOSS\\",
+        \\"l1Regularization\\": 1,
+        \\"l2Regularization\\": 0,
+        \\"minRelativeProgress\\": 0.01,
+        \\"warmStart\\": false,
+        \\"earlyStop\\": true,
+        \\"dataSplitMethod\\": \\"AUTO_SPLIT\\",
+        \\"learnRateStrategy\\": \\"LINE_SEARCH\\",
+        \\"initialLearnRate\\": 0.15,
+        \\"optimizationStrategy\\": \\"BATCH_GRADIENT_DESCENT\\",
+        \\"calculatePValues\\": false
+      },
+      \\"trainingStartTime\\": \\"1678750101144\\",
+      \\"results\\": [
+        {
+          \\"index\\": 0,
+          \\"durationMs\\": \\"2112\\",
+          \\"trainingLoss\\": 1491.0539770637374,
+          \\"learnRate\\": 0.3
+        },
+        {
+          \\"index\\": 1,
+          \\"durationMs\\": \\"2350\\",
+          \\"trainingLoss\\": 241.92978201881206,
+          \\"learnRate\\": 0.6
+        },
+        {
+          \\"index\\": 2,
+          \\"durationMs\\": \\"2384\\",
+          \\"trainingLoss\\": 41.69727113362376,
+          \\"learnRate\\": 0.6
+        },
+        {
+          \\"index\\": 3,
+          \\"durationMs\\": \\"2288\\",
+          \\"trainingLoss\\": 7.920357012251917,
+          \\"learnRate\\": 0.6
+        },
+        {
+          \\"index\\": 4,
+          \\"durationMs\\": \\"2404\\",
+          \\"trainingLoss\\": 2.6036132184550227,
+          \\"learnRate\\": 0.6
+        }
+      ],
+      \\"evaluationMetrics\\": {
+        \\"regressionMetrics\\": {
+          \\"meanAbsoluteError\\": 1.328310780251473,
+          \\"meanSquaredError\\": 2.603613218455023,
+          \\"meanSquaredLogError\\": 0.001217671951157408,
+          \\"medianAbsoluteError\\": 1.0159802433960223,
+          \\"rSquared\\": 0.9968441051897515
+        }
+      },
+      \\"startTime\\": \\"2023-03-13T23:28:21.144Z\\"
+    }
+  ]
+}",
+  "@default/examples/@routines/sample_function/README.md" => "test",
+  "@default/examples/@routines/sample_function/metadata.json" => "{
+  \\"routineType\\": \\"SCALAR_FUNCTION\\",
+  \\"language\\": \\"SQL\\",
+  \\"arguments\\": [
+    {
+      \\"name\\": \\"argument\\",
+      \\"dataType\\": {
+        \\"typeKind\\": \\"INT64\\"
+      }
+    }
+  ],
+  \\"returnType\\": {
+    \\"typeKind\\": \\"INT64\\"
+  }
+}",
+  "@default/examples/@routines/sample_procedure/metadata.json" => "{
+  \\"routineType\\": \\"PROCEDURE\\",
+  \\"language\\": \\"SQL\\",
+  \\"arguments\\": [
+    {
+      \\"name\\": \\"sample_argument\\",
+      \\"mode\\": \\"IN\\",
+      \\"dataType\\": {
+        \\"typeKind\\": \\"INT64\\"
+      }
+    }
+  ]
+}",
+  "@default/examples/@routines/sample_tvf/metadata.json" => "{
+  \\"routineType\\": \\"TABLE_VALUED_FUNCTION\\",
+  \\"language\\": \\"SQL\\",
+  \\"arguments\\": [
+    {
+      \\"name\\": \\"argument\\",
+      \\"dataType\\": {
+        \\"typeKind\\": \\"INT64\\"
+      }
+    }
+  ],
+  \\"returnTableType\\": {
+    \\"columns\\": [
+      {
+        \\"name\\": \\"a\\",
+        \\"type\\": {
+          \\"typeKind\\": \\"INT64\\"
+        }
+      }
+    ]
+  }
+}",
+  "@default/examples/metadata.json" => "{
+  \\"type\\": \\"DEFAULT\\",
+  \\"access\\": [
+    {
+      \\"role\\": \\"WRITER\\",
+      \\"specialGroup\\": \\"projectWriters\\"
+    },
+    {
+      \\"role\\": \\"OWNER\\",
+      \\"specialGroup\\": \\"projectOwners\\"
+    },
+    {
+      \\"role\\": \\"OWNER\\",
+      \\"userByEmail\\": \\"takegue@gmail.com\\"
+    },
+    {
+      \\"role\\": \\"READER\\",
+      \\"specialGroup\\": \\"projectReaders\\"
+    }
+  ],
+  \\"location\\": \\"US\\"
+}",
+  "@default/examples/sample_clone_table/metadata.json" => "{
+  \\"type\\": \\"TABLE\\",
+  \\"clustering\\": {
+    \\"fields\\": [
+      \\"a\\"
+    ]
+  }
+}",
+  "@default/examples/sample_clone_table/schema.json" => "[
+  {
+    \\"name\\": \\"a\\",
+    \\"type\\": \\"INTEGER\\"
+  }
+]",
+  "@default/examples/sample_materialized_view/metadata.json" => "{
+  \\"type\\": \\"MATERIALIZED_VIEW\\"
+}",
+  "@default/examples/sample_materialized_view/schema.json" => "[
+  {
+    \\"name\\": \\"a\\",
+    \\"type\\": \\"INTEGER\\"
+  }
+]",
+  "@default/examples/sample_partition_table/metadata.json" => "{
+  \\"type\\": \\"TABLE\\",
+  \\"timePartitioning\\": {
+    \\"type\\": \\"DAY\\",
+    \\"expirationMs\\": \\"5184000000\\",
+    \\"field\\": \\"date_jst\\"
+  }
+}",
+  "@default/examples/sample_partition_table/schema.json" => "[
+  {
+    \\"name\\": \\"date_jst\\",
+    \\"type\\": \\"DATE\\"
+  }
+]",
+  "@default/examples/sample_sharding_@/metadata.json" => "{
+  \\"type\\": \\"TABLE\\"
+}",
+  "@default/examples/sample_sharding_@/schema.json" => "[
+  {
+    \\"name\\": \\"date_jst\\",
+    \\"type\\": \\"DATE\\"
+  }
+]",
+  "@default/examples/sample_snapshot_table/metadata.json" => "{
+  \\"type\\": \\"SNAPSHOT\\",
+  \\"clustering\\": {
+    \\"fields\\": [
+      \\"a\\"
+    ]
+  },
+  \\"snapshotDefinition\\": {
+    \\"baseTableReference\\": {
+      \\"projectId\\": \\"bigquery-porter\\",
+      \\"datasetId\\": \\"examples\\",
+      \\"tableId\\": \\"sample_table\\"
+    },
+    \\"snapshotTime\\": \\"2023-03-13T23:34:57.316Z\\"
+  },
+  \\"cloneDefinition\\": {
+    \\"baseTableReference\\": {
+      \\"projectId\\": \\"bigquery-porter\\",
+      \\"datasetId\\": \\"examples\\",
+      \\"tableId\\": \\"sample_table\\"
+    },
+    \\"snapshotTime\\": \\"2023-03-13T23:34:57.316Z\\"
+  }
+}",
+  "@default/examples/sample_snapshot_table/schema.json" => "[
+  {
+    \\"name\\": \\"a\\",
+    \\"type\\": \\"INTEGER\\",
+    \\"description\\": \\"ふがふが\\\\nふが\\"
+  }
+]",
+  "@default/examples/sample_table/metadata.json" => "{
+  \\"type\\": \\"TABLE\\",
+  \\"clustering\\": {
+    \\"fields\\": [
+      \\"a\\"
+    ]
+  }
+}",
+  "@default/examples/sample_table/schema.json" => "[
+  {
+    \\"name\\": \\"a\\",
+    \\"type\\": \\"INTEGER\\",
+    \\"description\\": \\"ふがふが\\\\nふが\\"
+  }
+]",
+  "@default/examples_eu/metadata.json" => "{
+  \\"type\\": \\"DEFAULT\\",
+  \\"access\\": [
+    {
+      \\"role\\": \\"WRITER\\",
+      \\"specialGroup\\": \\"projectWriters\\"
+    },
+    {
+      \\"role\\": \\"OWNER\\",
+      \\"specialGroup\\": \\"projectOwners\\"
+    },
+    {
+      \\"role\\": \\"OWNER\\",
+      \\"userByEmail\\": \\"takegue@gmail.com\\"
+    },
+    {
+      \\"role\\": \\"READER\\",
+      \\"specialGroup\\": \\"projectReaders\\"
+    }
+  ],
+  \\"location\\": \\"EU\\"
+}",
+  "@default/examples_eu/sample_table/metadata.json" => "{
+  \\"type\\": \\"TABLE\\"
+}",
+  "@default/examples_eu/sample_table/schema.json" => "[
+  {
+    \\"name\\": \\"a\\",
+    \\"type\\": \\"INTEGER\\"
+  }
+]",
+  "@default/sample_linked_dataset/README.md" => "ソース リスティング: [JP Holidays preprocessed by BQ FUN](//\\\\(bigquery//analyticshub:projects/120299025068/locations/asia-northeast1/dataExchanges/jpdata_18253a34a30/listings/jp_holidays_preprocessed_by_bq_fun_18253c4e9dc/create-linked-dataset\\\\)\\\\(analyticshub:projects/120299025068/locations/asia-northeast1/dataExchanges/jpdata_18253a34a30/listings/jp_holidays_preprocessed_by_bq_fun_18253c4e9dc\\\\))",
+  "@default/sample_linked_dataset/holidays/README.md" => "国民の祝日・休日",
+  "@default/sample_linked_dataset/holidays/metadata.json" => "{
   \\"type\\": \\"TABLE\\",
   \\"labels\\": {
     \\"freshness\\": \\"daily\\"
   }
 }",
-  "@default/jp_holidays_preprocessed_by_bq_fun/holidays/schema.json" => "[
+  "@default/sample_linked_dataset/holidays/schema.json" => "[
   {
     \\"name\\": \\"date\\",
     \\"type\\": \\"DATE\\",
@@ -421,7 +574,7 @@ Map {
     \\"description\\": \\"国民の祝日・休日名称\\"
   }
 ]",
-  "@default/jp_holidays_preprocessed_by_bq_fun/metadata.json" => "{
+  "@default/sample_linked_dataset/metadata.json" => "{
   \\"type\\": \\"LINKED\\",
   \\"access\\": [
     {
@@ -443,398 +596,6 @@ Map {
   ],
   \\"location\\": \\"asia-northeast1\\"
 }",
-  "@default/sandbox/@models/mymodel/metadata.json" => "{
-  \\"modelType\\": \\"LINEAR_REGRESSION\\",
-  \\"featureColumns\\": [
-    {
-      \\"name\\": \\"column1\\",
-      \\"type\\": {
-        \\"typeKind\\": \\"INT64\\"
-      }
-    },
-    {
-      \\"name\\": \\"column2\\",
-      \\"type\\": {
-        \\"typeKind\\": \\"INT64\\"
-      }
-    },
-    {
-      \\"name\\": \\"column3\\",
-      \\"type\\": {
-        \\"typeKind\\": \\"INT64\\"
-      }
-    }
-  ],
-  \\"labelColumns\\": [
-    {
-      \\"name\\": \\"predicted_label\\",
-      \\"type\\": {
-        \\"typeKind\\": \\"INT64\\"
-      }
-    }
-  ],
-  \\"trainingRuns\\": [
-    {
-      \\"trainingOptions\\": {
-        \\"maxIterations\\": \\"5\\",
-        \\"lossType\\": \\"MEAN_SQUARED_LOSS\\",
-        \\"l1Regularization\\": 1,
-        \\"l2Regularization\\": 0,
-        \\"minRelativeProgress\\": 0.01,
-        \\"warmStart\\": false,
-        \\"earlyStop\\": true,
-        \\"dataSplitMethod\\": \\"AUTO_SPLIT\\",
-        \\"learnRateStrategy\\": \\"LINE_SEARCH\\",
-        \\"initialLearnRate\\": 0.15,
-        \\"optimizationStrategy\\": \\"BATCH_GRADIENT_DESCENT\\",
-        \\"calculatePValues\\": false
-      },
-      \\"trainingStartTime\\": \\"1672534389200\\",
-      \\"results\\": [
-        {
-          \\"index\\": 0,
-          \\"durationMs\\": \\"2231\\",
-          \\"trainingLoss\\": 1491.053977063737,
-          \\"learnRate\\": 0.3
-        },
-        {
-          \\"index\\": 1,
-          \\"durationMs\\": \\"1991\\",
-          \\"trainingLoss\\": 241.92978201881198,
-          \\"learnRate\\": 0.6
-        },
-        {
-          \\"index\\": 2,
-          \\"durationMs\\": \\"2178\\",
-          \\"trainingLoss\\": 41.69727113362372,
-          \\"learnRate\\": 0.6
-        },
-        {
-          \\"index\\": 3,
-          \\"durationMs\\": \\"2166\\",
-          \\"trainingLoss\\": 7.920357012251959,
-          \\"learnRate\\": 0.6
-        },
-        {
-          \\"index\\": 4,
-          \\"durationMs\\": \\"2040\\",
-          \\"trainingLoss\\": 2.6036132184550516,
-          \\"learnRate\\": 0.6
-        }
-      ],
-      \\"evaluationMetrics\\": {
-        \\"regressionMetrics\\": {
-          \\"meanAbsoluteError\\": 1.3283107802514804,
-          \\"meanSquaredError\\": 2.6036132184550516,
-          \\"meanSquaredLogError\\": 0.0012176719511574185,
-          \\"medianAbsoluteError\\": 1.0159802433960294,
-          \\"rSquared\\": 0.9968441051897514
-        }
-      },
-      \\"startTime\\": \\"2023-01-01T00:53:09.200Z\\"
-    }
-  ]
-}",
-  "@default/sandbox/@routines/sample_function/README.md" => "test",
-  "@default/sandbox/@routines/sample_function/metadata.json" => "{
-  \\"routineType\\": \\"SCALAR_FUNCTION\\",
-  \\"language\\": \\"SQL\\",
-  \\"arguments\\": [
-    {
-      \\"name\\": \\"argument\\",
-      \\"dataType\\": {
-        \\"typeKind\\": \\"INT64\\"
-      }
-    }
-  ],
-  \\"returnType\\": {
-    \\"typeKind\\": \\"INT64\\"
-  }
-}",
-  "@default/sandbox/@routines/sample_procedure/metadata.json" => "{
-  \\"routineType\\": \\"PROCEDURE\\",
-  \\"language\\": \\"SQL\\",
-  \\"arguments\\": [
-    {
-      \\"name\\": \\"sample_argument\\",
-      \\"mode\\": \\"IN\\",
-      \\"dataType\\": {
-        \\"typeKind\\": \\"INT64\\"
-      }
-    }
-  ]
-}",
-  "@default/sandbox/@routines/sample_tvf/metadata.json" => "{
-  \\"routineType\\": \\"TABLE_VALUED_FUNCTION\\",
-  \\"language\\": \\"SQL\\",
-  \\"arguments\\": [
-    {
-      \\"name\\": \\"argument\\",
-      \\"dataType\\": {
-        \\"typeKind\\": \\"INT64\\"
-      }
-    }
-  ],
-  \\"returnTableType\\": {
-    \\"columns\\": [
-      {
-        \\"name\\": \\"a\\",
-        \\"type\\": {
-          \\"typeKind\\": \\"INT64\\"
-        }
-      }
-    ]
-  }
-}",
-  "@default/sandbox/README.md" => "<!--- BQMAKE_DATASET: BEGIN -->
-\`\`\`mermaid
-graph LR
-subgraph project-id-7288898082930342315.sandbox
-	H1NS(sample_clone_table)
-	5BLN(sample_table)
-	oEk9(sample_materialized_view)
-	mxt6(sample_lineage)
-	1Tdy(sample_partition_table)
-	P5GH(sample_sharding_*)
-	FHJh(sample_snapshot_table)
-	sldk(stations_scd_type2)
-end
-subgraph bigquery-public-data.austin_bikeshare
-	0Q1b(bikeshare_stations)
-end
-5BLN --> H1NS
-oEk9 --> H1NS
-5BLN --> oEk9
-5BLN --> FHJh
-oEk9 --> FHJh
-0Q1b --> sldk
-\`\`\`
-<!--- BQMAKE_DATASET: END -->",
-  "@default/sandbox/metadata.json" => "{
-  \\"type\\": \\"DEFAULT\\",
-  \\"access\\": [
-    {
-      \\"role\\": \\"WRITER\\",
-      \\"specialGroup\\": \\"projectWriters\\"
-    },
-    {
-      \\"role\\": \\"OWNER\\",
-      \\"specialGroup\\": \\"projectOwners\\"
-    },
-    {
-      \\"role\\": \\"OWNER\\",
-      \\"userByEmail\\": \\"takegue@gmail.com\\"
-    },
-    {
-      \\"role\\": \\"READER\\",
-      \\"specialGroup\\": \\"projectReaders\\"
-    }
-  ],
-  \\"location\\": \\"US\\"
-}",
-  "@default/sandbox/sample_clone_table/metadata.json" => "{
-  \\"type\\": \\"TABLE\\",
-  \\"clustering\\": {
-    \\"fields\\": [
-      \\"a\\"
-    ]
-  }
-}",
-  "@default/sandbox/sample_clone_table/schema.json" => "[
-  {
-    \\"name\\": \\"a\\",
-    \\"type\\": \\"INTEGER\\"
-  }
-]",
-  "@default/sandbox/sample_materialized_view/metadata.json" => "{
-  \\"type\\": \\"MATERIALIZED_VIEW\\"
-}",
-  "@default/sandbox/sample_materialized_view/schema.json" => "[
-  {
-    \\"name\\": \\"a\\",
-    \\"type\\": \\"INTEGER\\"
-  }
-]",
-  "@default/sandbox/sample_partition_table/metadata.json" => "{
-  \\"type\\": \\"TABLE\\",
-  \\"timePartitioning\\": {
-    \\"type\\": \\"DAY\\",
-    \\"field\\": \\"date_jst\\"
-  }
-}",
-  "@default/sandbox/sample_partition_table/schema.json" => "[
-  {
-    \\"name\\": \\"date_jst\\",
-    \\"type\\": \\"DATE\\"
-  }
-]",
-  "@default/sandbox/sample_sharding_@/metadata.json" => "{
-  \\"type\\": \\"TABLE\\"
-}",
-  "@default/sandbox/sample_sharding_@/schema.json" => "[
-  {
-    \\"name\\": \\"date_jst\\",
-    \\"type\\": \\"DATE\\"
-  }
-]",
-  "@default/sandbox/sample_snapshot_table/metadata.json" => "{
-  \\"type\\": \\"SNAPSHOT\\",
-  \\"snapshotDefinition\\": {
-    \\"baseTableReference\\": {
-      \\"projectId\\": \\"takegue\\",
-      \\"datasetId\\": \\"sandbox\\",
-      \\"tableId\\": \\"sample_table\\"
-    },
-    \\"snapshotTime\\": \\"2023-01-01T01:12:07.322Z\\"
-  },
-  \\"cloneDefinition\\": {
-    \\"baseTableReference\\": {
-      \\"projectId\\": \\"takegue\\",
-      \\"datasetId\\": \\"sandbox\\",
-      \\"tableId\\": \\"sample_table\\"
-    },
-    \\"snapshotTime\\": \\"2023-01-01T01:12:07.322Z\\"
-  }
-}",
-  "@default/sandbox/sample_snapshot_table/schema.json" => "[
-  {
-    \\"name\\": \\"a\\",
-    \\"type\\": \\"INTEGER\\",
-    \\"description\\": \\"ふがふが\\\\nふが\\"
-  }
-]",
-  "@default/sandbox/sample_table/metadata.json" => "{
-  \\"type\\": \\"TABLE\\",
-  \\"clustering\\": {
-    \\"fields\\": [
-      \\"a\\"
-    ]
-  }
-}",
-  "@default/sandbox/sample_table/schema.json" => "[
-  {
-    \\"name\\": \\"a\\",
-    \\"type\\": \\"INTEGER\\",
-    \\"description\\": \\"ふがふが\\\\nふが\\"
-  }
-]",
-  "@default/sandbox/sample_view/metadata.json" => "{
-  \\"type\\": \\"VIEW\\"
-}",
-  "@default/sandbox/sample_view/schema.json" => "[
-  {
-    \\"name\\": \\"unique_key\\",
-    \\"type\\": \\"STRING\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"complaint_description\\",
-    \\"type\\": \\"STRING\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"source\\",
-    \\"type\\": \\"STRING\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"status\\",
-    \\"type\\": \\"STRING\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"status_change_date\\",
-    \\"type\\": \\"TIMESTAMP\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"created_date\\",
-    \\"type\\": \\"TIMESTAMP\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"last_update_date\\",
-    \\"type\\": \\"TIMESTAMP\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"close_date\\",
-    \\"type\\": \\"TIMESTAMP\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"incident_address\\",
-    \\"type\\": \\"STRING\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"street_number\\",
-    \\"type\\": \\"STRING\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"street_name\\",
-    \\"type\\": \\"STRING\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"city\\",
-    \\"type\\": \\"STRING\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"incident_zip\\",
-    \\"type\\": \\"INTEGER\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"county\\",
-    \\"type\\": \\"STRING\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"state_plane_x_coordinate\\",
-    \\"type\\": \\"STRING\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"state_plane_y_coordinate\\",
-    \\"type\\": \\"FLOAT\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"latitude\\",
-    \\"type\\": \\"FLOAT\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"longitude\\",
-    \\"type\\": \\"FLOAT\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"location\\",
-    \\"type\\": \\"STRING\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"council_district_code\\",
-    \\"type\\": \\"INTEGER\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"map_page\\",
-    \\"type\\": \\"STRING\\",
-    \\"mode\\": \\"NULLABLE\\"
-  },
-  {
-    \\"name\\": \\"map_tile\\",
-    \\"type\\": \\"STRING\\",
-    \\"mode\\": \\"NULLABLE\\"
-  }
-]",
-  "@default/sandbox/sample_view/view.sql" => "SELECT * FROM \`bigquery-public-data.austin_311.311_service_requests\` LIMIT 1000
-",
 }
 `;
 
