@@ -359,7 +359,6 @@ const deployBigQueryResouce = async (
           );
         }
       }
-
       try {
         await fetchBQJobResource(job);
       } catch (e: unknown) {
@@ -411,6 +410,12 @@ const createDeployTasks = async (
     ),
     // For Metadata Update
     ...(ctx.dryRun ? [] : Array.from(new Set(files.map((f) => f)))
+      .filter((n) =>
+        !toBQNS(n).includes('@') ||
+        // Allow to fetch metadat for ROUTINES or MODELS
+        toBQNS(n).includes('@ROUTINES') ||
+        toBQNS(n).includes('@MODELS')
+      )
       .map((n) => ({
         namespace: toBQNS(n),
         shouldDeploy: files.includes(n),
