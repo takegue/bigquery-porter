@@ -62,6 +62,17 @@ exports[`CLI: push > push --format=json --dry-run -C ./examples 2`] = `
 ]
 `;
 
+exports[`CLI: push > push --format=json -C ./examples 1`] = `31`;
+
+exports[`CLI: push > push --format=json -C ./examples 2`] = `
+[
+  "Warning: Irrelevant SQL file located in examples/@default/sandbox/error_sample/ddl.sql for bigquery-porter.sandbox.error_sample",
+  "Warning: Irrelevant SQL file located in examples/@default/sandbox/error_sample/test.sql for bigquery-porter.sandbox.error_sample",
+  "Some tasks are failed(Failed: 4)
+",
+]
+`;
+
 exports[`CLI: push > push --help 1`] = `
 [
   "Usage: program push [options] [projects...]

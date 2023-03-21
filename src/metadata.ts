@@ -209,22 +209,29 @@ const syncMetadata = async (
     /* Known isssue:
      * - BigQuery API `/routine` cause error when to use keyword term as argument
      */
-    jobs.push(
-      (bqObject as any)
-        .setMetadata(
-          cleanupObject({
-            ...newMetadata,
-            ...{ description: newDescription },
-            ...{ schema: newSchema },
+    let disablePush = false;
+    if (bqObject instanceof Table && bqObject.id?.includes('*')) {
+      // Updating sharding tabled is not supported
+      disablePush = true;
+    }
+    if (!disablePush) {
+      jobs.push(
+        (bqObject as any)
+          .setMetadata(
+            cleanupObject({
+              ...newMetadata,
+              ...{ description: newDescription },
+              ...{ schema: newSchema },
+            }),
+          )
+          .then(() => undefined)
+          .catch((e: Error) => {
+            console.warn(
+              `Warning:${dirPath}:metadata:Failed to update metadata. ${e.stack}`,
+            );
           }),
-        )
-        .then(() => undefined)
-        .catch((e: Error) => {
-          console.warn(
-            `Warning:${dirPath}:metadata:Failed to update metadata. ${e.stack}`,
-          );
-        }),
-    );
+      );
+    }
   }
 
   // metadata.json
