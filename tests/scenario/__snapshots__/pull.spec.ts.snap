@@ -2,149 +2,6 @@
 
 exports[`CLIv2: pull > pull > Pulled Files: Contents 1`] = `
 Map {
-  "@default/examples/@models/mymodel/metadata.json" => "{
-  \\"modelType\\": \\"LINEAR_REGRESSION\\",
-  \\"featureColumns\\": [
-    {
-      \\"name\\": \\"column1\\",
-      \\"type\\": {
-        \\"typeKind\\": \\"INT64\\"
-      }
-    },
-    {
-      \\"name\\": \\"column2\\",
-      \\"type\\": {
-        \\"typeKind\\": \\"INT64\\"
-      }
-    },
-    {
-      \\"name\\": \\"column3\\",
-      \\"type\\": {
-        \\"typeKind\\": \\"INT64\\"
-      }
-    }
-  ],
-  \\"labelColumns\\": [
-    {
-      \\"name\\": \\"predicted_label\\",
-      \\"type\\": {
-        \\"typeKind\\": \\"INT64\\"
-      }
-    }
-  ],
-  \\"trainingRuns\\": [
-    {
-      \\"trainingOptions\\": {
-        \\"maxIterations\\": \\"5\\",
-        \\"lossType\\": \\"MEAN_SQUARED_LOSS\\",
-        \\"l1Regularization\\": 1,
-        \\"l2Regularization\\": 0,
-        \\"minRelativeProgress\\": 0.01,
-        \\"warmStart\\": false,
-        \\"earlyStop\\": true,
-        \\"dataSplitMethod\\": \\"AUTO_SPLIT\\",
-        \\"learnRateStrategy\\": \\"LINE_SEARCH\\",
-        \\"initialLearnRate\\": 0.15,
-        \\"optimizationStrategy\\": \\"BATCH_GRADIENT_DESCENT\\",
-        \\"calculatePValues\\": false
-      },
-      \\"trainingStartTime\\": \\"1678750101144\\",
-      \\"results\\": [
-        {
-          \\"index\\": 0,
-          \\"durationMs\\": \\"2112\\",
-          \\"trainingLoss\\": 1491.0539770637374,
-          \\"learnRate\\": 0.3
-        },
-        {
-          \\"index\\": 1,
-          \\"durationMs\\": \\"2350\\",
-          \\"trainingLoss\\": 241.92978201881206,
-          \\"learnRate\\": 0.6
-        },
-        {
-          \\"index\\": 2,
-          \\"durationMs\\": \\"2384\\",
-          \\"trainingLoss\\": 41.69727113362376,
-          \\"learnRate\\": 0.6
-        },
-        {
-          \\"index\\": 3,
-          \\"durationMs\\": \\"2288\\",
-          \\"trainingLoss\\": 7.920357012251917,
-          \\"learnRate\\": 0.6
-        },
-        {
-          \\"index\\": 4,
-          \\"durationMs\\": \\"2404\\",
-          \\"trainingLoss\\": 2.6036132184550227,
-          \\"learnRate\\": 0.6
-        }
-      ],
-      \\"evaluationMetrics\\": {
-        \\"regressionMetrics\\": {
-          \\"meanAbsoluteError\\": 1.328310780251473,
-          \\"meanSquaredError\\": 2.603613218455023,
-          \\"meanSquaredLogError\\": 0.001217671951157408,
-          \\"medianAbsoluteError\\": 1.0159802433960223,
-          \\"rSquared\\": 0.9968441051897515
-        }
-      },
-      \\"startTime\\": \\"2023-03-13T23:28:21.144Z\\"
-    }
-  ]
-}",
-  "@default/examples/@routines/sample_function/README.md" => "test",
-  "@default/examples/@routines/sample_function/metadata.json" => "{
-  \\"routineType\\": \\"SCALAR_FUNCTION\\",
-  \\"language\\": \\"SQL\\",
-  \\"arguments\\": [
-    {
-      \\"name\\": \\"argument\\",
-      \\"dataType\\": {
-        \\"typeKind\\": \\"INT64\\"
-      }
-    }
-  ],
-  \\"returnType\\": {
-    \\"typeKind\\": \\"INT64\\"
-  }
-}",
-  "@default/examples/@routines/sample_procedure/metadata.json" => "{
-  \\"routineType\\": \\"PROCEDURE\\",
-  \\"language\\": \\"SQL\\",
-  \\"arguments\\": [
-    {
-      \\"name\\": \\"sample_argument\\",
-      \\"mode\\": \\"IN\\",
-      \\"dataType\\": {
-        \\"typeKind\\": \\"INT64\\"
-      }
-    }
-  ]
-}",
-  "@default/examples/@routines/sample_tvf/metadata.json" => "{
-  \\"routineType\\": \\"TABLE_VALUED_FUNCTION\\",
-  \\"language\\": \\"SQL\\",
-  \\"arguments\\": [
-    {
-      \\"name\\": \\"argument\\",
-      \\"dataType\\": {
-        \\"typeKind\\": \\"INT64\\"
-      }
-    }
-  ],
-  \\"returnTableType\\": {
-    \\"columns\\": [
-      {
-        \\"name\\": \\"a\\",
-        \\"type\\": {
-          \\"typeKind\\": \\"INT64\\"
-        }
-      }
-    ]
-  }
-}",
   "@default/examples/metadata.json" => "{
   \\"type\\": \\"DEFAULT\\",
   \\"access\\": [
@@ -167,83 +24,6 @@ Map {
   ],
   \\"location\\": \\"US\\"
 }",
-  "@default/examples/sample_clone_table/metadata.json" => "{
-  \\"type\\": \\"TABLE\\",
-  \\"clustering\\": {
-    \\"fields\\": [
-      \\"a\\"
-    ]
-  }
-}",
-  "@default/examples/sample_clone_table/schema.json" => "[
-  {
-    \\"name\\": \\"a\\",
-    \\"type\\": \\"INTEGER\\"
-  }
-]",
-  "@default/examples/sample_materialized_view/metadata.json" => "{
-  \\"type\\": \\"MATERIALIZED_VIEW\\"
-}",
-  "@default/examples/sample_materialized_view/schema.json" => "[
-  {
-    \\"name\\": \\"a\\",
-    \\"type\\": \\"INTEGER\\"
-  }
-]",
-  "@default/examples/sample_partition_table/metadata.json" => "{
-  \\"type\\": \\"TABLE\\",
-  \\"timePartitioning\\": {
-    \\"type\\": \\"DAY\\",
-    \\"expirationMs\\": \\"5184000000\\",
-    \\"field\\": \\"date_jst\\"
-  }
-}",
-  "@default/examples/sample_partition_table/schema.json" => "[
-  {
-    \\"name\\": \\"date_jst\\",
-    \\"type\\": \\"DATE\\"
-  }
-]",
-  "@default/examples/sample_sharding_@/metadata.json" => "{
-  \\"type\\": \\"TABLE\\"
-}",
-  "@default/examples/sample_sharding_@/schema.json" => "[
-  {
-    \\"name\\": \\"date_jst\\",
-    \\"type\\": \\"DATE\\"
-  }
-]",
-  "@default/examples/sample_snapshot_table/metadata.json" => "{
-  \\"type\\": \\"SNAPSHOT\\",
-  \\"clustering\\": {
-    \\"fields\\": [
-      \\"a\\"
-    ]
-  },
-  \\"snapshotDefinition\\": {
-    \\"baseTableReference\\": {
-      \\"projectId\\": \\"bigquery-porter\\",
-      \\"datasetId\\": \\"examples\\",
-      \\"tableId\\": \\"sample_table\\"
-    },
-    \\"snapshotTime\\": \\"2023-03-13T23:34:57.316Z\\"
-  },
-  \\"cloneDefinition\\": {
-    \\"baseTableReference\\": {
-      \\"projectId\\": \\"bigquery-porter\\",
-      \\"datasetId\\": \\"examples\\",
-      \\"tableId\\": \\"sample_table\\"
-    },
-    \\"snapshotTime\\": \\"2023-03-13T23:34:57.316Z\\"
-  }
-}",
-  "@default/examples/sample_snapshot_table/schema.json" => "[
-  {
-    \\"name\\": \\"a\\",
-    \\"type\\": \\"INTEGER\\",
-    \\"description\\": \\"ふがふが\\\\nふが\\"
-  }
-]",
   "@default/examples/sample_table/metadata.json" => "{
   \\"type\\": \\"TABLE\\",
   \\"clustering\\": {
@@ -255,8 +35,7 @@ Map {
   "@default/examples/sample_table/schema.json" => "[
   {
     \\"name\\": \\"a\\",
-    \\"type\\": \\"INTEGER\\",
-    \\"description\\": \\"ふがふが\\\\nふが\\"
+    \\"type\\": \\"INTEGER\\"
   }
 ]",
 }
@@ -266,167 +45,13 @@ exports[`CLIv2: pull > pull > Pulled Files: List 1`] = `{}`;
 
 exports[`CLIv2: pull > pull --all --with-ddl > Pulled Files: Contents 1`] = `
 Map {
-  "@default/examples/@models/mymodel/metadata.json" => "{
-  \\"modelType\\": \\"LINEAR_REGRESSION\\",
-  \\"featureColumns\\": [
-    {
-      \\"name\\": \\"column1\\",
-      \\"type\\": {
-        \\"typeKind\\": \\"INT64\\"
-      }
-    },
-    {
-      \\"name\\": \\"column2\\",
-      \\"type\\": {
-        \\"typeKind\\": \\"INT64\\"
-      }
-    },
-    {
-      \\"name\\": \\"column3\\",
-      \\"type\\": {
-        \\"typeKind\\": \\"INT64\\"
-      }
-    }
-  ],
-  \\"labelColumns\\": [
-    {
-      \\"name\\": \\"predicted_label\\",
-      \\"type\\": {
-        \\"typeKind\\": \\"INT64\\"
-      }
-    }
-  ],
-  \\"trainingRuns\\": [
-    {
-      \\"trainingOptions\\": {
-        \\"maxIterations\\": \\"5\\",
-        \\"lossType\\": \\"MEAN_SQUARED_LOSS\\",
-        \\"l1Regularization\\": 1,
-        \\"l2Regularization\\": 0,
-        \\"minRelativeProgress\\": 0.01,
-        \\"warmStart\\": false,
-        \\"earlyStop\\": true,
-        \\"dataSplitMethod\\": \\"AUTO_SPLIT\\",
-        \\"learnRateStrategy\\": \\"LINE_SEARCH\\",
-        \\"initialLearnRate\\": 0.15,
-        \\"optimizationStrategy\\": \\"BATCH_GRADIENT_DESCENT\\",
-        \\"calculatePValues\\": false
-      },
-      \\"trainingStartTime\\": \\"1678750101144\\",
-      \\"results\\": [
-        {
-          \\"index\\": 0,
-          \\"durationMs\\": \\"2112\\",
-          \\"trainingLoss\\": 1491.0539770637374,
-          \\"learnRate\\": 0.3
-        },
-        {
-          \\"index\\": 1,
-          \\"durationMs\\": \\"2350\\",
-          \\"trainingLoss\\": 241.92978201881206,
-          \\"learnRate\\": 0.6
-        },
-        {
-          \\"index\\": 2,
-          \\"durationMs\\": \\"2384\\",
-          \\"trainingLoss\\": 41.69727113362376,
-          \\"learnRate\\": 0.6
-        },
-        {
-          \\"index\\": 3,
-          \\"durationMs\\": \\"2288\\",
-          \\"trainingLoss\\": 7.920357012251917,
-          \\"learnRate\\": 0.6
-        },
-        {
-          \\"index\\": 4,
-          \\"durationMs\\": \\"2404\\",
-          \\"trainingLoss\\": 2.6036132184550227,
-          \\"learnRate\\": 0.6
-        }
-      ],
-      \\"evaluationMetrics\\": {
-        \\"regressionMetrics\\": {
-          \\"meanAbsoluteError\\": 1.328310780251473,
-          \\"meanSquaredError\\": 2.603613218455023,
-          \\"meanSquaredLogError\\": 0.001217671951157408,
-          \\"medianAbsoluteError\\": 1.0159802433960223,
-          \\"rSquared\\": 0.9968441051897515
-        }
-      },
-      \\"startTime\\": \\"2023-03-13T23:28:21.144Z\\"
-    }
-  ]
-}",
-  "@default/examples/@routines/sample_function/README.md" => "test",
-  "@default/examples/@routines/sample_function/ddl.sql" => "CREATE OR REPLACE FUNCTION examples.sample_function(argument INT64) RETURNS INT64
-OPTIONS(
-  description=\\"test\\")
-AS (
-1
-);",
-  "@default/examples/@routines/sample_function/metadata.json" => "{
-  \\"routineType\\": \\"SCALAR_FUNCTION\\",
-  \\"language\\": \\"SQL\\",
-  \\"arguments\\": [
-    {
-      \\"name\\": \\"argument\\",
-      \\"dataType\\": {
-        \\"typeKind\\": \\"INT64\\"
-      }
-    }
-  ],
-  \\"returnType\\": {
-    \\"typeKind\\": \\"INT64\\"
-  }
-}",
-  "@default/examples/@routines/sample_procedure/ddl.sql" => "CREATE OR REPLACE PROCEDURE examples.sample_procedure(IN sample_argument INT64)
-begin 
-  select 1 as a;
-end;",
-  "@default/examples/@routines/sample_procedure/metadata.json" => "{
-  \\"routineType\\": \\"PROCEDURE\\",
-  \\"language\\": \\"SQL\\",
-  \\"arguments\\": [
-    {
-      \\"name\\": \\"sample_argument\\",
-      \\"mode\\": \\"IN\\",
-      \\"dataType\\": {
-        \\"typeKind\\": \\"INT64\\"
-      }
-    }
-  ]
-}",
-  "@default/examples/@routines/sample_tvf/ddl.sql" => "CREATE OR REPLACE TABLE FUNCTION examples.sample_tvf(argument INT64) RETURNS TABLE<a INT64>
-AS
-select argument as a;",
-  "@default/examples/@routines/sample_tvf/metadata.json" => "{
-  \\"routineType\\": \\"TABLE_VALUED_FUNCTION\\",
-  \\"language\\": \\"SQL\\",
-  \\"arguments\\": [
-    {
-      \\"name\\": \\"argument\\",
-      \\"dataType\\": {
-        \\"typeKind\\": \\"INT64\\"
-      }
-    }
-  ],
-  \\"returnTableType\\": {
-    \\"columns\\": [
-      {
-        \\"name\\": \\"a\\",
-        \\"type\\": {
-          \\"typeKind\\": \\"INT64\\"
-        }
-      }
-    ]
-  }
-}",
   "@default/examples/ddl.sql" => "CREATE SCHEMA IF NOT EXISTS \`bigquery-porter.examples\`
 OPTIONS(
   default_table_expiration_days=60.0,
   default_partition_expiration_days=60.0,
-  location=\\"us\\"
+  location=\\"us\\",
+  is_case_insensitive=false,
+  max_time_travel_hours=168
 );",
   "@default/examples/metadata.json" => "{
   \\"type\\": \\"DEFAULT\\",
@@ -450,125 +75,13 @@ OPTIONS(
   ],
   \\"location\\": \\"US\\"
 }",
-  "@default/examples/sample_clone_table/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-porter.sandbox.sample_clone_table\`
+  "@default/examples/sample_table/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-porter.examples.sample_table\`
 (
   a INT64
 )
 CLUSTER BY a
 OPTIONS(
-  expiration_timestamp=TIMESTAMP \\"2023-05-20T10:39:16.121Z\\"
-);",
-  "@default/examples/sample_clone_table/metadata.json" => "{
-  \\"type\\": \\"TABLE\\",
-  \\"clustering\\": {
-    \\"fields\\": [
-      \\"a\\"
-    ]
-  }
-}",
-  "@default/examples/sample_clone_table/schema.json" => "[
-  {
-    \\"name\\": \\"a\\",
-    \\"type\\": \\"INTEGER\\"
-  }
-]",
-  "@default/examples/sample_materialized_view/ddl.sql" => "CREATE MATERIALIZED VIEW IF NOT EXISTS  \`bigquery-porter.sandbox.sample_materialized_view\`
-OPTIONS(
-  expiration_timestamp=TIMESTAMP \\"2023-05-20T10:36:56.363Z\\"
-)
-AS select 1 as a from \`sandbox.sample_table\`;",
-  "@default/examples/sample_materialized_view/metadata.json" => "{
-  \\"type\\": \\"MATERIALIZED_VIEW\\"
-}",
-  "@default/examples/sample_materialized_view/schema.json" => "[
-  {
-    \\"name\\": \\"a\\",
-    \\"type\\": \\"INTEGER\\"
-  }
-]",
-  "@default/examples/sample_partition_table/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-porter.sandbox.sample_partition_table\`
-(
-  date_jst DATE
-)
-PARTITION BY date_jst
-OPTIONS(
-  partition_expiration_days=60.0
-);",
-  "@default/examples/sample_partition_table/metadata.json" => "{
-  \\"type\\": \\"TABLE\\",
-  \\"timePartitioning\\": {
-    \\"type\\": \\"DAY\\",
-    \\"expirationMs\\": \\"5184000000\\",
-    \\"field\\": \\"date_jst\\"
-  }
-}",
-  "@default/examples/sample_partition_table/schema.json" => "[
-  {
-    \\"name\\": \\"date_jst\\",
-    \\"type\\": \\"DATE\\"
-  }
-]",
-  "@default/examples/sample_sharding_@/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-porter.sandbox.sample_sharding_20220101\`
-(
-  date_jst DATE
-)
-OPTIONS(
-  expiration_timestamp=TIMESTAMP \\"2023-05-20T10:36:53.787Z\\"
-);",
-  "@default/examples/sample_sharding_@/metadata.json" => "{
-  \\"type\\": \\"TABLE\\"
-}",
-  "@default/examples/sample_sharding_@/schema.json" => "[
-  {
-    \\"name\\": \\"date_jst\\",
-    \\"type\\": \\"DATE\\"
-  }
-]",
-  "@default/examples/sample_snapshot_table/ddl.sql" => "CREATE SNAPSHOT TABLE \`bigquery-porter.sandbox.sample_snapshot_table\`
-CLONE \`takegue.sandbox.sample_table\`
-OPTIONS(
-  expiration_timestamp=TIMESTAMP \\"2023-05-20T10:36:52.966Z\\"
-)
-FOR SYSTEM_TIME AS OF TIMESTAMP \\"2023-03-18T10:36:52.311Z\\";",
-  "@default/examples/sample_snapshot_table/metadata.json" => "{
-  \\"type\\": \\"SNAPSHOT\\",
-  \\"clustering\\": {
-    \\"fields\\": [
-      \\"a\\"
-    ]
-  },
-  \\"snapshotDefinition\\": {
-    \\"baseTableReference\\": {
-      \\"projectId\\": \\"bigquery-porter\\",
-      \\"datasetId\\": \\"examples\\",
-      \\"tableId\\": \\"sample_table\\"
-    },
-    \\"snapshotTime\\": \\"2023-03-13T23:34:57.316Z\\"
-  },
-  \\"cloneDefinition\\": {
-    \\"baseTableReference\\": {
-      \\"projectId\\": \\"bigquery-porter\\",
-      \\"datasetId\\": \\"examples\\",
-      \\"tableId\\": \\"sample_table\\"
-    },
-    \\"snapshotTime\\": \\"2023-03-13T23:34:57.316Z\\"
-  }
-}",
-  "@default/examples/sample_snapshot_table/schema.json" => "[
-  {
-    \\"name\\": \\"a\\",
-    \\"type\\": \\"INTEGER\\",
-    \\"description\\": \\"ふがふが\\\\nふが\\"
-  }
-]",
-  "@default/examples/sample_table/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-porter.sandbox.sample_table\`
-(
-  a INT64 OPTIONS(description=\\"ふがふが
-ふが\\")
-)
-CLUSTER BY a
-OPTIONS(
-  expiration_timestamp=TIMESTAMP \\"2023-05-20T10:36:54.290Z\\"
+  expiration_timestamp=TIMESTAMP \\"2023-05-20T12:18:34.213Z\\"
 );",
   "@default/examples/sample_table/metadata.json" => "{
   \\"type\\": \\"TABLE\\",
@@ -581,8 +94,7 @@ OPTIONS(
   "@default/examples/sample_table/schema.json" => "[
   {
     \\"name\\": \\"a\\",
-    \\"type\\": \\"INTEGER\\",
-    \\"description\\": \\"ふがふが\\\\nふが\\"
+    \\"type\\": \\"INTEGER\\"
   }
 ]",
   "@default/examples_eu/metadata.json" => "{
@@ -607,14 +119,13 @@ OPTIONS(
   ],
   \\"location\\": \\"EU\\"
 }",
-  "@default/examples_eu/sample_table/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-porter.sandbox.sample_table\`
+  "@default/examples_eu/sample_table/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-porter.examples.sample_table\`
 (
-  a INT64 OPTIONS(description=\\"ふがふが
-ふが\\")
+  a INT64
 )
 CLUSTER BY a
 OPTIONS(
-  expiration_timestamp=TIMESTAMP \\"2023-05-20T10:36:54.290Z\\"
+  expiration_timestamp=TIMESTAMP \\"2023-05-20T12:18:34.213Z\\"
 );",
   "@default/examples_eu/sample_table/metadata.json" => "{
   \\"type\\": \\"TABLE\\"
@@ -760,7 +271,7 @@ OPTIONS(
   ]
 }",
   "@default/sandbox/@routines/sample_function/README.md" => "test",
-  "@default/sandbox/@routines/sample_function/ddl.sql" => "CREATE OR REPLACE FUNCTION examples.sample_function(argument INT64) RETURNS INT64
+  "@default/sandbox/@routines/sample_function/ddl.sql" => "CREATE OR REPLACE FUNCTION sandbox.sample_function(argument INT64) RETURNS INT64
 OPTIONS(
   description=\\"test\\")
 AS (
@@ -781,7 +292,7 @@ AS (
     \\"typeKind\\": \\"INT64\\"
   }
 }",
-  "@default/sandbox/@routines/sample_procedure/ddl.sql" => "CREATE OR REPLACE PROCEDURE examples.sample_procedure(IN sample_argument INT64)
+  "@default/sandbox/@routines/sample_procedure/ddl.sql" => "CREATE OR REPLACE PROCEDURE sandbox.sample_procedure(IN sample_argument INT64)
 begin 
   select 1 as a;
 end;",
@@ -798,7 +309,7 @@ end;",
     }
   ]
 }",
-  "@default/sandbox/@routines/sample_tvf/ddl.sql" => "CREATE OR REPLACE TABLE FUNCTION examples.sample_tvf(argument INT64) RETURNS TABLE<a INT64>
+  "@default/sandbox/@routines/sample_tvf/ddl.sql" => "CREATE OR REPLACE TABLE FUNCTION sandbox.sample_tvf(argument INT64) RETURNS TABLE<a INT64>
 AS
 select argument as a;",
   "@default/sandbox/@routines/sample_tvf/metadata.json" => "{
@@ -962,14 +473,13 @@ FOR SYSTEM_TIME AS OF TIMESTAMP \\"2023-03-18T10:36:52.311Z\\";",
     \\"description\\": \\"ふがふが\\\\nふが\\"
   }
 ]",
-  "@default/sandbox/sample_table/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-porter.sandbox.sample_table\`
+  "@default/sandbox/sample_table/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-porter.examples.sample_table\`
 (
-  a INT64 OPTIONS(description=\\"ふがふが
-ふが\\")
+  a INT64
 )
 CLUSTER BY a
 OPTIONS(
-  expiration_timestamp=TIMESTAMP \\"2023-05-20T10:36:54.290Z\\"
+  expiration_timestamp=TIMESTAMP \\"2023-05-20T12:18:34.213Z\\"
 );",
   "@default/sandbox/sample_table/metadata.json" => "{
   \\"type\\": \\"TABLE\\",

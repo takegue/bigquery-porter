@@ -1,7 +1,0 @@
-{
-  "type": "TABLE",
-  "timePartitioning": {
-    "type": "DAY",
-    "field": "date_jst"
-  }
-}
