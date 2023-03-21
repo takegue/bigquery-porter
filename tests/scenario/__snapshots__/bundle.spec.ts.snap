@@ -138,8 +138,8 @@ end
 begin
 -- BQPORTER: bigquery-porter.sandbox.sample_snapshot_table from examples/@default/sandbox/sample_snapshot_table/ddl.sql
 CREATE SNAPSHOT TABLE IF NOT EXISTS \`sandbox.sample_snapshot_table\`
-CLONE \`takegue.sandbox.sample_table\`
-FOR SYSTEM_TIME AS OF TIMESTAMP (CURRENT_TIMESTAMP() - INTERVAL 3 DAY)
+CLONE \`sandbox.sample_table\`
+FOR SYSTEM_TIME AS OF TIMESTAMP (CURRENT_TIMESTAMP() - INTERVAL 1 HOUR)
 exception when error then
 end
 
@@ -313,8 +313,8 @@ end
 begin
 -- BQPORTER: bigquery-porter.sandbox.sample_snapshot_table from examples/@default/sandbox/sample_snapshot_table/ddl.sql
 CREATE SNAPSHOT TABLE IF NOT EXISTS \`sandbox.sample_snapshot_table\`
-CLONE \`takegue.sandbox.sample_table\`
-FOR SYSTEM_TIME AS OF TIMESTAMP (CURRENT_TIMESTAMP() - INTERVAL 3 DAY)
+CLONE \`sandbox.sample_table\`
+FOR SYSTEM_TIME AS OF TIMESTAMP (CURRENT_TIMESTAMP() - INTERVAL 1 HOUR)
 exception when error then
 end
 
