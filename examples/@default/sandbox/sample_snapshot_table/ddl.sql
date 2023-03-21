@@ -1,3 +1,3 @@
 CREATE SNAPSHOT TABLE IF NOT EXISTS `sandbox.sample_snapshot_table`
-CLONE `takegue.sandbox.sample_table`
+CLONE `sandbox.sandbox.sample_table`
 FOR SYSTEM_TIME AS OF TIMESTAMP (CURRENT_TIMESTAMP() - INTERVAL 3 DAY);
