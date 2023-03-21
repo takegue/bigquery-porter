@@ -17,17 +17,16 @@ exports[`CLI: bundle > bundle --help 2`] = `[]`;
 exports[`CLI: bundle > bundle -C ./examples --enable-datalineage 1`] = `
 [
   "begin
--- BQPORTER: takegue.sandbox from examples/@default/sandbox/ddl.sql
+-- BQPORTER: bigquery-porter.sandbox from examples/@default/sandbox/ddl.sql
 CREATE SCHEMA IF NOT EXISTS \`sandbox\`
 OPTIONS(
-  description=\\"<!--- BQMAKE_DATASET: BEGIN -->\\\\n\`\`\`mermaid\\\\ngraph LR\\\\nsubgraph project-id-7288898082930342315.sandbox\\\\n\\\\tH1NS(sample_clone_table)\\\\n\\\\t5BLN(sample_table)\\\\n\\\\toEk9(sample_materialized_view)\\\\n\\\\tmxt6(sample_lineage)\\\\n\\\\t1Tdy(sample_partition_table)\\\\n\\\\tP5GH(sample_sharding_*)\\\\n\\\\tFHJh(sample_snapshot_table)\\\\n\\\\tsldk(stations_scd_type2)\\\\nend\\\\nsubgraph bigquery-public-data.austin_bikeshare\\\\n\\\\t0Q1b(bikeshare_stations)\\\\nend\\\\n5BLN --> H1NS\\\\noEk9 --> H1NS\\\\n5BLN --> oEk9\\\\n5BLN --> FHJh\\\\noEk9 --> FHJh\\\\n0Q1b --> sldk\\\\n\`\`\`\\\\n<!--- BQMAKE_DATASET: END -->\\",
   location=\\"us\\"
 )
 exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.mymodel from examples/@default/sandbox/@models/mymodel/ddl.sql
+-- BQPORTER: bigquery-porter.sandbox.mymodel from examples/@default/sandbox/@models/mymodel/ddl.sql
 CREATE MODEL IF NOT EXISTS \`sandbox.mymodel\`
 OPTIONS
   ( MODEL_TYPE='LINEAR_REG',
@@ -46,7 +45,7 @@ exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.sample_function from examples/@default/sandbox/@routines/sample_function/ddl.sql
+-- BQPORTER: bigquery-porter.sandbox.sample_function from examples/@default/sandbox/@routines/sample_function/ddl.sql
 CREATE OR REPLACE FUNCTION \`sandbox.sample_function\`(argument INT64) RETURNS INT64
 OPTIONS(
   description=\\"test\\")
@@ -57,7 +56,7 @@ exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.sample_procedure from examples/@default/sandbox/@routines/sample_procedure/ddl.sql
+-- BQPORTER: bigquery-porter.sandbox.sample_procedure from examples/@default/sandbox/@routines/sample_procedure/ddl.sql
 CREATE OR REPLACE PROCEDURE \`sandbox.sample_procedure\`(IN sample_argument INT64)
 begin 
   select 1 as a;
@@ -66,28 +65,30 @@ exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.sample_tvf from examples/@default/sandbox/@routines/sample_tvf/ddl.sql
+-- BQPORTER: bigquery-porter.sandbox.sample_tvf from examples/@default/sandbox/@routines/sample_tvf/ddl.sql
 CREATE OR REPLACE TABLE FUNCTION \`sandbox.sample_tvf\`(argument INT64) RETURNS TABLE<a INT64>
 AS
+(
 select argument as a
+)
 exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.error_sample from examples/@default/sandbox/error_sample/ddl.sql
+-- BQPORTER: bigquery-porter.sandbox.error_sample from examples/@default/sandbox/error_sample/ddl.sql
 
 exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.error_sample from examples/@default/sandbox/error_sample/test.sql
+-- BQPORTER: bigquery-porter.sandbox.error_sample from examples/@default/sandbox/error_sample/test.sql
 
 select error('error message')
 exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.error_sample from examples/@default/sandbox/error_sample/view.sql
+-- BQPORTER: bigquery-porter.sandbox.error_sample from examples/@default/sandbox/error_sample/view.sql
 
 hoge
 
@@ -95,76 +96,85 @@ exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.sample_clone_table from examples/@default/sandbox/sample_clone_table/ddl.sql
+-- BQPORTER: bigquery-porter.sandbox.sample_clone_table from examples/@default/sandbox/sample_clone_table/ddl.sql
 CREATE TABLE IF NOT EXISTS \`sandbox.sample_clone_table\`
-(
-  a INT64
-)
-CLUSTER BY a
+CLONE \`sandbox.sample_table\`
 exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.sample_partition_table from examples/@default/sandbox/sample_partition_table/ddl.sql
+-- BQPORTER: bigquery-porter.sandbox.sample_partition_table from examples/@default/sandbox/sample_partition_table/ddl.sql
 CREATE TABLE IF NOT EXISTS \`sandbox.sample_partition_table\`
-(
-  date_jst DATE
-)
 PARTITION BY date_jst
+AS
+select date '2022-01-01' as date_jst
+
 exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.sample_sharding_* from examples/@default/sandbox/sample_sharding_@/ddl.sql
-CREATE TABLE IF NOT EXISTS \`takegue.sandbox.sample_sharding_20220101\`
-(
-  date_jst DATE
-)
+-- BQPORTER: bigquery-porter.sandbox.sample_sharding_* from examples/@default/sandbox/sample_sharding_@/ddl.sql
+create table if not exists sandbox.sample_sharding_20220101
+as
+select DATE '2022-01-01' as date_jst;
+
+FOR record in (
+  select * from unnest(generate_date_array('2022-01-01', '2022-01-07')) as d
+) do
+  execute immediate format(\\"\\"\\"
+    create table if not exists sandbox.sample_sharding_%s
+    as
+    select @date as date_jst
+  \\"\\"\\"
+  , format_date('%Y%m%d', record.d)
+  ) using record.d as date
+  ;
+end FOR;
+
+select * from \`sandbox.sample_sharding_*\`
 exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.sample_snapshot_table from examples/@default/sandbox/sample_snapshot_table/ddl.sql
-CREATE SNAPSHOT TABLE \`sandbox.sample_snapshot_table\`
-CLONE \`takegue.sandbox.sample_table\`
-FOR SYSTEM_TIME AS OF TIMESTAMP \\"2023-01-01T01:12:07.322Z\\"
+-- BQPORTER: bigquery-porter.sandbox.sample_snapshot_table from examples/@default/sandbox/sample_snapshot_table/ddl.sql
+CREATE SNAPSHOT TABLE IF NOT EXISTS \`sandbox.sample_snapshot_table\`
+CLONE \`sandbox.sample_table\`
+FOR SYSTEM_TIME AS OF TIMESTAMP (CURRENT_TIMESTAMP() - INTERVAL 1 HOUR)
 exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.sample_table from examples/@default/sandbox/sample_table/ddl.sql
+-- BQPORTER: bigquery-porter.sandbox.sample_table from examples/@default/sandbox/sample_table/ddl.sql
 CREATE TABLE IF NOT EXISTS \`sandbox.sample_table\`
-(
-  a INT64 OPTIONS(description=\\"ふがふが
-ふが\\")
-)
 CLUSTER BY a
+AS
+select 1 as a
 exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.sample_view from examples/@default/sandbox/sample_view/view.sql
+-- BQPORTER: bigquery-porter.sandbox.sample_view from examples/@default/sandbox/sample_view/view.sql
 SELECT * FROM \`bigquery-public-data.austin_311.311_service_requests\` LIMIT 1000
 
 exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox from examples/@default/sandbox/@_queries/preview.sql
+-- BQPORTER: bigquery-porter.sandbox from examples/@default/sandbox/@_queries/preview.sql
 select * from \`sandbox.sample_table\`
 
 exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.sample_materialized_view from examples/@default/sandbox/sample_materialized_view/ddl.sql
+-- BQPORTER: bigquery-porter.sandbox.sample_materialized_view from examples/@default/sandbox/sample_materialized_view/ddl.sql
 CREATE MATERIALIZED VIEW IF NOT EXISTS  \`sandbox.sample_materialized_view\`
 AS select 1 as a from \`sandbox.sample_table\`
 exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.sample_table from examples/@default/sandbox/sample_table/preview.sql
+-- BQPORTER: bigquery-porter.sandbox.sample_table from examples/@default/sandbox/sample_table/preview.sql
 select * from \`sandbox.sample_table\`
 
 exception when error then
@@ -174,25 +184,24 @@ end",
 
 exports[`CLI: bundle > bundle -C ./examples --enable-datalineage 2`] = `
 [
-  "Warning: Irrelevant SQL file located in examples/@default/sandbox/error_sample/ddl.sql for takegue.sandbox.error_sample",
-  "Warning: Irrelevant SQL file located in examples/@default/sandbox/error_sample/test.sql for takegue.sandbox.error_sample",
+  "Warning: Irrelevant SQL file located in examples/@default/sandbox/error_sample/ddl.sql for bigquery-porter.sandbox.error_sample",
+  "Warning: Irrelevant SQL file located in examples/@default/sandbox/error_sample/test.sql for bigquery-porter.sandbox.error_sample",
 ]
 `;
 
 exports[`CLI: bundle > bundle -C ./examples 1`] = `
 [
   "begin
--- BQPORTER: takegue.sandbox from examples/@default/sandbox/ddl.sql
+-- BQPORTER: bigquery-porter.sandbox from examples/@default/sandbox/ddl.sql
 CREATE SCHEMA IF NOT EXISTS \`sandbox\`
 OPTIONS(
-  description=\\"<!--- BQMAKE_DATASET: BEGIN -->\\\\n\`\`\`mermaid\\\\ngraph LR\\\\nsubgraph project-id-7288898082930342315.sandbox\\\\n\\\\tH1NS(sample_clone_table)\\\\n\\\\t5BLN(sample_table)\\\\n\\\\toEk9(sample_materialized_view)\\\\n\\\\tmxt6(sample_lineage)\\\\n\\\\t1Tdy(sample_partition_table)\\\\n\\\\tP5GH(sample_sharding_*)\\\\n\\\\tFHJh(sample_snapshot_table)\\\\n\\\\tsldk(stations_scd_type2)\\\\nend\\\\nsubgraph bigquery-public-data.austin_bikeshare\\\\n\\\\t0Q1b(bikeshare_stations)\\\\nend\\\\n5BLN --> H1NS\\\\noEk9 --> H1NS\\\\n5BLN --> oEk9\\\\n5BLN --> FHJh\\\\noEk9 --> FHJh\\\\n0Q1b --> sldk\\\\n\`\`\`\\\\n<!--- BQMAKE_DATASET: END -->\\",
   location=\\"us\\"
 )
 exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.mymodel from examples/@default/sandbox/@models/mymodel/ddl.sql
+-- BQPORTER: bigquery-porter.sandbox.mymodel from examples/@default/sandbox/@models/mymodel/ddl.sql
 CREATE MODEL IF NOT EXISTS \`sandbox.mymodel\`
 OPTIONS
   ( MODEL_TYPE='LINEAR_REG',
@@ -211,7 +220,7 @@ exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.sample_function from examples/@default/sandbox/@routines/sample_function/ddl.sql
+-- BQPORTER: bigquery-porter.sandbox.sample_function from examples/@default/sandbox/@routines/sample_function/ddl.sql
 CREATE OR REPLACE FUNCTION \`sandbox.sample_function\`(argument INT64) RETURNS INT64
 OPTIONS(
   description=\\"test\\")
@@ -222,7 +231,7 @@ exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.sample_procedure from examples/@default/sandbox/@routines/sample_procedure/ddl.sql
+-- BQPORTER: bigquery-porter.sandbox.sample_procedure from examples/@default/sandbox/@routines/sample_procedure/ddl.sql
 CREATE OR REPLACE PROCEDURE \`sandbox.sample_procedure\`(IN sample_argument INT64)
 begin 
   select 1 as a;
@@ -231,28 +240,30 @@ exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.sample_tvf from examples/@default/sandbox/@routines/sample_tvf/ddl.sql
+-- BQPORTER: bigquery-porter.sandbox.sample_tvf from examples/@default/sandbox/@routines/sample_tvf/ddl.sql
 CREATE OR REPLACE TABLE FUNCTION \`sandbox.sample_tvf\`(argument INT64) RETURNS TABLE<a INT64>
 AS
+(
 select argument as a
+)
 exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.error_sample from examples/@default/sandbox/error_sample/ddl.sql
+-- BQPORTER: bigquery-porter.sandbox.error_sample from examples/@default/sandbox/error_sample/ddl.sql
 
 exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.error_sample from examples/@default/sandbox/error_sample/test.sql
+-- BQPORTER: bigquery-porter.sandbox.error_sample from examples/@default/sandbox/error_sample/test.sql
 
 select error('error message')
 exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.error_sample from examples/@default/sandbox/error_sample/view.sql
+-- BQPORTER: bigquery-porter.sandbox.error_sample from examples/@default/sandbox/error_sample/view.sql
 
 hoge
 
@@ -260,76 +271,85 @@ exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.sample_clone_table from examples/@default/sandbox/sample_clone_table/ddl.sql
+-- BQPORTER: bigquery-porter.sandbox.sample_clone_table from examples/@default/sandbox/sample_clone_table/ddl.sql
 CREATE TABLE IF NOT EXISTS \`sandbox.sample_clone_table\`
-(
-  a INT64
-)
-CLUSTER BY a
+CLONE \`sandbox.sample_table\`
 exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.sample_partition_table from examples/@default/sandbox/sample_partition_table/ddl.sql
+-- BQPORTER: bigquery-porter.sandbox.sample_partition_table from examples/@default/sandbox/sample_partition_table/ddl.sql
 CREATE TABLE IF NOT EXISTS \`sandbox.sample_partition_table\`
-(
-  date_jst DATE
-)
 PARTITION BY date_jst
+AS
+select date '2022-01-01' as date_jst
+
 exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.sample_sharding_* from examples/@default/sandbox/sample_sharding_@/ddl.sql
-CREATE TABLE IF NOT EXISTS \`takegue.sandbox.sample_sharding_20220101\`
-(
-  date_jst DATE
-)
+-- BQPORTER: bigquery-porter.sandbox.sample_sharding_* from examples/@default/sandbox/sample_sharding_@/ddl.sql
+create table if not exists sandbox.sample_sharding_20220101
+as
+select DATE '2022-01-01' as date_jst;
+
+FOR record in (
+  select * from unnest(generate_date_array('2022-01-01', '2022-01-07')) as d
+) do
+  execute immediate format(\\"\\"\\"
+    create table if not exists sandbox.sample_sharding_%s
+    as
+    select @date as date_jst
+  \\"\\"\\"
+  , format_date('%Y%m%d', record.d)
+  ) using record.d as date
+  ;
+end FOR;
+
+select * from \`sandbox.sample_sharding_*\`
 exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.sample_snapshot_table from examples/@default/sandbox/sample_snapshot_table/ddl.sql
-CREATE SNAPSHOT TABLE \`sandbox.sample_snapshot_table\`
-CLONE \`takegue.sandbox.sample_table\`
-FOR SYSTEM_TIME AS OF TIMESTAMP \\"2023-01-01T01:12:07.322Z\\"
+-- BQPORTER: bigquery-porter.sandbox.sample_snapshot_table from examples/@default/sandbox/sample_snapshot_table/ddl.sql
+CREATE SNAPSHOT TABLE IF NOT EXISTS \`sandbox.sample_snapshot_table\`
+CLONE \`sandbox.sample_table\`
+FOR SYSTEM_TIME AS OF TIMESTAMP (CURRENT_TIMESTAMP() - INTERVAL 1 HOUR)
 exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.sample_table from examples/@default/sandbox/sample_table/ddl.sql
+-- BQPORTER: bigquery-porter.sandbox.sample_table from examples/@default/sandbox/sample_table/ddl.sql
 CREATE TABLE IF NOT EXISTS \`sandbox.sample_table\`
-(
-  a INT64 OPTIONS(description=\\"ふがふが
-ふが\\")
-)
 CLUSTER BY a
+AS
+select 1 as a
 exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.sample_view from examples/@default/sandbox/sample_view/view.sql
+-- BQPORTER: bigquery-porter.sandbox.sample_view from examples/@default/sandbox/sample_view/view.sql
 SELECT * FROM \`bigquery-public-data.austin_311.311_service_requests\` LIMIT 1000
 
 exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox from examples/@default/sandbox/@_queries/preview.sql
+-- BQPORTER: bigquery-porter.sandbox from examples/@default/sandbox/@_queries/preview.sql
 select * from \`sandbox.sample_table\`
 
 exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.sample_materialized_view from examples/@default/sandbox/sample_materialized_view/ddl.sql
+-- BQPORTER: bigquery-porter.sandbox.sample_materialized_view from examples/@default/sandbox/sample_materialized_view/ddl.sql
 CREATE MATERIALIZED VIEW IF NOT EXISTS  \`sandbox.sample_materialized_view\`
 AS select 1 as a from \`sandbox.sample_table\`
 exception when error then
 end
 
 begin
--- BQPORTER: takegue.sandbox.sample_table from examples/@default/sandbox/sample_table/preview.sql
+-- BQPORTER: bigquery-porter.sandbox.sample_table from examples/@default/sandbox/sample_table/preview.sql
 select * from \`sandbox.sample_table\`
 
 exception when error then
@@ -339,7 +359,7 @@ end",
 
 exports[`CLI: bundle > bundle -C ./examples 2`] = `
 [
-  "Warning: Irrelevant SQL file located in examples/@default/sandbox/error_sample/ddl.sql for takegue.sandbox.error_sample",
-  "Warning: Irrelevant SQL file located in examples/@default/sandbox/error_sample/test.sql for takegue.sandbox.error_sample",
+  "Warning: Irrelevant SQL file located in examples/@default/sandbox/error_sample/ddl.sql for bigquery-porter.sandbox.error_sample",
+  "Warning: Irrelevant SQL file located in examples/@default/sandbox/error_sample/test.sql for bigquery-porter.sandbox.error_sample",
 ]
 `;

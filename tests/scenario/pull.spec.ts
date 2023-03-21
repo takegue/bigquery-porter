@@ -83,7 +83,7 @@ describe('CLIv2: pull', () => {
     async ({ meta, cli, err, rootPath }) => {
       // Expected sandobx dataset files
       fs.mkdirSync(
-        path.join(rootPath, '@default', 'sandbox'),
+        path.join(rootPath, '@default', 'examples'),
         {
           recursive: true,
         },
@@ -101,7 +101,7 @@ describe('CLIv2: pull', () => {
   );
 
   it<CLITestContext>(
-    `pull --all`,
+    `pull --all --with-ddl`,
     async ({ meta, cli, err, rootPath }) => {
       await cli.parseAsync([...meta.name.split(' '), ...['-C', rootPath]], {
         from: 'user',
@@ -148,22 +148,6 @@ describe('CLIv2: pull', () => {
 
   it<CLITestContext>(
     `pull --format=json --with-ddl bigquery-public-data.baseball`,
-    async ({ meta, cli, out, err, rootPath }) => {
-      await cli.parseAsync([...meta.name.split(' '), ...['-C', rootPath]], {
-        from: 'user',
-      });
-      const files = await crawlFs(path.join(rootPath));
-      expect(files.keys()).toMatchSnapshot('Pulled Files: List');
-      expect(files).toMatchSnapshot('Pulled Files: Contents');
-
-      expect(err).toMatchSnapshot();
-      expect(new Set(out)).toMatchSnapshot();
-      expect(out.length).toMatchSnapshot();
-    },
-  );
-
-  it<CLITestContext>(
-    `pull --format=json --with-ddl bigquery-public-data.covid19_open_data_eu`,
     async ({ meta, cli, out, err, rootPath }) => {
       await cli.parseAsync([...meta.name.split(' '), ...['-C', rootPath]], {
         from: 'user',

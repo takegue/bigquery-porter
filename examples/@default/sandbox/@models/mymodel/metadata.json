@@ -42,52 +42,51 @@
         "learnRateStrategy": "LINE_SEARCH",
         "initialLearnRate": 0.15,
         "optimizationStrategy": "BATCH_GRADIENT_DESCENT",
-        "calculatePValues": false,
-        "preserveInputStructs": false
+        "calculatePValues": false
       },
-      "trainingStartTime": "1672534389200",
+      "trainingStartTime": "1679395011891",
       "results": [
         {
           "index": 0,
-          "durationMs": "2231",
-          "trainingLoss": 1491.053977063737,
+          "durationMs": "1931",
+          "trainingLoss": 1491.0539770637374,
           "learnRate": 0.3
         },
         {
           "index": 1,
-          "durationMs": "1991",
-          "trainingLoss": 241.92978201881198,
+          "durationMs": "2353",
+          "trainingLoss": 241.92978201881218,
           "learnRate": 0.6
         },
         {
           "index": 2,
-          "durationMs": "2178",
-          "trainingLoss": 41.69727113362372,
+          "durationMs": "2808",
+          "trainingLoss": 41.69727113362378,
           "learnRate": 0.6
         },
         {
           "index": 3,
-          "durationMs": "2166",
-          "trainingLoss": 7.920357012251959,
+          "durationMs": "1995",
+          "trainingLoss": 7.920357012251938,
           "learnRate": 0.6
         },
         {
           "index": 4,
-          "durationMs": "2040",
-          "trainingLoss": 2.6036132184550516,
+          "durationMs": "2232",
+          "trainingLoss": 2.603613218455023,
           "learnRate": 0.6
         }
       ],
       "evaluationMetrics": {
         "regressionMetrics": {
-          "meanAbsoluteError": 1.3283107802514804,
-          "meanSquaredError": 2.6036132184550516,
-          "meanSquaredLogError": 0.0012176719511574185,
-          "medianAbsoluteError": 1.0159802433960294,
-          "rSquared": 0.9968441051897514
+          "meanAbsoluteError": 1.3283107802514735,
+          "meanSquaredError": 2.603613218455023,
+          "meanSquaredLogError": 0.0012176719511574083,
+          "medianAbsoluteError": 1.0159802433960223,
+          "rSquared": 0.9968441051897515
         }
       },
-      "startTime": "2023-01-01T00:53:09.200Z"
+      "startTime": "2023-03-21T10:36:51.891Z"
     }
   ]
 }
