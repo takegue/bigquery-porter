@@ -127,7 +127,6 @@ const fetchBQJobResource = async (
   if (!job.id) {
     throw new Error('Invalid Job ID');
   }
-  console.log(job.metadata.statistics.query.statementType);
   switch (job.metadata.statistics.query.statementType) {
     case 'SCRIPT':
       const [childJobs] = await job.bigQuery.getJobs(
@@ -255,7 +254,6 @@ const deployBigQueryResouce = async (
 
   const [project, datasetId, name] = path2bq(p, rootPath, executionProject)
     .split('.');
-  console.log(project, datasetId, name);
   const query = await fs.promises.readFile(p)
     .then((s: any) => s.toString())
     .catch((err: any) => {
