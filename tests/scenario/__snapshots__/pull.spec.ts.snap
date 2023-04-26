@@ -75,14 +75,13 @@ OPTIONS(
   ],
   \\"location\\": \\"US\\"
 }",
-  "@default/examples/sample_table/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-porter.sandbox.sample_table\`
+  "@default/examples/sample_table/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-porter.examples.sample_table\`
 (
-  a INT64 OPTIONS(description=\\"ふがふが
-ふが\\")
+  a INT64
 )
 CLUSTER BY a
 OPTIONS(
-  expiration_timestamp=TIMESTAMP \\"2023-05-20T10:36:54.290Z\\"
+  expiration_timestamp=TIMESTAMP \\"2023-05-20T12:18:34.213Z\\"
 );",
   "@default/examples/sample_table/metadata.json" => "{
   \\"type\\": \\"TABLE\\",
@@ -120,14 +119,13 @@ OPTIONS(
   ],
   \\"location\\": \\"EU\\"
 }",
-  "@default/examples_eu/sample_table/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-porter.sandbox.sample_table\`
+  "@default/examples_eu/sample_table/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-porter.examples.sample_table\`
 (
-  a INT64 OPTIONS(description=\\"ふがふが
-ふが\\")
+  a INT64
 )
 CLUSTER BY a
 OPTIONS(
-  expiration_timestamp=TIMESTAMP \\"2023-05-20T10:36:54.290Z\\"
+  expiration_timestamp=TIMESTAMP \\"2023-05-20T12:18:34.213Z\\"
 );",
   "@default/examples_eu/sample_table/metadata.json" => "{
   \\"type\\": \\"TABLE\\"
@@ -477,14 +475,13 @@ FOR SYSTEM_TIME AS OF TIMESTAMP \\"2023-03-18T10:36:52.311Z\\";",
     \\"description\\": \\"ふがふが\\\\nふが\\"
   }
 ]",
-  "@default/sandbox/sample_table/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-porter.sandbox.sample_table\`
+  "@default/sandbox/sample_table/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-porter.examples.sample_table\`
 (
-  a INT64 OPTIONS(description=\\"ふがふが
-ふが\\")
+  a INT64
 )
 CLUSTER BY a
 OPTIONS(
-  expiration_timestamp=TIMESTAMP \\"2023-05-20T10:36:54.290Z\\"
+  expiration_timestamp=TIMESTAMP \\"2023-05-20T12:18:34.213Z\\"
 );",
   "@default/sandbox/sample_table/metadata.json" => "{
   \\"type\\": \\"TABLE\\",
