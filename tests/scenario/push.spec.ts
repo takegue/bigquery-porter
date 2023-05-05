@@ -21,8 +21,10 @@ describe('CLI: push', () => {
       });
 
     // Fix up display column wdith for comamnder.js
-    process.stdout.columns = 120;
-    process.stderr.columns = 120;
+    if (process.stdout.isTTY) {
+      process.stdout.columns = 120;
+      process.stderr.columns = 120;
+    }
   };
 
   beforeEach<CLITestContext>(async (ctx) => {
