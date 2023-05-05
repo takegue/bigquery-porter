@@ -410,7 +410,7 @@ async function crawlBigQueryProject(
       : (await fs.promises.readdir(projectDir))
         .filter((f) => {
           const stat = fs.statSync(`${projectDir}/${f}`);
-          return stat.isDirectory();
+          return stat.isDirectory() && !f.startsWith('@');
         }));
 
   const crawlTask = new Task(
@@ -430,12 +430,7 @@ async function crawlBigQueryProject(
               return dataset;
             },
           );
-          const rets = await Promise.allSettled(datasets);
-          return rets
-            .filter((r): r is PromiseFulfilledResult<Dataset> =>
-              r.status === 'fulfilled'
-            )
-            .map((r) => r.value as Dataset);
+          return Promise.all(datasets);
         }
 
         const [datasets] = await ctx.BigQuery.getDatasets(
