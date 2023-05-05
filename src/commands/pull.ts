@@ -181,7 +181,6 @@ const buildDDLFetcher = (
     reader: async (bqId: string) => {
       const payloads = await promise;
       const ddlMap = new Map<string, ResultBQResource>();
-      console.log(payloads);
       for (const p of payloads) {
         if (p.status === 'fulfilled') {
           // Merge p.value into ddlMap
@@ -333,7 +332,7 @@ async function* crawlBigQueryDataset(
   }
   const p = Promise.allSettled(promises);
 
-  const pool = async function* () {
+  const pool = async function*() {
     while (true) {
       try {
         await Promise.race([
@@ -373,7 +372,7 @@ const pullMetadataTaskBuilder = (
     const bqId = bq2path(
       bqObj as BigQueryResource,
       projectId === undefined ||
-        projectId === await ctx.BigQuery.getProjectId(),
+      projectId === await ctx.BigQuery.getProjectId(),
     );
 
     const task = new Task(
