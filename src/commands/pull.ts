@@ -38,7 +38,9 @@ end if;
 begin
   execute immediate format("""
   create or replace temporary table bqport_ddl_schema
-    as select 'SCHEMA' as type, schema_name as name, ddl
+    as select 'SCHEMA' as type
+    , format('%%s:%%s', catalog_name, schema_name) as name
+    , ddl
     from \`%s.INFORMATION_SCHEMA.SCHEMATA\`;
   """, catalog);
 exception when error then
@@ -55,13 +57,13 @@ execute immediate (
       """-- SQL TEMPLATE
       select
         'ROUTINE' as type
-        , routine_name as name
+        , format('%%s:%%s.%%s', routine_catalog, routine_schema, routine_name) as name
         , ddl
       from \`%s.INFORMATION_SCHEMA.ROUTINES\`
       union distinct
       select distinct
         'TABLE' as type
-        , table_name as name
+        , format('%%s:%%s.%%s', table_catalog, table_schema, table_name) as name
         , ddl
       from \`%s.INFORMATION_SCHEMA.TABLES\`
       """
@@ -129,6 +131,7 @@ const buildDDLFetcher = (
   const ddlFetcher = async (
     sql: string,
     params: { [param: string]: any },
+    location?: string,
   ) => {
     // Import BigQuery dataset Metadata
     const [job] = await bqClient
@@ -136,7 +139,7 @@ const buildDDLFetcher = (
         query: sql,
         params,
         jobPrefix: `bqport-metadata_import-`,
-        location: datasets[0]?.metadata.location ?? 'US',
+        location: location ?? 'US',
       })
       .catch((e) => {
         console.error(e.message);
@@ -165,11 +168,11 @@ const buildDDLFetcher = (
 
   const promise = Promise.allSettled(
     Array.from(groupByLoctaion.entries())
-      .map(async ([_, datasets]: [string, Dataset[]]) => {
+      .map(async ([location, datasets]: [string, Dataset[]]) => {
         return await ddlFetcher(sqlDDLForProject, {
           projectId: projectId,
           datasets: datasets.map((d) => d.id),
-        });
+        }, location);
       }),
   );
 
@@ -178,6 +181,7 @@ const buildDDLFetcher = (
     reader: async (bqId: string) => {
       const payloads = await promise;
       const ddlMap = new Map<string, ResultBQResource>();
+      console.log(payloads);
       for (const p of payloads) {
         if (p.status === 'fulfilled') {
           // Merge p.value into ddlMap
@@ -231,11 +235,11 @@ const fsWriter = async (
     return retFiles;
   }
 
-  if (!ctx.withDDL || !bqObj.id || !ddlReader) {
+  if (!ctx.withDDL || !bqObj.metadata?.id || !bqObj.id || !ddlReader) {
     return retFiles;
   }
 
-  const ddlStatement = await ddlReader(bqObj?.id ?? bqObj.metadata?.id);
+  const ddlStatement = await ddlReader(bqObj.metadata?.id ?? bqObj.id);
   if (!ddlStatement) {
     return retFiles;
   }

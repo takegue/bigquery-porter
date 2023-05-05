@@ -75,14 +75,13 @@ OPTIONS(
   ],
   \\"location\\": \\"US\\"
 }",
-  "@default/examples/sample_table/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-porter.sandbox.sample_table\`
+  "@default/examples/sample_table/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-porter.examples.sample_table\`
 (
-  a INT64 OPTIONS(description=\\"ふがふが
-ふが\\")
+  a INT64
 )
 CLUSTER BY a
 OPTIONS(
-  expiration_timestamp=TIMESTAMP \\"2023-05-20T10:36:54.290Z\\"
+  expiration_timestamp=TIMESTAMP \\"2023-05-20T12:18:34.213Z\\"
 );",
   "@default/examples/sample_table/metadata.json" => "{
   \\"type\\": \\"TABLE\\",
@@ -98,6 +97,12 @@ OPTIONS(
     \\"type\\": \\"INTEGER\\"
   }
 ]",
+  "@default/examples_eu/ddl.sql" => "CREATE SCHEMA IF NOT EXISTS \`bigquery-porter.examples_eu\`
+OPTIONS(
+  default_table_expiration_days=60.0,
+  default_partition_expiration_days=60.0,
+  location=\\"eu\\"
+);",
   "@default/examples_eu/metadata.json" => "{
   \\"type\\": \\"DEFAULT\\",
   \\"access\\": [
@@ -120,14 +125,12 @@ OPTIONS(
   ],
   \\"location\\": \\"EU\\"
 }",
-  "@default/examples_eu/sample_table/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-porter.sandbox.sample_table\`
+  "@default/examples_eu/sample_table/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-porter.examples_eu.sample_table\`
 (
-  a INT64 OPTIONS(description=\\"ふがふが
-ふが\\")
+  a INT64
 )
-CLUSTER BY a
 OPTIONS(
-  expiration_timestamp=TIMESTAMP \\"2023-05-20T10:36:54.290Z\\"
+  expiration_timestamp=TIMESTAMP \\"2023-05-12T23:44:41.925Z\\"
 );",
   "@default/examples_eu/sample_table/metadata.json" => "{
   \\"type\\": \\"TABLE\\"
@@ -139,6 +142,14 @@ OPTIONS(
   }
 ]",
   "@default/sample_linked_dataset/README.md" => "ソース リスティング: [JP Holidays preprocessed by BQ FUN](//\\\\(bigquery//analyticshub:projects/120299025068/locations/asia-northeast1/dataExchanges/jpdata_18253a34a30/listings/jp_holidays_preprocessed_by_bq_fun_18253c4e9dc/create-linked-dataset\\\\)\\\\(analyticshub:projects/120299025068/locations/asia-northeast1/dataExchanges/jpdata_18253a34a30/listings/jp_holidays_preprocessed_by_bq_fun_18253c4e9dc\\\\))",
+  "@default/sample_linked_dataset/ddl.sql" => "CREATE SCHEMA IF NOT EXISTS \`bigquery-porter.sample_linked_dataset\`
+OPTIONS(
+  default_table_expiration_days=60.0,
+  friendly_name=\\"\\",
+  description=\\"ソース リスティング: [JP Holidays preprocessed by BQ FUN](//\\\\\\\\(bigquery//analyticshub:projects/120299025068/locations/asia-northeast1/dataExchanges/jpdata_18253a34a30/listings/jp_holidays_preprocessed_by_bq_fun_18253c4e9dc/create-linked-dataset\\\\\\\\)\\\\\\\\(analyticshub:projects/120299025068/locations/asia-northeast1/dataExchanges/jpdata_18253a34a30/listings/jp_holidays_preprocessed_by_bq_fun_18253c4e9dc\\\\\\\\))\\",
+  default_partition_expiration_days=60.0,
+  location=\\"asia-northeast1\\"
+);",
   "@default/sample_linked_dataset/holidays/README.md" => "https://www8.cao.go.jp/chosei/shukujitsu/syukujitsu.csv",
   "@default/sample_linked_dataset/holidays/metadata.json" => "{
   \\"type\\": \\"TABLE\\",
@@ -275,12 +286,6 @@ OPTIONS(
   ]
 }",
   "@default/sandbox/@routines/sample_function/README.md" => "test",
-  "@default/sandbox/@routines/sample_function/ddl.sql" => "CREATE OR REPLACE FUNCTION sandbox.sample_function(argument INT64) RETURNS INT64
-OPTIONS(
-  description=\\"test\\")
-AS (
-1
-);",
   "@default/sandbox/@routines/sample_function/metadata.json" => "{
   \\"routineType\\": \\"SCALAR_FUNCTION\\",
   \\"language\\": \\"SQL\\",
@@ -296,10 +301,6 @@ AS (
     \\"typeKind\\": \\"INT64\\"
   }
 }",
-  "@default/sandbox/@routines/sample_procedure/ddl.sql" => "CREATE OR REPLACE PROCEDURE sandbox.sample_procedure(IN sample_argument INT64)
-begin
-  select 1 as a;
-end;",
   "@default/sandbox/@routines/sample_procedure/metadata.json" => "{
   \\"routineType\\": \\"PROCEDURE\\",
   \\"language\\": \\"SQL\\",
@@ -313,9 +314,6 @@ end;",
     }
   ]
 }",
-  "@default/sandbox/@routines/sample_tvf/ddl.sql" => "CREATE OR REPLACE TABLE FUNCTION sandbox.sample_tvf(argument INT64) RETURNS TABLE<a INT64>
-AS
-select argument as a;",
   "@default/sandbox/@routines/sample_tvf/metadata.json" => "{
   \\"routineType\\": \\"TABLE_VALUED_FUNCTION\\",
   \\"language\\": \\"SQL\\",
@@ -2229,6 +2227,340 @@ exports[`CLIv2: pull > pull --format=json --with-ddl bigquery-public-data.baseba
 
 exports[`CLIv2: pull > pull --format=json --with-ddl bigquery-public-data.baseball 2`] = `
 Set {
+  [
+    {
+      "status": "fulfilled",
+      "value": Map {
+        "bigquery-public-data:baseball.games_wide" => {
+          "ddl": "CREATE TABLE \`bigquery-public-data.baseball.games_wide\`
+(
+  gameId STRING,
+  seasonId STRING,
+  seasonType STRING,
+  year INT64,
+  startTime TIMESTAMP,
+  gameStatus STRING,
+  attendance INT64,
+  dayNight STRING,
+  duration STRING,
+  durationMinutes INT64,
+  awayTeamId STRING,
+  awayTeamName STRING,
+  homeTeamId STRING,
+  homeTeamName STRING,
+  venueId STRING,
+  venueName STRING,
+  venueSurface STRING,
+  venueCapacity INT64,
+  venueCity STRING,
+  venueState STRING,
+  venueZip STRING,
+  venueMarket STRING,
+  venueOutfieldDistances STRING,
+  homeFinalRuns INT64,
+  homeFinalHits INT64,
+  homeFinalErrors INT64,
+  awayFinalRuns INT64,
+  awayFinalHits INT64,
+  awayFinalErrors INT64,
+  homeFinalRunsForInning INT64,
+  awayFinalRunsForInning INT64,
+  inningNumber INT64,
+  inningHalf STRING,
+  inningEventType STRING,
+  inningHalfEventSequenceNumber INT64,
+  description STRING,
+  atBatEventType STRING,
+  atBatEventSequenceNumber INT64,
+  createdAt TIMESTAMP,
+  updatedAt TIMESTAMP,
+  status STRING,
+  outcomeId STRING,
+  outcomeDescription STRING,
+  hitterId STRING,
+  hitterLastName STRING,
+  hitterFirstName STRING,
+  hitterWeight INT64,
+  hitterHeight INT64,
+  hitterBatHand STRING,
+  pitcherId STRING,
+  pitcherFirstName STRING,
+  pitcherLastName STRING,
+  pitcherThrowHand STRING,
+  pitchType STRING,
+  pitchTypeDescription STRING,
+  pitchSpeed INT64,
+  pitchZone INT64,
+  pitcherPitchCount INT64,
+  hitterPitchCount INT64,
+  hitLocation INT64,
+  hitType STRING,
+  startingBalls INT64,
+  startingStrikes INT64,
+  startingOuts INT64,
+  balls INT64,
+  strikes INT64,
+  outs INT64,
+  rob0_start STRING,
+  rob0_end INT64,
+  rob0_isOut STRING,
+  rob0_outcomeId STRING,
+  rob0_outcomeDescription STRING,
+  rob1_start STRING,
+  rob1_end INT64,
+  rob1_isOut STRING,
+  rob1_outcomeId STRING,
+  rob1_outcomeDescription STRING,
+  rob2_start STRING,
+  rob2_end INT64,
+  rob2_isOut STRING,
+  rob2_outcomeId STRING,
+  rob2_outcomeDescription STRING,
+  rob3_start STRING,
+  rob3_end INT64,
+  rob3_isOut STRING,
+  rob3_outcomeId STRING,
+  rob3_outcomeDescription STRING,
+  is_ab INT64,
+  is_ab_over INT64,
+  is_hit INT64,
+  is_on_base INT64,
+  is_bunt INT64,
+  is_bunt_shown INT64,
+  is_double_play INT64,
+  is_triple_play INT64,
+  is_wild_pitch INT64,
+  is_passed_ball INT64,
+  homeCurrentTotalRuns INT64,
+  awayCurrentTotalRuns INT64,
+  awayFielder1 STRING,
+  awayFielder2 STRING,
+  awayFielder3 STRING,
+  awayFielder4 STRING,
+  awayFielder5 STRING,
+  awayFielder6 STRING,
+  awayFielder7 STRING,
+  awayFielder8 STRING,
+  awayFielder9 STRING,
+  awayFielder10 STRING,
+  awayFielder11 STRING,
+  awayFielder12 STRING,
+  awayBatter1 STRING,
+  awayBatter2 STRING,
+  awayBatter3 STRING,
+  awayBatter4 STRING,
+  awayBatter5 STRING,
+  awayBatter6 STRING,
+  awayBatter7 STRING,
+  awayBatter8 STRING,
+  awayBatter9 STRING,
+  homeFielder1 STRING,
+  homeFielder2 STRING,
+  homeFielder3 STRING,
+  homeFielder4 STRING,
+  homeFielder5 STRING,
+  homeFielder6 STRING,
+  homeFielder7 STRING,
+  homeFielder8 STRING,
+  homeFielder9 STRING,
+  homeFielder10 STRING,
+  homeFielder11 STRING,
+  homeFielder12 STRING,
+  homeBatter1 STRING,
+  homeBatter2 STRING,
+  homeBatter3 STRING,
+  homeBatter4 STRING,
+  homeBatter5 STRING,
+  homeBatter6 STRING,
+  homeBatter7 STRING,
+  homeBatter8 STRING,
+  homeBatter9 STRING,
+  lineupTeamId STRING,
+  lineupPlayerId STRING,
+  lineupPosition INT64,
+  lineupOrder INT64
+);",
+          "name": "bigquery-public-data:baseball.games_wide",
+          "type": "TABLE",
+        },
+        "bigquery-public-data:baseball.schedules" => {
+          "ddl": "CREATE TABLE \`bigquery-public-data.baseball.schedules\`
+(
+  gameId STRING,
+  gameNumber INT64,
+  seasonId STRING,
+  year INT64,
+  type STRING,
+  dayNight STRING,
+  duration STRING,
+  duration_minutes INT64,
+  homeTeamId STRING,
+  homeTeamName STRING,
+  awayTeamId STRING,
+  awayTeamName STRING,
+  startTime TIMESTAMP,
+  attendance INT64,
+  status STRING,
+  created TIMESTAMP
+);",
+          "name": "bigquery-public-data:baseball.schedules",
+          "type": "TABLE",
+        },
+        "bigquery-public-data:baseball.games_post_wide" => {
+          "ddl": "CREATE TABLE \`bigquery-public-data.baseball.games_post_wide\`
+(
+  gameId STRING,
+  seasonId STRING,
+  seasonType STRING,
+  year INT64,
+  startTime TIMESTAMP,
+  gameStatus STRING,
+  attendance INT64,
+  dayNight STRING,
+  duration STRING,
+  durationMinutes INT64,
+  awayTeamId STRING,
+  awayTeamName STRING,
+  homeTeamId STRING,
+  homeTeamName STRING,
+  venueId STRING,
+  venueName STRING,
+  venueSurface STRING,
+  venueCapacity INT64,
+  venueCity STRING,
+  venueState STRING,
+  venueZip STRING,
+  venueMarket STRING,
+  venueOutfieldDistances STRING,
+  homeFinalRuns INT64,
+  homeFinalHits INT64,
+  homeFinalErrors INT64,
+  awayFinalRuns INT64,
+  awayFinalHits INT64,
+  awayFinalErrors INT64,
+  homeFinalRunsForInning INT64,
+  awayFinalRunsForInning INT64,
+  inningNumber INT64,
+  inningHalf STRING,
+  inningEventType STRING,
+  inningHalfEventSequenceNumber INT64,
+  description STRING,
+  atBatEventType STRING,
+  atBatEventSequenceNumber INT64,
+  createdAt TIMESTAMP,
+  updatedAt TIMESTAMP,
+  status STRING,
+  outcomeId STRING,
+  outcomeDescription STRING,
+  hitterId STRING,
+  hitterLastName STRING,
+  hitterFirstName STRING,
+  hitterWeight INT64,
+  hitterHeight INT64,
+  hitterBatHand STRING,
+  pitcherId STRING,
+  pitcherFirstName STRING,
+  pitcherLastName STRING,
+  pitcherThrowHand STRING,
+  pitchType STRING,
+  pitchTypeDescription STRING,
+  pitchSpeed INT64,
+  pitchZone INT64,
+  pitcherPitchCount INT64,
+  hitterPitchCount INT64,
+  hitLocation INT64,
+  hitType STRING,
+  startingBalls INT64,
+  startingStrikes INT64,
+  startingOuts INT64,
+  balls INT64,
+  strikes INT64,
+  outs INT64,
+  rob0_start STRING,
+  rob0_end INT64,
+  rob0_isOut STRING,
+  rob0_outcomeId STRING,
+  rob0_outcomeDescription STRING,
+  rob1_start STRING,
+  rob1_end INT64,
+  rob1_isOut STRING,
+  rob1_outcomeId STRING,
+  rob1_outcomeDescription STRING,
+  rob2_start STRING,
+  rob2_end INT64,
+  rob2_isOut STRING,
+  rob2_outcomeId STRING,
+  rob2_outcomeDescription STRING,
+  rob3_start STRING,
+  rob3_end INT64,
+  rob3_isOut STRING,
+  rob3_outcomeId STRING,
+  rob3_outcomeDescription STRING,
+  is_ab INT64,
+  is_ab_over INT64,
+  is_hit INT64,
+  is_on_base INT64,
+  is_bunt INT64,
+  is_bunt_shown INT64,
+  is_double_play INT64,
+  is_triple_play INT64,
+  is_wild_pitch INT64,
+  is_passed_ball INT64,
+  homeCurrentTotalRuns INT64,
+  awayCurrentTotalRuns INT64,
+  awayFielder1 STRING,
+  awayFielder2 STRING,
+  awayFielder3 STRING,
+  awayFielder4 STRING,
+  awayFielder5 STRING,
+  awayFielder6 STRING,
+  awayFielder7 STRING,
+  awayFielder8 STRING,
+  awayFielder9 STRING,
+  awayFielder10 STRING,
+  awayFielder11 STRING,
+  awayFielder12 STRING,
+  awayBatter1 STRING,
+  awayBatter2 STRING,
+  awayBatter3 STRING,
+  awayBatter4 STRING,
+  awayBatter5 STRING,
+  awayBatter6 STRING,
+  awayBatter7 STRING,
+  awayBatter8 STRING,
+  awayBatter9 STRING,
+  homeFielder1 STRING,
+  homeFielder2 STRING,
+  homeFielder3 STRING,
+  homeFielder4 STRING,
+  homeFielder5 STRING,
+  homeFielder6 STRING,
+  homeFielder7 STRING,
+  homeFielder8 STRING,
+  homeFielder9 STRING,
+  homeFielder10 STRING,
+  homeFielder11 STRING,
+  homeFielder12 STRING,
+  homeBatter1 STRING,
+  homeBatter2 STRING,
+  homeBatter3 STRING,
+  homeBatter4 STRING,
+  homeBatter5 STRING,
+  homeBatter6 STRING,
+  homeBatter7 STRING,
+  homeBatter8 STRING,
+  homeBatter9 STRING,
+  lineupTeamId STRING,
+  lineupPlayerId STRING,
+  lineupPosition INT64,
+  lineupOrder INT64
+);",
+          "name": "bigquery-public-data:baseball.games_post_wide",
+          "type": "TABLE",
+        },
+      },
+    },
+  ],
   "{\\"name\\":\\"# Check All Dataset and Resources\\",\\"result\\":\\"Total 4 resources\\"}",
   "{\\"name\\":\\"# Check All Dataset and Resources/DDL/bigquery-public-data\\",\\"result\\":\\"Fetching DDL\\"}",
   "{\\"name\\":\\"bigquery-public-data/baseball/fetch metadata\\",\\"result\\":\\"Updated: README.md, metadata.json\\"}",
@@ -2238,7 +2570,7 @@ Set {
 }
 `;
 
-exports[`CLIv2: pull > pull --format=json --with-ddl bigquery-public-data.baseball 3`] = `6`;
+exports[`CLIv2: pull > pull --format=json --with-ddl bigquery-public-data.baseball 3`] = `10`;
 
 exports[`CLIv2: pull > pull --format=json bigquery-public-data.baseball > Pulled Files: Contents 1`] = `
 Map {
