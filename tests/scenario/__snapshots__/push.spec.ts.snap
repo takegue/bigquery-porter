@@ -82,9 +82,9 @@ Deploy your local BigQuery Resources in topological-sorted order
 Options:
   --force                                   Force to apply changes such as deletion without confirmation (default: false)
   --label <key:value...>                    A label to set on a query job. The format is \\"key:value\\"; repeat this option to specify a list of values
-  -p, --parameter <key:value...>            Either a file containing a JSON list of query parameters, or a query parameter in the form \\"name:type:value\\".
-                                            An empty name produces a positional parameter. The type may be omitted to assume STRING: name::value or ::value.
-                                            The value \\"NULL\\" produces a null value. repeat this option to specify a list of values
+  -p, --parameter <key:value...>            Either a file containing a JSON list of query parameters, or a query parameter in the form \\"name:type:value\\". An empty name produces a positional
+                                            parameter. The type may be omitted to assume STRING: name::value or ::value. The value \\"NULL\\" produces a null value. repeat this option to specify a
+                                            list of values
   --maximum_bytes_billed <number of bytes>  The upper limit of bytes billed for the query.
   --dry-run                                 Dry Run (default: false)
   -h, --help                                display help for command
