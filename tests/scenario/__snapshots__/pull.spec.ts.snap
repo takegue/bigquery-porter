@@ -75,13 +75,14 @@ OPTIONS(
   ],
   \\"location\\": \\"US\\"
 }",
-  "@default/examples/sample_table/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-porter.examples.sample_table\`
+  "@default/examples/sample_table/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-porter.sandbox.sample_table\`
 (
-  a INT64
+  a INT64 OPTIONS(description=\\"ふがふが
+ふが\\")
 )
 CLUSTER BY a
 OPTIONS(
-  expiration_timestamp=TIMESTAMP \\"2023-05-20T12:18:34.213Z\\"
+  expiration_timestamp=TIMESTAMP \\"2023-05-20T10:36:54.290Z\\"
 );",
   "@default/examples/sample_table/metadata.json" => "{
   \\"type\\": \\"TABLE\\",
@@ -119,13 +120,14 @@ OPTIONS(
   ],
   \\"location\\": \\"EU\\"
 }",
-  "@default/examples_eu/sample_table/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-porter.examples.sample_table\`
+  "@default/examples_eu/sample_table/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-porter.sandbox.sample_table\`
 (
-  a INT64
+  a INT64 OPTIONS(description=\\"ふがふが
+ふが\\")
 )
 CLUSTER BY a
 OPTIONS(
-  expiration_timestamp=TIMESTAMP \\"2023-05-20T12:18:34.213Z\\"
+  expiration_timestamp=TIMESTAMP \\"2023-05-20T10:36:54.290Z\\"
 );",
   "@default/examples_eu/sample_table/metadata.json" => "{
   \\"type\\": \\"TABLE\\"
@@ -295,7 +297,7 @@ AS (
   }
 }",
   "@default/sandbox/@routines/sample_procedure/ddl.sql" => "CREATE OR REPLACE PROCEDURE sandbox.sample_procedure(IN sample_argument INT64)
-begin 
+begin
   select 1 as a;
 end;",
   "@default/sandbox/@routines/sample_procedure/metadata.json" => "{
@@ -475,13 +477,14 @@ FOR SYSTEM_TIME AS OF TIMESTAMP \\"2023-03-18T10:36:52.311Z\\";",
     \\"description\\": \\"ふがふが\\\\nふが\\"
   }
 ]",
-  "@default/sandbox/sample_table/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-porter.examples.sample_table\`
+  "@default/sandbox/sample_table/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-porter.sandbox.sample_table\`
 (
-  a INT64
+  a INT64 OPTIONS(description=\\"ふがふが
+ふが\\")
 )
 CLUSTER BY a
 OPTIONS(
-  expiration_timestamp=TIMESTAMP \\"2023-05-20T12:18:34.213Z\\"
+  expiration_timestamp=TIMESTAMP \\"2023-05-20T10:36:54.290Z\\"
 );",
   "@default/sandbox/sample_table/metadata.json" => "{
   \\"type\\": \\"TABLE\\",
