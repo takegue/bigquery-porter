@@ -46,9 +46,9 @@ export function createCLI() {
     )
     .option(
       '-p, --parameter <key:value...>',
-      `Either a file containing a JSON list of query parameters, or a query parameter in the form "name:type:value".` +
-        `An empty name produces a positional parameter. The type may be omitted to assume STRING: name::value or ::value.` +
-        `The value "NULL" produces a null value. repeat this option to specify a list of values`,
+      `Either a file containing a JSON list of query parameters, or a query parameter in the form "name:type:value".\n` +
+      `An empty name produces a positional parameter. The type may be omitted to assume STRING: name::value or ::value.\n` +
+      `The value "NULL" produces a null value. repeat this option to specify a list of values`,
     )
     .option(
       '--maximum_bytes_billed <number of bytes>',
