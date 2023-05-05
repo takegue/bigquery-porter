@@ -28,5 +28,5 @@ jobs:
     - run: npm run build --if-present
     - shell:
         # Force allocate TTY on GitHub Action: https://github.com/actions/runner/issues/241
-        'script -q -e -c "bash --noprofile --norc -eo pipefail {0}"'
+        'script --return -q -e -c "bash --noprofile --norc -eo pipefail {0}"'
       run: npm test
