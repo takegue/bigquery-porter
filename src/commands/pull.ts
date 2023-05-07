@@ -332,7 +332,7 @@ async function* crawlBigQueryDataset(
   }
   const p = Promise.allSettled(promises);
 
-  const pool = async function*() {
+  const pool = async function* () {
     while (true) {
       try {
         await Promise.race([
@@ -372,7 +372,7 @@ const pullMetadataTaskBuilder = (
     const bqId = bq2path(
       bqObj as BigQueryResource,
       projectId === undefined ||
-      projectId === await ctx.BigQuery.getProjectId(),
+        projectId === await ctx.BigQuery.getProjectId(),
     );
 
     const task = new Task(
@@ -407,7 +407,11 @@ async function crawlBigQueryProject(
     ? undefined
     : (allowDatasets.length > 0
       ? allowDatasets
-      : await fs.promises.readdir(projectDir));
+      : (await fs.promises.readdir(projectDir))
+        .filter((f) => {
+          const stat = fs.statSync(`${projectDir}/${f}`);
+          return stat.isDirectory() && !f.startsWith('@');
+        }));
 
   const crawlTask = new Task(
     '# Check All Dataset and Resources',
@@ -426,7 +430,7 @@ async function crawlBigQueryProject(
               return dataset;
             },
           );
-          return await Promise.all(datasets);
+          return Promise.all(datasets);
         }
 
         const [datasets] = await ctx.BigQuery.getDatasets(
