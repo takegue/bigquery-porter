@@ -60,7 +60,30 @@ function getProjectId(
   throw new Error(`Cannot find projectId ${bqObj}`);
 }
 
-export { getProjectId };
+function getFullResourceId(dataset: Dataset): string;
+function getFullResourceId(model: Model): string;
+function getFullResourceId(table: Table): string;
+function getFullResourceId(routine: Routine): string;
+function getFullResourceId(bqObj: Dataset | Table | Routine | Model): string {
+  if (bqObj instanceof Model) {
+    return `${bqObj.dataset.projectId}:${bqObj.dataset.id}.${bqObj.id}`;
+  }
+
+  if (bqObj instanceof Table) {
+    return `${bqObj.dataset.projectId}:${bqObj.dataset.id}.${bqObj.id}`;
+  }
+
+  if (bqObj instanceof Routine) {
+    const dataset = bqObj.parent as Dataset;
+    return `${dataset.projectId}:${dataset.id}.${bqObj.id}`;
+  }
+
+  if (bqObj instanceof Dataset) {
+    return `${bqObj.projectId}:${bqObj.id}`;
+  }
+
+  throw new Error(`Cannot find projectId ${bqObj}`);
+}
 
 const buildThrottledBigQueryClient = (
   concurrency: number,
@@ -287,6 +310,8 @@ export {
   buildThrottledBigQueryClient,
   extractBigQueryDependencies,
   extractBigQueryDestinations,
+  getFullResourceId,
+  getProjectId,
   normalizedBQPath,
   normalizeShardingTableId,
   path2bq,
