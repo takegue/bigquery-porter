@@ -1,0 +1,48 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`CLI: import > import _testImport bqutil.fn.sure_nonnull > Imported Files: Contents 1`] = `
+Map {
+  "@default/_testImport/@routines/sure_nonnull/README.md" => "If non-NULL argument is passed,
+the function returns input \`value\` as-is; however if NULL
+value is passed, it throws an error.
+",
+  "@default/_testImport/@routines/sure_nonnull/ddl.sql" => "create or replace function takegue._testImport.sure_nonnull(value ANY TYPE)
+
+
+as (IF(
+    value IS NOT NULL,
+    value,
+    ERROR(\\"\`bqutil.fn.sure_nonnull\`: Value must be nonull\\")
+  ))",
+  "@default/_testImport/@routines/sure_nonnull/metadata.json" => "{
+  \\"routineType\\": \\"SCALAR_FUNCTION\\",
+  \\"language\\": \\"SQL\\",
+  \\"arguments\\": [
+    {
+      \\"name\\": \\"value\\",
+      \\"argumentKind\\": \\"ANY_TYPE\\"
+    }
+  ]
+}",
+}
+`;
+
+exports[`CLI: import > import _testImport bqutil.fn.sure_nonnull > Imported Files: List 1`] = `{}`;
+
+exports[`CLI: import > import _testImport bqutil.fn.sure_nonnull 1`] = `[]`;
+
+exports[`CLI: import > import --help 1`] = `Map {}`;
+
+exports[`CLI: import > import --help 2`] = `[]`;
+
+exports[`CLI: import > import --help 3`] = `
+[
+  "Usage: program import [options] <destination> [targets...]
+
+Import other dataset UDF into specified dataset
+
+Options:
+  -h, --help  display help for command
+",
+]
+`;

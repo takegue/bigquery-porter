@@ -234,11 +234,20 @@ const fsWriter = async (
     return retFiles;
   }
 
-  if (!ctx.withDDL || !bqObj.metadata?.id || !bqObj.id || !ddlReader) {
+  const bqObjID =
+    (bqObj.metadata.datasetReference != undefined ? bqObj.id : undefined) ??
+    (bqObj.metadata.tableReference != undefined ? bqObj.id : undefined) ??
+    (bqObj.metadata.routineReference != undefined
+      ? `${bqObj.metadata.routineReference.projectId}:${bqObj.metadata.routineReference.datasetId}.${bqObj.metadata.routineReference.routineId}`
+      : undefined) ??
+    (bqObj.metadata.modelReference != undefined
+      ? `${bqObj.metadata.modelReference.projectId}:${bqObj.metadata.modelReference.datasetId}.${bqObj.metadata.modelReference.modelId}`
+      : undefined);
+
+  if (!ctx.withDDL || !bqObjID || !ddlReader) {
     return retFiles;
   }
-
-  const ddlStatement = await ddlReader(bqObj.metadata?.id ?? bqObj.id);
+  const ddlStatement = await ddlReader(bqObjID);
   if (!ddlStatement) {
     return retFiles;
   }
@@ -332,7 +341,7 @@ async function* crawlBigQueryDataset(
   }
   const p = Promise.allSettled(promises);
 
-  const pool = async function* () {
+  const pool = async function*() {
     while (true) {
       try {
         await Promise.race([
@@ -372,7 +381,7 @@ const pullMetadataTaskBuilder = (
     const bqId = bq2path(
       bqObj as BigQueryResource,
       projectId === undefined ||
-        projectId === await ctx.BigQuery.getProjectId(),
+      projectId === await ctx.BigQuery.getProjectId(),
     );
 
     const task = new Task(
@@ -537,4 +546,4 @@ async function pullBigQueryResources(
   return failedTasks;
 }
 
-export { pullBigQueryResources };
+export { pullBigQueryResources, pullMetadataTaskBuilder };

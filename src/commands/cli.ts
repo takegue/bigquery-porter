@@ -4,6 +4,7 @@ import { formatLocalfiles } from '../../src/commands/fix.js';
 import { pushLocalFilesToBigQuery } from '../../src/commands/push.js';
 import { createBundleSQL } from '../../src/commands/bundle.js';
 import { pullBigQueryResources } from '../../src/commands/pull.js';
+import { importBigQueryResources } from '../../src/commands/import.js';
 
 import { buildThrottledBigQueryClient } from '../../src/bigquery.js';
 import type { Query } from '@google-cloud/bigquery';
@@ -47,8 +48,8 @@ export function createCLI() {
     .option(
       '-p, --parameter <key:value...>',
       `Either a file containing a JSON list of query parameters, or a query parameter in the form "name:type:value". ` +
-        `An empty name produces a positional parameter. The type may be omitted to assume STRING: name::value or ::value. ` +
-        `The value "NULL" produces a null value. repeat this option to specify a list of values`,
+      `An empty name produces a positional parameter. The type may be omitted to assume STRING: name::value or ::value. ` +
+      `The value "NULL" produces a null value. repeat this option to specify a list of values`,
     )
     .option(
       '--maximum_bytes_billed <number of bytes>',
@@ -247,10 +248,74 @@ export function createCLI() {
       }
     });
 
+  const importCommand = new Command('import')
+    .description(
+      'Import other dataset UDF into specified dataset',
+    )
+    .argument('<destination>')
+    .argument('[targets...]')
+    .action(
+      async (destination: string, cmdTargets: string[] | undefined, _, cmd) => {
+        const cmdOptions = cmd.optsWithGlobals();
+        const rootDir = cmdOptions.rootPath;
+        if (!rootDir) {
+          console.error('CLI Error');
+          return;
+        }
+
+        const bqClient = buildThrottledBigQueryClient(
+          parseInt(cmdOptions.threads),
+          500,
+        );
+
+        // Parse targets 'bqutils.fn.sure_nonnull' into [{'project': 'bqutils', dataset: 'fn', routine_id: 'sure_nonnull'}]
+        const targets = cmdTargets?.map((target) => {
+          const elms = target.split('.');
+          if (elms.length !== 3) {
+            throw new Error(`Invalid target: ${target}`);
+          }
+          return {
+            project: elms[0] as string,
+            dataset: elms[1] as string,
+            routine_id: elms[2] as string,
+          };
+        }) ?? [];
+
+        let paramDestination: { project: string; dataset: string };
+        const [projectOrDataset, destinationDataset] = destination.split('.');
+        if (destinationDataset) {
+          paramDestination = {
+            project: destinationDataset,
+            dataset: destinationDataset,
+          };
+        } else if (projectOrDataset) {
+          paramDestination = {
+            project: '@default',
+            dataset: projectOrDataset,
+          };
+        } else {
+          throw new Error(`Invalid destination: ${destination}`);
+        }
+
+        const ctx = {
+          bigQuery: bqClient,
+          rootPath: rootDir,
+          destination: paramDestination,
+          importTargets: targets,
+          options: {
+            is_update: true,
+          },
+        };
+
+        await importBigQueryResources(ctx);
+      },
+    );
+
   program.addCommand(pushCommand);
   program.addCommand(pullCommand);
   program.addCommand(formatCommmand);
   program.addCommand(bundleCommand);
+  program.addCommand(importCommand);
 
   return program;
 }
