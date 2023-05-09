@@ -14,6 +14,7 @@ import { syncMetadata } from '../../src/metadata.js';
 import {
   BigQueryResource,
   bq2path,
+  getFullResourceId,
   getProjectId,
   normalizeShardingTableId,
 } from '../../src/bigquery.js';
@@ -234,20 +235,10 @@ const fsWriter = async (
     return retFiles;
   }
 
-  const bqObjID =
-    (bqObj.metadata.datasetReference != undefined ? bqObj.id : undefined) ??
-    (bqObj.metadata.tableReference != undefined ? bqObj.id : undefined) ??
-    (bqObj.metadata.routineReference != undefined
-      ? `${bqObj.metadata.routineReference.projectId}:${bqObj.metadata.routineReference.datasetId}.${bqObj.metadata.routineReference.routineId}`
-      : undefined) ??
-    (bqObj.metadata.modelReference != undefined
-      ? `${bqObj.metadata.modelReference.projectId}:${bqObj.metadata.modelReference.datasetId}.${bqObj.metadata.modelReference.modelId}`
-      : undefined);
-
-  if (!ctx.withDDL || !bqObjID || !ddlReader) {
+  if (!ctx.withDDL || !ddlReader) {
     return retFiles;
   }
-  const ddlStatement = await ddlReader(bqObjID);
+  const ddlStatement = await ddlReader(getFullResourceId(bqObj));
   if (!ddlStatement) {
     return retFiles;
   }

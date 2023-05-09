@@ -32,10 +32,9 @@ function getProjectId(dataset: Dataset): string;
 function getProjectId(model: Model): string;
 function getProjectId(table: Table): string;
 function getProjectId(routine: Routine): string;
-function getProjectId(bigquery: BigQuery): string;
 
 function getProjectId(
-  bqObj: Dataset | Table | Routine | Model | BigQuery,
+  bqObj: Dataset | Table | Routine | Model,
 ): string {
   if (bqObj?.projectId) {
     return bqObj.projectId;
@@ -304,10 +303,35 @@ const extractBigQueryDestinations = async (
   return refs.map((r) => JSON.parse(r));
 };
 
+const constructDDLfromBigQueryObject = async (
+  bqObj: Routine,
+): Promise<string> => {
+  const [metadata, _] = await bqObj.getMetadata();
+  const id = getFullResourceId(bqObj).replace(':', '.');
+
+  const _argumentsString = metadata.arguments
+    ? metadata.arguments.map((arg: any) =>
+      `${arg.name} ${arg.dataType ?? arg.argumentKind.replace('ANY_TYPE', 'ANY TYPE')
+      }`
+    )
+      .join(
+        ', ',
+      )
+    : '';
+
+  return [
+    `create or replace function \`${id}\`(${_argumentsString})`,
+    metadata.language == 'js' ? `language ${metadata.language}` : '',
+    metadata.returnType ? `return ${metadata.returnType}` : '',
+    `as (${metadata.definitionBody})`,
+  ].filter((s) => s).join('\n');
+};
+
 export {
   BigQueryResource,
   bq2path,
   buildThrottledBigQueryClient,
+  constructDDLfromBigQueryObject,
   extractBigQueryDependencies,
   extractBigQueryDestinations,
   getFullResourceId,
