@@ -24,20 +24,6 @@ Map {
   ],
   \\"location\\": \\"US\\"
 }",
-  "@default/examples/sample_table/metadata.json" => "{
-  \\"type\\": \\"TABLE\\",
-  \\"clustering\\": {
-    \\"fields\\": [
-      \\"a\\"
-    ]
-  }
-}",
-  "@default/examples/sample_table/schema.json" => "[
-  {
-    \\"name\\": \\"a\\",
-    \\"type\\": \\"INTEGER\\"
-  }
-]",
 }
 `;
 
@@ -75,28 +61,6 @@ OPTIONS(
   ],
   \\"location\\": \\"US\\"
 }",
-  "@default/examples/sample_table/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-porter.examples.sample_table\`
-(
-  a INT64
-)
-CLUSTER BY a
-OPTIONS(
-  expiration_timestamp=TIMESTAMP \\"2023-05-20T12:18:34.213Z\\"
-);",
-  "@default/examples/sample_table/metadata.json" => "{
-  \\"type\\": \\"TABLE\\",
-  \\"clustering\\": {
-    \\"fields\\": [
-      \\"a\\"
-    ]
-  }
-}",
-  "@default/examples/sample_table/schema.json" => "[
-  {
-    \\"name\\": \\"a\\",
-    \\"type\\": \\"INTEGER\\"
-  }
-]",
   "@default/examples_eu/ddl.sql" => "CREATE SCHEMA IF NOT EXISTS \`bigquery-porter.examples_eu\`
 OPTIONS(
   default_table_expiration_days=60.0,
@@ -125,22 +89,6 @@ OPTIONS(
   ],
   \\"location\\": \\"EU\\"
 }",
-  "@default/examples_eu/sample_table/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-porter.examples_eu.sample_table\`
-(
-  a INT64
-)
-OPTIONS(
-  expiration_timestamp=TIMESTAMP \\"2023-05-12T23:44:41.925Z\\"
-);",
-  "@default/examples_eu/sample_table/metadata.json" => "{
-  \\"type\\": \\"TABLE\\"
-}",
-  "@default/examples_eu/sample_table/schema.json" => "[
-  {
-    \\"name\\": \\"a\\",
-    \\"type\\": \\"INTEGER\\"
-  }
-]",
   "@default/sample_linked_dataset/README.md" => "ソース リスティング: [JP Holidays preprocessed by BQ FUN](//\\\\(bigquery//analyticshub:projects/120299025068/locations/asia-northeast1/dataExchanges/jpdata_18253a34a30/listings/jp_holidays_preprocessed_by_bq_fun_18253c4e9dc/create-linked-dataset\\\\)\\\\(analyticshub:projects/120299025068/locations/asia-northeast1/dataExchanges/jpdata_18253a34a30/listings/jp_holidays_preprocessed_by_bq_fun_18253c4e9dc\\\\))",
   "@default/sample_linked_dataset/ddl.sql" => "CREATE SCHEMA IF NOT EXISTS \`bigquery-porter.sample_linked_dataset\`
 OPTIONS(
@@ -233,55 +181,58 @@ OPTIONS(
         \\"minRelativeProgress\\": 0.01,
         \\"warmStart\\": false,
         \\"earlyStop\\": true,
+        \\"inputLabelColumns\\": [
+          \\"label\\"
+        ],
         \\"dataSplitMethod\\": \\"AUTO_SPLIT\\",
         \\"learnRateStrategy\\": \\"LINE_SEARCH\\",
         \\"initialLearnRate\\": 0.15,
         \\"optimizationStrategy\\": \\"BATCH_GRADIENT_DESCENT\\",
         \\"calculatePValues\\": false
       },
-      \\"trainingStartTime\\": \\"1679395011891\\",
+      \\"trainingStartTime\\": \\"1684782126499\\",
       \\"results\\": [
         {
           \\"index\\": 0,
-          \\"durationMs\\": \\"1931\\",
-          \\"trainingLoss\\": 1491.0539770637374,
+          \\"durationMs\\": \\"1896\\",
+          \\"trainingLoss\\": 1491.0539770637376,
           \\"learnRate\\": 0.3
         },
         {
           \\"index\\": 1,
-          \\"durationMs\\": \\"2353\\",
-          \\"trainingLoss\\": 241.92978201881218,
+          \\"durationMs\\": \\"2198\\",
+          \\"trainingLoss\\": 241.92978201881212,
           \\"learnRate\\": 0.6
         },
         {
           \\"index\\": 2,
-          \\"durationMs\\": \\"2808\\",
+          \\"durationMs\\": \\"2054\\",
           \\"trainingLoss\\": 41.69727113362378,
           \\"learnRate\\": 0.6
         },
         {
           \\"index\\": 3,
-          \\"durationMs\\": \\"1995\\",
-          \\"trainingLoss\\": 7.920357012251938,
+          \\"durationMs\\": \\"2052\\",
+          \\"trainingLoss\\": 7.920357012251929,
           \\"learnRate\\": 0.6
         },
         {
           \\"index\\": 4,
-          \\"durationMs\\": \\"2232\\",
+          \\"durationMs\\": \\"2336\\",
           \\"trainingLoss\\": 2.603613218455023,
           \\"learnRate\\": 0.6
         }
       ],
       \\"evaluationMetrics\\": {
         \\"regressionMetrics\\": {
-          \\"meanAbsoluteError\\": 1.3283107802514735,
+          \\"meanAbsoluteError\\": 1.3283107802514729,
           \\"meanSquaredError\\": 2.603613218455023,
-          \\"meanSquaredLogError\\": 0.0012176719511574083,
+          \\"meanSquaredLogError\\": 0.001217671951157408,
           \\"medianAbsoluteError\\": 1.0159802433960223,
           \\"rSquared\\": 0.9968441051897515
         }
       },
-      \\"startTime\\": \\"2023-03-21T10:36:51.891Z\\"
+      \\"startTime\\": \\"2023-05-22T19:02:06.499Z\\"
     }
   ]
 }",
@@ -370,7 +321,7 @@ OPTIONS(
 )
 CLUSTER BY a
 OPTIONS(
-  expiration_timestamp=TIMESTAMP \\"2023-05-20T10:39:16.121Z\\"
+  expiration_timestamp=TIMESTAMP \\"2023-07-21T19:02:15.707Z\\"
 );",
   "@default/sandbox/sample_clone_table/metadata.json" => "{
   \\"type\\": \\"TABLE\\",
@@ -388,7 +339,7 @@ OPTIONS(
 ]",
   "@default/sandbox/sample_materialized_view/ddl.sql" => "CREATE MATERIALIZED VIEW IF NOT EXISTS  \`bigquery-porter.sandbox.sample_materialized_view\`
 OPTIONS(
-  expiration_timestamp=TIMESTAMP \\"2023-05-20T10:36:56.363Z\\"
+  expiration_timestamp=TIMESTAMP \\"2023-07-21T19:02:10.020Z\\"
 )
 AS select 1 as a from \`sandbox.sample_table\`;",
   "@default/sandbox/sample_materialized_view/metadata.json" => "{
@@ -427,7 +378,7 @@ OPTIONS(
   date_jst DATE
 )
 OPTIONS(
-  expiration_timestamp=TIMESTAMP \\"2023-05-20T10:36:53.787Z\\"
+  expiration_timestamp=TIMESTAMP \\"2023-07-21T19:02:08.362Z\\"
 );",
   "@default/sandbox/sample_sharding_@/metadata.json" => "{
   \\"type\\": \\"TABLE\\"
@@ -439,11 +390,11 @@ OPTIONS(
   }
 ]",
   "@default/sandbox/sample_snapshot_table/ddl.sql" => "CREATE SNAPSHOT TABLE \`bigquery-porter.sandbox.sample_snapshot_table\`
-CLONE \`takegue.sandbox.sample_table\`
+CLONE \`bigquery-porter.sandbox.sample_table\`
 OPTIONS(
-  expiration_timestamp=TIMESTAMP \\"2023-05-20T10:36:52.966Z\\"
+  expiration_timestamp=TIMESTAMP \\"2023-07-28T19:01:36.543Z\\"
 )
-FOR SYSTEM_TIME AS OF TIMESTAMP \\"2023-03-18T10:36:52.311Z\\";",
+FOR SYSTEM_TIME AS OF TIMESTAMP \\"2023-05-29T18:01:35.384Z\\";",
   "@default/sandbox/sample_snapshot_table/metadata.json" => "{
   \\"type\\": \\"SNAPSHOT\\",
   \\"clustering\\": {
@@ -453,19 +404,19 @@ FOR SYSTEM_TIME AS OF TIMESTAMP \\"2023-03-18T10:36:52.311Z\\";",
   },
   \\"snapshotDefinition\\": {
     \\"baseTableReference\\": {
-      \\"projectId\\": \\"takegue\\",
+      \\"projectId\\": \\"bigquery-porter\\",
       \\"datasetId\\": \\"sandbox\\",
       \\"tableId\\": \\"sample_table\\"
     },
-    \\"snapshotTime\\": \\"2023-03-18T10:36:52.311Z\\"
+    \\"snapshotTime\\": \\"2023-05-29T18:01:35.384Z\\"
   },
   \\"cloneDefinition\\": {
     \\"baseTableReference\\": {
-      \\"projectId\\": \\"takegue\\",
+      \\"projectId\\": \\"bigquery-porter\\",
       \\"datasetId\\": \\"sandbox\\",
       \\"tableId\\": \\"sample_table\\"
     },
-    \\"snapshotTime\\": \\"2023-03-18T10:36:52.311Z\\"
+    \\"snapshotTime\\": \\"2023-05-29T18:01:35.384Z\\"
   }
 }",
   "@default/sandbox/sample_snapshot_table/schema.json" => "[
@@ -482,7 +433,7 @@ FOR SYSTEM_TIME AS OF TIMESTAMP \\"2023-03-18T10:36:52.311Z\\";",
 )
 CLUSTER BY a
 OPTIONS(
-  expiration_timestamp=TIMESTAMP \\"2023-05-20T10:36:54.290Z\\"
+  expiration_timestamp=TIMESTAMP \\"2023-07-21T19:02:08.519Z\\"
 );",
   "@default/sandbox/sample_table/metadata.json" => "{
   \\"type\\": \\"TABLE\\",
