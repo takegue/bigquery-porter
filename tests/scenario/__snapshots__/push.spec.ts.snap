@@ -80,8 +80,8 @@ exports[`CLI: push > push --help 1`] = `
 Deploy your local BigQuery Resources in topological-sorted order
 
 Options:
-  --force                                   Force to apply changes such as deletion without confirmation (default:
-                                            false)
+  --sweeping-mode <mode>                    Strategy for undefined/orphans BigQuery resources. option:
+                                            confirm(default), ignore, backup (default: \\"confirm\\")
   --label <key:value...>                    A label to set on a query job. The format is \\"key:value\\"; repeat this
                                             option to specify a list of values
   -p, --parameter <key:value...>            Either a file containing a JSON list of query parameters, or a query
