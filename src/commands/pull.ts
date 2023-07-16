@@ -14,6 +14,7 @@ import { syncMetadata } from '../../src/metadata.js';
 import {
   BigQueryResource,
   bq2path,
+  getFullResourceId,
   getProjectId,
   normalizeShardingTableId,
 } from '../../src/bigquery.js';
@@ -234,11 +235,10 @@ const fsWriter = async (
     return retFiles;
   }
 
-  if (!ctx.withDDL || !bqObj.metadata?.id || !bqObj.id || !ddlReader) {
+  if (!ctx.withDDL || !ddlReader) {
     return retFiles;
   }
-
-  const ddlStatement = await ddlReader(bqObj.metadata?.id ?? bqObj.id);
+  const ddlStatement = await ddlReader(getFullResourceId(bqObj));
   if (!ddlStatement) {
     return retFiles;
   }
@@ -332,7 +332,7 @@ async function* crawlBigQueryDataset(
   }
   const p = Promise.allSettled(promises);
 
-  const pool = async function* () {
+  const pool = async function*() {
     while (true) {
       try {
         await Promise.race([
@@ -372,7 +372,7 @@ const pullMetadataTaskBuilder = (
     const bqId = bq2path(
       bqObj as BigQueryResource,
       projectId === undefined ||
-        projectId === await ctx.BigQuery.getProjectId(),
+      projectId === await ctx.BigQuery.getProjectId(),
     );
 
     const task = new Task(
@@ -537,4 +537,4 @@ async function pullBigQueryResources(
   return failedTasks;
 }
 
-export { pullBigQueryResources };
+export { pullBigQueryResources, pullMetadataTaskBuilder };

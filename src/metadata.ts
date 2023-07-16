@@ -123,7 +123,7 @@ const syncMetadata = async (
       snapshotDefinition: metadata?.snapshotDefinition,
 
       // cloneDefinition attribute
-      cloneDefinition: metadata?.snapshotDefinition,
+      cloneDefinition: metadata?.cloneDefinition,
 
       // Dataset attribute
       access: metadata?.access,
