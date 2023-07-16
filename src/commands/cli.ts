@@ -1,7 +1,7 @@
 import * as fs from 'node:fs';
 
 import { formatLocalfiles } from '../../src/commands/fix.js';
-import { pushLocalFilesToBigQuery } from '../../src/commands/push.js';
+import { PushContext, pushLocalFilesToBigQuery } from '../../src/commands/push.js';
 import { createBundleSQL } from '../../src/commands/bundle.js';
 import { pullBigQueryResources } from '../../src/commands/pull.js';
 
@@ -36,9 +36,9 @@ export function createCLI() {
     )
     .argument('[projects...]')
     .option(
-      '--force',
-      'Force to apply changes such as deletion without confirmation',
-      false,
+      '--sweeping-mode <mode>',
+      'Strategy for undefined/orphans BigQuery resources. option: confirm(default), ignore, rename',
+      'confirm',
     )
     .option(
       '--label <key:value...>',
@@ -147,6 +147,22 @@ export function createCLI() {
         500,
       );
 
+      const sweepMode: PushContext['SweepStrategy']['mode'] = (() => {
+        if(!cmdOptions.sweepingMode) {
+          return 'confirm'
+        }
+        switch (cmdOptions.sweepingMode) {
+          case 'ignore':
+          case 'rename_and_7d_expire':
+          case 'confirm':
+          case 'force':
+            return cmdOptions.sweepingMode
+          default:
+            // Error for invalid option
+            throw Error(`Invalid --sweeping-mode option: ${cmdOptions.sweepingMode}`);
+        }
+      })();
+
       for (const project of projects) {
         const ctx = {
           BigQuery: {
@@ -155,10 +171,13 @@ export function createCLI() {
           },
           rootPath: rootDir,
           dryRun: cmdOptions.dryRun ?? false,
-          force: cmdOptions.force ?? false,
+          SweepStrategy: {
+            mode: sweepMode,
+            ignorePrefix: 'zorphan__',
+          },
           reporter: cmdOptions.format ?? 'console',
           enableDataLineage: cmdOptions.enableDatalineage ?? false,
-        };
+        } as PushContext;
 
         const failed = await pushLocalFilesToBigQuery(ctx, jobOption);
         if (failed > 0) {

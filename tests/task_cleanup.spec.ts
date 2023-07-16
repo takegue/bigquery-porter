@@ -35,9 +35,11 @@ describe('Task: Cleanup tasks', () => {
         _root,
         _project,
         'missing_dataset',
+        'confirm',
         {
           dryRun: true,
           withoutConrimation: true,
+          ignorePrefix: '',
         },
       );
 
@@ -51,9 +53,11 @@ describe('Task: Cleanup tasks', () => {
         _root,
         _project,
         'missing_dataset',
+        'confirm',
         {
           dryRun: true,
           withoutConrimation: true,
+          ignorePrefix: '',
         },
       );
 
@@ -97,7 +101,7 @@ describe('Task: Cleanup tasks', () => {
       }
     });
 
-    it.concurrent('Should remove table missing in local without prompt', async (ctx) => {
+    it.concurrent("Shouldn't remove table missing in local without prompt with ignore mode", async (ctx) => {
       const { settings: { _root, _project } } = ctx as any;
       const tasks = await createCleanupTasks(
         {
@@ -106,8 +110,56 @@ describe('Task: Cleanup tasks', () => {
             client: bqClient,
           },
           dryRun: false,
-          force: true,
           rootPath: _root,
+          SweepStrategy: {
+            mode: 'ignore',
+            ignorePrefix: '',
+          }
+        },
+      );
+
+      expect(tasks.length).toBe(0);
+    });
+
+    it.concurrent('Should remove table missing in local with prompt', async (ctx) => {
+      const { settings: { _root, _project } } = ctx as any;
+
+      const tasks = await createCleanupTasks(
+        {
+          BigQuery: {
+            projectId: _project,
+            client: bqClient,
+          },
+          dryRun: false,
+          rootPath: _root,
+          SweepStrategy: {
+            mode: 'force',
+            ignorePrefix: '',
+          }
+        },
+      );
+
+      expect(tasks.length).toBe(1);
+      expect(tasks[0]?.name).toBe(
+        'bigquery-public-data/austin_bikeshare/(DELETE)/TABLE/bikeshare_stations',
+      );
+    });
+
+    it.concurrent('Dry run', async (ctx) => {
+      const { settings: { _root, _project } } = ctx as any;
+
+      const tasks = await createCleanupTasks(
+        {
+          BigQuery: {
+            projectId: _project,
+            client: bqClient,
+          },
+          dryRun: true,
+          rootPath: _root,
+          SweepStrategy: {
+            mode: 'confirm',
+            ignorePrefix: '',
+          }
         },
       );
 
@@ -127,14 +179,17 @@ describe('Task: Cleanup tasks', () => {
             client: bqClient,
           },
           dryRun: false,
-          force: false,
           rootPath: _root,
+          SweepStrategy: {
+            mode: 'rename_and_7d_expire',
+            ignorePrefix: '',
+          }
         },
       );
 
       expect(tasks.length).toBe(1);
       expect(tasks[0]?.name).toBe(
-        'bigquery-public-data/austin_bikeshare/(DELETE)/TABLE/bikeshare_stations',
+        'bigquery-public-data/austin_bikeshare/(RENAME)/TABLE/bikeshare_stations',
       );
     });
   });
@@ -180,8 +235,11 @@ describe('Task: Cleanup tasks', () => {
             client: bqClient,
           },
           dryRun: false,
-          force: true,
           rootPath: _root,
+          SweepStrategy: {
+            mode: 'confirm',
+            ignorePrefix: '',
+          }
         },
       );
 
