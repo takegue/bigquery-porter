@@ -10,13 +10,18 @@ import { prompt } from '../../src/prompt.js';
 
 type PushContext = {
   dryRun: boolean;
-  force: boolean;
   rootPath: string;
   BigQuery: {
     projectId: string;
     client: BigQuery;
   };
+  SweepStrategy: SweepStrategy;
   // reporter: BuiltInReporters;
+};
+
+type SweepStrategy = {
+  mode: 'confirm' | 'force' | 'ignore' | 'rename_and_7d_expire';
+  ignorePrefix: string;
 };
 
 const cleanupBigQueryDataset = async (
@@ -24,11 +29,17 @@ const cleanupBigQueryDataset = async (
   rootDir: string,
   projectId: string,
   datasetId: string,
+  mode: SweepStrategy['mode'],
   options?: {
     dryRun?: boolean;
     withoutConrimation: boolean;
+    ignorePrefix: string;
   },
 ): Promise<BigQueryJobTask[]> => {
+  if(mode === 'ignore') {
+    return [];
+  }
+
   const defaultProjectId = await bqClient.getProjectId();
   const nsProject = projectId != '@default' ? projectId : defaultProjectId;
 
@@ -113,7 +124,7 @@ const cleanupBigQueryDataset = async (
     if (!isForce && !isDryRun) {
       const ans = await prompt(
         [
-          `Found BigQuery reousrces with no local files. Do you delete these resources? (y/n)`,
+          `Found BigQuery reousrces with no definition by local files. Do you delete these resources? (y/n)`,
           `[${resourceType}s]`,
           `  ${[...kind.keys()].join('\n  ')} `,
           'Ans>',
@@ -125,26 +136,83 @@ const cleanupBigQueryDataset = async (
     }
 
     for (const [bqId, resource] of kind) {
-      const task = new BigQueryJobTask(
-        [
-          nsProject,
-          datasetId,
-          '(DELETE)',
-          resourceType.toUpperCase(),
-          bqId.split('.').pop(),
-        ]
-          .join('/'),
-        async () => {
-          try {
-            console.error(`${isDryRun ? '(DRYRUN) ' : ''}Deleting ${bqId}`);
-            if (!isDryRun) {
-              await resource.delete();
-            }
-          } catch (e) {
+      // Skip process prefixed by ignorePrefix
+      const task: BigQueryJobTask = (() => {
+        switch(mode) {
+          case 'rename_and_7d_expire':
+            return new BigQueryJobTask(
+              [
+                nsProject,
+                datasetId,
+                '(RENAME)',
+                resourceType.toUpperCase(),
+                bqId.split('.').pop(),
+              ]
+                .join('/'),
+              async () => {
+                if (options?.ignorePrefix && (bqId.split('.').pop() ?? 'undefined').startsWith(options.ignorePrefix)) {
+                  return {isDryRun};
+                }
+
+                if(resourceType === 'Table') {
+                  const dataset = (resource?.parent as Dataset);
+                  const client: BigQuery = (dataset.parent as BigQuery);
+                  const newTableName = `${(options?.ignorePrefix ?? 'zz_')}${resource.id}`
+                  const tableRenameTo = `${dataset.projectId}.${dataset.id}.${newTableName}`;
+                  const query = `
+                    -- BigQuery Porter: Rename table
+                    ALTER TABLE \`${bqId}\` RENAME TO \`${newTableName}\`;
+                    ALTER TABLE \`${tableRenameTo}\` SET OPTIONS(
+                      expiration_timestamp=TIMESTAMP_ADD(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
+                    );
+                  `
+                  try {
+                    console.error(`${isDryRun ? '(DRYRUN) ' : ''}  Renaming ${bqId} to ${tableRenameTo}`);
+                    const [job] = await client.createQueryJob({
+                      query,
+                      jobPrefix: `bqport-metadata_rename-`,
+                    })
+                    if (!job) {
+                      throw Error('Renamign Exception: Exception');
+                    }
+                    return { isDryRun }
+                  } catch (e) {
+                    console.error(e);
+                  }
+
+                }
+
+                return { isDryRun };
+              },
+            );
+          default:
+            return new BigQueryJobTask(
+              [
+                nsProject,
+                datasetId,
+                '(DELETE)',
+                resourceType.toUpperCase(),
+                bqId.split('.').pop(),
+              ]
+              .join('/'),
+              async () => {
+                try {
+                  console.error(`${isDryRun ? '(DRYRUN) ' : '🗑️'} Deleting ${bqId}`);
+                  if (!isDryRun) {
+                    // switch (mode) {
+                    //   case 'rename': 
+                    //     break;
+                    //   default: 
+                    await resource.delete();
+                  }
+                } catch (e) {
+                }
+                return { isDryRun };
+              },
+              );
           }
-          return { isDryRun };
-        },
-      );
+      })();
+
       tasks.push(task);
     }
   }
@@ -166,9 +234,11 @@ const createCleanupTasks = async (
       ctx.rootPath,
       ctx.BigQuery.projectId,
       path.basename(dataset),
+      ctx.SweepStrategy.mode,
       {
         dryRun: ctx.dryRun,
-        withoutConrimation: ctx.force,
+        withoutConrimation: ctx.SweepStrategy.mode !== 'confirm',
+        ignorePrefix: ctx.SweepStrategy.ignorePrefix,
       },
     ).catch((e) => {
       console.error(e);
@@ -180,4 +250,4 @@ const createCleanupTasks = async (
   return tasks;
 };
 
-export { cleanupBigQueryDataset, createCleanupTasks };
+export { cleanupBigQueryDataset, createCleanupTasks, SweepStrategy};
