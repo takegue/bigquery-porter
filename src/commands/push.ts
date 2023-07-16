@@ -28,17 +28,17 @@ import {
   normalizeShardingTableId,
   path2bq,
 } from '../../src/bigquery.js';
-import { createCleanupTasks } from '../../src/tasks/cleanup.js';
+import { SweepStrategy, createCleanupTasks } from '../../src/tasks/cleanup.js';
 
 type PushContext = {
   dryRun: boolean;
-  force: boolean;
   rootPath: string;
   enableDataLineage: boolean;
   BigQuery: {
     projectId: string;
     client: BigQuery;
   };
+  SweepStrategy: SweepStrategy;
   reporter: BuiltInReporters;
 };
 
@@ -542,4 +542,4 @@ async function pushLocalFilesToBigQuery(
   return failedTasks;
 }
 
-export { buildDAG, pushLocalFilesToBigQuery };
+export { buildDAG, pushLocalFilesToBigQuery, PushContext};
