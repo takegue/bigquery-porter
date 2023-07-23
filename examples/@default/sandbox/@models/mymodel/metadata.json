@@ -46,52 +46,53 @@
         "initialLearnRate": 0.15,
         "optimizationStrategy": "BATCH_GRADIENT_DESCENT",
         "calculatePValues": false,
+        "enableGlobalExplain": false,
         "fitIntercept": true,
         "standardizeFeatures": true
       },
-      "trainingStartTime": "1684782126499",
+      "trainingStartTime": "1690084242490",
       "results": [
         {
           "index": 0,
-          "durationMs": "1896",
+          "durationMs": "1818",
           "trainingLoss": 1491.0539770637376,
           "learnRate": 0.3
         },
         {
           "index": 1,
-          "durationMs": "2198",
+          "durationMs": "1967",
           "trainingLoss": 241.92978201881212,
           "learnRate": 0.6
         },
         {
           "index": 2,
-          "durationMs": "2054",
-          "trainingLoss": 41.69727113362378,
+          "durationMs": "1798",
+          "trainingLoss": 41.697271133623744,
           "learnRate": 0.6
         },
         {
           "index": 3,
-          "durationMs": "2052",
-          "trainingLoss": 7.920357012251929,
+          "durationMs": "1850",
+          "trainingLoss": 7.920357012251903,
           "learnRate": 0.6
         },
         {
           "index": 4,
-          "durationMs": "2336",
-          "trainingLoss": 2.603613218455023,
+          "durationMs": "1670",
+          "trainingLoss": 2.603613218455012,
           "learnRate": 0.6
         }
       ],
       "evaluationMetrics": {
         "regressionMetrics": {
-          "meanAbsoluteError": 1.3283107802514729,
-          "meanSquaredError": 2.603613218455023,
-          "meanSquaredLogError": 0.001217671951157408,
-          "medianAbsoluteError": 1.0159802433960223,
+          "meanAbsoluteError": 1.3283107802514682,
+          "meanSquaredError": 2.603613218455012,
+          "meanSquaredLogError": 0.0012176719511573831,
+          "medianAbsoluteError": 1.0159802433960081,
           "rSquared": 0.9968441051897515
         }
       },
-      "startTime": "2023-05-22T19:02:06.499Z"
+      "startTime": "2023-07-23T03:50:42.490Z"
     }
   ]
 }
