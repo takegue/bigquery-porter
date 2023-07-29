@@ -115,6 +115,11 @@ const _extractBigQueryResourceIdentifier = (node: any) => {
     return node.functionNode;
   }
 
+  // FOREIGN KEY
+  if (fields.includes('referencedTableNameNode')) {
+    return node.referencedTableNameNode;
+  }
+
   return null;
 };
 
@@ -215,6 +220,10 @@ function extractRefenrences(sql: string): string[] {
     }
 
     if (n.parent.type.match(/call_statement/)) {
+      ret.push(n.text);
+    }
+
+    if (n.parent.type === 'foreign_key_references') {
       ret.push(n.text);
     }
   }

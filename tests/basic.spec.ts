@@ -102,6 +102,17 @@ describe('util test: sql extraction ', () => {
       expectedReferences: [],
     },
     {
+      input: `CREATE TABLE fk_table (
+            x INT64,
+            y INT64,
+            z INT64,
+            FOREIGN KEY (x, y) REFERENCES primary_key_table(column_name) NOT ENFORCED
+        );
+          `,
+      expectedDestinations: [['fk_table', 'TABLE', 'DDL_CREATE']],
+      expectedReferences: ['primary_key_table'],
+    },
+    {
       input:
         `create or replace procedure \`sandbox.sample_proc\`(in argument int64)
             options(description="test")
