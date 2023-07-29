@@ -201,7 +201,8 @@ function extractRefenrences(sql: string): string[] {
   let CTEs = new Set<string>();
 
   for (let n of findBigQueryResourceIdentifier(tree.rootNode)) {
-    if (n.parent.type.match(/non_recursive_cte/)) {
+    // Exclude CTE names from  candidates
+    if (n.parent.type.match(/cte/)) {
       CTEs.add(n.text);
     }
 
