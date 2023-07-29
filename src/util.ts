@@ -115,6 +115,11 @@ const _extractBigQueryResourceIdentifier = (node: any) => {
     return node.functionNode;
   }
 
+  // FOREIGN KEY
+  if (fields.includes('referencedTableNameNode')) {
+    return node.referencedTableNameNode;
+  }
+
   return null;
 };
 
@@ -201,7 +206,8 @@ function extractRefenrences(sql: string): string[] {
   let CTEs = new Set<string>();
 
   for (let n of findBigQueryResourceIdentifier(tree.rootNode)) {
-    if (n.parent.type.match(/non_recursive_cte/)) {
+    // Exclude CTE names from  candidates
+    if (n.parent.type.match(/cte/)) {
       CTEs.add(n.text);
     }
 
@@ -214,6 +220,10 @@ function extractRefenrences(sql: string): string[] {
     }
 
     if (n.parent.type.match(/call_statement/)) {
+      ret.push(n.text);
+    }
+
+    if (n.parent.type === 'foreign_key_references') {
       ret.push(n.text);
     }
   }
