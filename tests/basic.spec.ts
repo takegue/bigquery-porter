@@ -76,7 +76,7 @@ describe('util test: sql extraction ', () => {
     {
       input: `with cte as (select * from \`child_table\`) select * from cte`,
       expectedDestinations: [],
-      expectedReferences: ['`child_table`'],
+      expectedReferences: ['`child_table`', 'cte'],
     },
     {
       input: `select 1`,
