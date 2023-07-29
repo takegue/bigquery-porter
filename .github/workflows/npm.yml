@@ -37,6 +37,7 @@ jobs:
           TAG_NAME: v${{ env.PACKAGE_VERSION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   release:
+    needs: check
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -51,6 +52,8 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
+      - name: Set PACKAGE_VERSION
+        run: echo "PACKAGE_VERSION=$(cat package.json | jq -r .version)" >> $GITHUB_ENV
       - run: npm ci
       - run: npm run build
       - run: npm publish
