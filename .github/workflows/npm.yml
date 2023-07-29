@@ -1,9 +1,42 @@
 name: Publish Package to npmjs
 on:
+  pull_request:
+    branches:
+      - main
+      - master
+    types: [ closed ]
+  workflow_dispatch: # force release
   release:
     types: [published]
 jobs:
-  build:
+  check:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    # when release PR is merged or workflow_dispatch is triggered, run this job
+    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
+    outputs:
+      EXISTS_TAG: ${{ steps.tag_check.outputs.EXISTS_TAG }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set PACKAGE_VERSION
+        run: echo "PACKAGE_VERSION=$(cat lerna.json | jq -r .version)" >> $GITHUB_ENV
+      - name: Tag Check
+        id: tag_check
+        run: |
+          GET_API_URL="https://api.github.com/repos/${GITHUB_REPOSITORY}/git/ref/tags/${TAG_NAME}"
+          http_status_code=$(curl -LI $GET_API_URL -o /dev/null -w '%{http_code}\n' -s \
+            -H "Authorization: token ${GITHUB_TOKEN}")
+          if [ "$http_status_code" -ne "404" ] ; then
+            echo "EXISTS_TAG=true" >> $GITHUB_OUTPUT
+          else
+            echo "EXISTS_TAG=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          TAG_NAME: v${{ env.PACKAGE_VERSION }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -12,17 +45,46 @@ jobs:
       # Setup .npmrc file to publish to npm
       - uses: actions/setup-node@v3
         with:
-          node-version: '16.x'
+          node-version: '20.x'
           registry-url: 'https://registry.npmjs.org'
-      - run: npm ci
-      - run: npm run build
       - name: git setting
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-      - run: |
-          npm version --no-git-tag-version "${{ github.event.release.tag_name }}"
-          git push --follow-tags origin HEAD:main
+      - run: npm ci
+      - run: npm run build
       - run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Create Git Tag
+        uses: pkgdeps/git-tag-action@v2
+        with:
+          version: ${{ env.PACKAGE_VERSION }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_repo: ${{ github.repository }}
+          git_commit_sha: ${{ github.sha }}
+          git_tag_prefix: "v"
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ env.PACKAGE_VERSION }}
+          # Copy Pull Request's tile and body to Release Note
+          name: ${{ github.event.pull_request.title }}
+          body: ${{ github.event.pull_request.body }}
+          draft: false
+          prerelease: false
+          generate_release_notes: ${{ !github.event.pull_request.body }}
+      - uses: actions/github-script@v6
+        if: github.event_name != 'workflow_dispatch'
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🎉 Release https://github.com/${{ github.repository }}/releases/tag/v${{ env.PACKAGE_VERSION }}'
+            })
