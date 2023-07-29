@@ -395,9 +395,9 @@ OPTIONS(
   "@default/sandbox/sample_snapshot_table/ddl.sql" => "CREATE SNAPSHOT TABLE \`bigquery-porter.sandbox.sample_snapshot_table\`
 CLONE \`bigquery-porter.sandbox.sample_table\`
 OPTIONS(
-  expiration_timestamp=TIMESTAMP \\"2023-07-28T19:01:36.543Z\\"
+  expiration_timestamp=TIMESTAMP \\"2023-09-27T02:35:06.134Z\\"
 )
-FOR SYSTEM_TIME AS OF TIMESTAMP \\"2023-05-29T18:01:35.384Z\\";",
+FOR SYSTEM_TIME AS OF TIMESTAMP \\"2023-07-29T01:35:05.255Z\\";",
   "@default/sandbox/sample_snapshot_table/metadata.json" => "{
   \\"type\\": \\"SNAPSHOT\\",
   \\"clustering\\": {
@@ -411,7 +411,7 @@ FOR SYSTEM_TIME AS OF TIMESTAMP \\"2023-05-29T18:01:35.384Z\\";",
       \\"datasetId\\": \\"sandbox\\",
       \\"tableId\\": \\"sample_table\\"
     },
-    \\"snapshotTime\\": \\"2023-05-29T18:01:35.384Z\\"
+    \\"snapshotTime\\": \\"2023-07-29T01:35:05.255Z\\"
   },
   \\"cloneDefinition\\": {
     \\"baseTableReference\\": {
@@ -419,7 +419,7 @@ FOR SYSTEM_TIME AS OF TIMESTAMP \\"2023-05-29T18:01:35.384Z\\";",
       \\"datasetId\\": \\"sandbox\\",
       \\"tableId\\": \\"sample_table\\"
     },
-    \\"snapshotTime\\": \\"2023-05-29T18:01:35.384Z\\"
+    \\"snapshotTime\\": \\"2023-07-29T01:35:05.255Z\\"
   }
 }",
   "@default/sandbox/sample_snapshot_table/schema.json" => "[
