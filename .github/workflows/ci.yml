@@ -1,6 +1,8 @@
 name: CI - testing
 # run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
 on: [push]
+concurrency:
+  group: ci-testing
 jobs:
   build:
     permissions:
