@@ -47,6 +47,7 @@
         "optimizationStrategy": "BATCH_GRADIENT_DESCENT",
         "calculatePValues": false,
         "enableGlobalExplain": false,
+        "categoryEncodingMethod": "ONE_HOT_ENCODING",
         "fitIntercept": true,
         "standardizeFeatures": true
       },
