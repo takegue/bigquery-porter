@@ -190,6 +190,7 @@ OPTIONS(
         \\"optimizationStrategy\\": \\"BATCH_GRADIENT_DESCENT\\",
         \\"calculatePValues\\": false,
         \\"enableGlobalExplain\\": false,
+        \\"categoryEncodingMethod\\": \\"ONE_HOT_ENCODING\\",
         \\"fitIntercept\\": true,
         \\"standardizeFeatures\\": true
       },
@@ -431,8 +432,7 @@ FOR SYSTEM_TIME AS OF TIMESTAMP \\"2023-07-29T01:35:05.255Z\\";",
 ]",
   "@default/sandbox/sample_table/ddl.sql" => "CREATE TABLE IF NOT EXISTS \`bigquery-porter.sandbox.sample_table\`
 (
-  a INT64 OPTIONS(description=\\"ふがふが
-ふが\\")
+  a INT64 OPTIONS(description=\\"ふがふが\\\\nふが\\")
 )
 CLUSTER BY a
 OPTIONS(
